@@ -1,0 +1,233 @@
+.green-btn{
+    padding: 10px 20px; /* Mayor padding para hacerlo cuadrado */
+    border: 2px solid #8BC34A; /* Borde verde claro */
+    background-color: #ffffff; /* Fondo blanco */
+    color: #8BC34A; /* Texto verde claro */
+    font-size: 16px; /* Tamaño de fuente */
+    font-weight: bold; /* Negrita */
+    text-transform: uppercase; /* Convertir texto a mayúsculas */
+    cursor: pointer; /* Cambiar el cursor al pasar por encima */
+    transition: background-color 0.3s, color 0.3s; /* Transición suave */
+}
+
+.green-btn:hover {
+    background-color: #8BC34A; /* Fondo verde claro al pasar el ratón */
+    color: #ffffff; /* Texto blanco al pasar el ratón */
+}
+
+.portada{
+    height: 640px;
+    overflow: hidden;
+    display: flex; /* Usamos flexbox */
+    justify-content: center; /* Centramos horizontalmente */
+    align-items: center;
+    position: relative;
+}
+
+.degradado {
+    position: absolute; /* Posicionamos el degradado sobre la imagen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0)); /* Opacidad en degradado de izquierda a derecha */
+}
+
+.portada-cuadro{
+    position: absolute;
+    z-index: 1;
+    width: 50%;
+    left:0px;
+    height: 100%;
+}
+
+.portada-texto{
+    height: 100%;
+    
+}
+
+.portada-interno{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: absolute; /* Posiciona el texto de forma absoluta dentro del contenedor */
+    left: 10%; 
+    top: 25%; 
+    right:10%;
+    bottom: 25%;
+    padding: 10px; /* Agrega padding alrededor del texto */
+}
+
+.portada-interno button{
+    width: 50%;
+    background-color: #8BC34A;
+    color: white;
+}
+
+.portada-interno button:hover{
+    border: 2px solid #8BC34A; /* Borde verde claro */
+    background-color: #ffffff; /* Fondo blanco */
+    color: #8BC34A; /* Texto verde claro */
+}
+
+
+h1{
+    color: white;
+    z-index: 1;
+    font: 'Roboto';
+    font-weight: normal;
+    font-size: 4em;
+    margin:0;
+}
+
+.descripcion{
+    color: white;
+    font-weight: 300;
+}
+
+.poster {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    object-fit:cover;
+}
+
+.mantenimiento {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los elementos horizontalmente */
+    justify-content: center; /* Centra los elementos verticalmente */
+    padding-top:3vh;
+    padding-bottom: 15vh;
+    padding-left: 5vw;
+    padding-right: 5vw;
+}
+
+.barra-mantenimiento{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+h2{
+    font-size: 40px;
+}
+
+.btn-container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-container button{
+    width: 12vw;
+    height: 5.5vh;
+}
+
+
+.paneles {
+    display: flex;
+    flex-wrap: wrap; /* Permite que los paneles se envuelvan si no caben en una fila */
+    justify-content: space-between; /* Centra los paneles horizontalmente */
+    width: 100%;
+}
+
+.panel {
+    text-align: center; /* Centra el contenido del panel */
+    max-width: 20vw;
+    overflow:hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid  rgba(128, 128, 128, 0.23);
+}
+
+.panel img{
+    height: 20vw;
+    object-fit: cover;
+}
+
+.nombre{
+    padding: 20px;
+}
+
+.nosotros{
+    display: flex;
+    height: 38vw;
+}
+
+.nosotros img{
+    width: 50%;
+    object-fit: cover;
+}
+
+.info{
+    width: 50%;
+    background-color: #0542B7;
+    padding: 70px;
+}
+
+.info-texto{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    color: white;
+}
+
+.info-texto h2{
+    margin-top:0;
+}
+
+.info-texto button{
+    width: 50%;
+    background-color: #8BC34A;
+    color: white;
+}
+
+.info-texto button:hover{
+    border: 2px solid #8BC34A; /* Borde verde claro */
+    background-color: #ffffff; /* Fondo blanco */
+    color: #8BC34A; /* Texto verde claro */
+    
+}
+
+.nosotros-descripcion{
+    overflow: hidden;
+}
+
+.clientes {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los elementos horizontalmente */
+    justify-content: center; /* Centra los elementos verticalmente */
+    padding-top:3vh;
+    padding-bottom: 15vh;
+    padding-left: 5vw;
+    padding-right: 5vw;
+}
+
+.barra-clientes{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.clientes-paneles {
+    display: flex;
+    flex-wrap: wrap; /* Permite que los paneles se envuelvan si no caben en una fila */
+    justify-content: space-between; /* Centra los paneles horizontalmente */
+    width: 100%;
+}
+
+.cliente-panel {
+    text-align: center; /* Centra el contenido del panel */
+    max-width: 12vw;
+    overflow:hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid  rgba(128, 128, 128, 0.23);
+}
+
+.cliente-panel img{
+    object-fit: cover;
+}

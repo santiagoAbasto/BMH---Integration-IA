@@ -1,0 +1,124 @@
+SOLO PARA ANDES
+Scroll lateral
+CORREGIR IMPORTS DE ESTILOS
+
+PMR 
+eliminar media inutil videos
+
+PARA TODO
+email reset en ingles
+cambiar mail view
+metadatos autocompletar
+logos separados
+texto home y nosotros separado
+
+servicios actualizar loading spin
+portada texto
+
+boton resize
+borrar media de d1osole
+iframe mapa
+
+nombre en pestañas por seccion? metadatos?
+obligatorias
+
+
+volver al index despues de editar
+
+
+composer require phpoffice/phpspreadsheet --ignore-platform-reqs
+
+CASA PEREZ
+
+para mañana:
+-decimales en subtotal $41 -5% y redondeos
+-precios con coma producto admin
+
+preguntas:
+actualizar en base a codigo de eb o de fabrica
+-productos en oferta donde aparecen y enque ordenar
+- correo argentino
+
+-limitar length de campos de texto segun oventa
+-contraseña opcional en editar usuarios
+-mobile price range no funciona
+- historial de compras y mis datos responsive
+-hacer categorias y subcate obligatorias
+
+-respaldo
+-olvidar contraseña texto ingles
+
+-llevar nombre de prodcuto sin stock al consultar
+-overflows caracteristicas en producto, nombre de producto en productos destacados
+
+.sweetalert2 para modales en front
+-filtros en columnas de back
+-boton recalcular en pedido codigopostal
+-static backdrop modal para carrito
+-pedido refresh info reset
+-orden de las caracteristias al mostrar producto
+ bottstrap checkboxes para seleccion multiple (caraceristicas u ofertas)
+-refresh carrito ubicacion scroll
+
+
+-desvincular las provincias de la api (ahora no andan localidades) // parchado
+
+-paginar cosas en el front? productos
+
+-texto largo productos
+
+
+INDUSTRIAS KC
+
+-enviar mail luego de redirigir en compra
+
+-tailwind
+- provincias input back editar cliente
+- front fotorama
+
+CONOMETAL
+
+- no permitir cambiar direccion de envio al elegir retiro en fabrica
+-loadmore ofertas
+-migas mayuscula
+-carrito
+
+MERCLIN 
+
+link directo al b2b
+cliente nuevo tiene que darse de alta
+
+SECCION COMPLEJA DE DESCUENTOS (como ofertas casa perez)
+desc 1 descuento cliente fijo (variable por categoria de cliente, ej:distribuidores)
+desc 2 por volumen
+desc 3 por pago
+cliente nuevo(des en x franja de productos y sin desc en otra)
+descuentos preestablecidos, para primera operacion (x cuanto tiempo??)
+
+Fotos de productos asociados con codigo alfanumerico
+Precio varia por tamaño de prod
+Desplegable de productos con sus variantes
+
+Si duplica el pedido, si agrega algo que ya tiene en el carrito, pedir confirmacion
+
+Opción al hacer pedido:descargar excel base, llenarlo e importar pedido (como "bitex")
+En pedido hecho opcion importar excel para volver a cargar pedido, o botón "volver a hacer compra"
+
+Pedido directo al sistema?
+Plabicon plataforma
+
+2DA INSTANCIA
+Version mobile
+QR para agregar producto a pedido ????????
+trasnferir y adjuntar comprobante
+mercado pago
+
+-----
+
+-Casos cuando no hay ningún registro, se borran todos
+-responsive back roto
+-fondo gris en back
+-diseño copiar milord admin pablo pablo
+- descuento string a int en importacion
+
+

@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Safe area para el composer fijo en mobile (notch / home indicator). */
+        --composer-safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        text-rendering: optimizeLegibility;
+    }
+
+    /* Foco siempre visible. Nunca outline: none. */
+    :focus-visible {
+        outline: 2px solid theme('colors.brand.500');
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    /* El navegador ya pinta el foco; esto evita el doble anillo en Safari. */
+    :focus:not(:focus-visible) {
+        outline: none;
+    }
+}
+
+@layer components {
+    .bmh-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: theme('colors.edge.DEFAULT') transparent;
+    }
+
+    .bmh-scroll::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .bmh-scroll::-webkit-scrollbar-thumb {
+        background-color: theme('colors.edge.DEFAULT');
+        border: 3px solid transparent;
+        background-clip: content-box;
+        border-radius: 999px;
+    }
+
+    .bmh-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    /* Skeleton. Sólo se muestra con una operación real en curso. */
+    .bmh-skeleton {
+        position: relative;
+        overflow: hidden;
+        background-color: theme('colors.surface.sunken');
+    }
+
+    .bmh-skeleton::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.6),
+            transparent
+        );
+        animation: shimmer 1.2s infinite;
+    }
+}
+
+/*
+ * Reduced motion. No es un detalle opcional: parte de los usuarios trabaja con
+ * el teléfono en la mano en un taller y el movimiento innecesario molesta.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .bmh-skeleton::after {
+        display: none;
+    }
+}

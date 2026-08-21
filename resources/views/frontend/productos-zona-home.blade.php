@@ -1,0 +1,142 @@
+@extends('layouts.plantilla-front')
+
+@section('styles')
+<style>
+
+
+  #anuncio .modal-header{
+    border: none
+  }
+  #anuncio .modal-body{
+    max-width: 100%;
+  }
+  #anuncio img{
+    max-width: 100%;
+  }
+
+
+
+
+.cuadradoSelect{
+    height: 87px;
+    border-radius: 8px;
+    background: #F2F2F2;
+}
+.tituloCuadrado{
+    color: #000;
+font-family: "Montserrat";
+font-size: 20px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+</style>
+@endsection
+@section('content')
+<div class="container" style="padding-top: 33px; padding-bottom: 277px">
+    <h3>Zona privada</h3>
+    <div class="row">
+        <div class="col-lg-4" style="padding-top: 47px">
+            <h5>{{Auth::guard('web')->user()->name}}</h5>
+
+        </div>
+        <div class="col-lg-8">
+
+            <div class="row">
+                <div class="col-lg-4">
+                    <a href="{{route('productos.clientes')}}">
+
+                        <div class="cuadradoSelect">
+                            <div class="d-flex justify-content-start" style="padding-top: 32px; padding-left: 28px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 19 19" fill="none">
+                                    <path d="M6.57317 0H2C0.895431 0 0 0.895431 0 2V6.57317C0 7.67774 0.895431 8.57317 2 8.57317H6.57317C7.67774 8.57317 8.57317 7.67774 8.57317 6.57317V2C8.57317 0.895431 7.67774 0 6.57317 0Z" fill="#666666"/>
+                                    <path d="M16.9999 0H12.4268C11.3222 0 10.4268 0.895431 10.4268 2V6.57317C10.4268 7.67774 11.3222 8.57317 12.4268 8.57317H16.9999C18.1045 8.57317 18.9999 7.67774 18.9999 6.57317V2C18.9999 0.895431 18.1045 0 16.9999 0Z" fill="#666666"/>
+                                    <path d="M6.57317 10.4269H2C0.895431 10.4269 0 11.3223 0 12.4269V17.0001C0 18.1046 0.895431 19.0001 2 19.0001H6.57317C7.67774 19.0001 8.57317 18.1046 8.57317 17.0001V12.4269C8.57317 11.3223 7.67774 10.4269 6.57317 10.4269Z" fill="#666666"/>
+                                    <path d="M16.9999 10.4269H12.4268C11.3222 10.4269 10.4268 11.3223 10.4268 12.4269V17.0001C10.4268 18.1046 11.3222 19.0001 12.4268 19.0001H16.9999C18.1045 19.0001 18.9999 18.1046 18.9999 17.0001V12.4269C18.9999 11.3223 18.1045 10.4269 16.9999 10.4269Z" fill="#666666"/>
+                                  </svg>
+    
+                                  <span class="tituloCuadrado" style="padding-left: 21px">Productos</span>
+    
+                            </div>
+    
+                        </div>
+                    </a>
+<a href="{{route('lista')}}">
+
+    <div class="cuadradoSelect" style="margin-top: 20px">
+        <div class="d-flex justify-content-start" style="padding-top: 32px; padding-left: 28px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <path d="M11.8128 2.27502L22.5378 3.80686L24.0697 14.5319L14.1106 24.4899C13.9074 24.693 13.6319 24.807 13.3447 24.807C13.0574 24.807 12.7819 24.693 12.5788 24.4899L1.85375 13.7649C1.65099 13.5617 1.53711 13.2865 1.53711 12.9995C1.53711 12.7125 1.65099 12.4372 1.85375 12.2341L11.8128 2.27502ZM12.5788 4.57277L4.15259 13L13.3447 22.1921L21.7719 13.7659L20.6225 5.72219L12.5788 4.57277ZM14.8776 11.4671C14.6706 11.2672 14.5056 11.0282 14.392 10.7638C14.2785 10.4995 14.2187 10.2152 14.2162 9.92748C14.2137 9.63979 14.2685 9.35448 14.3775 9.08821C14.4864 8.82193 14.6473 8.58002 14.8507 8.37659C15.0542 8.17315 15.2961 8.01227 15.5624 7.90333C15.8286 7.79439 16.1139 7.73957 16.4016 7.74207C16.6893 7.74457 16.9736 7.80434 17.238 7.91789C17.5023 8.03144 17.7414 8.1965 17.9413 8.40344C18.3359 8.81208 18.5543 9.35938 18.5494 9.92748C18.5444 10.4956 18.3166 11.039 17.9149 11.4407C17.5131 11.8424 16.9697 12.0703 16.4016 12.0752C15.8335 12.0802 15.2862 11.8618 14.8776 11.4671Z" fill="#666666"/>
+              </svg>
+
+              <span class="tituloCuadrado" style="padding-left: 21px">Lista de precios</span>
+
+        </div>
+
+    </div>
+</a>
+                </div>
+                <div class="col-lg-2">
+
+                </div>
+                <div class="col-lg-4">
+                    <a href="{{route('carrito')}}">
+
+                        <div class="cuadradoSelect">
+                            <div class="d-flex justify-content-start" style="padding-top: 32px; padding-left: 28px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M17 18C15.89 18 15 18.89 15 20C15 20.5304 15.2107 21.0391 15.5858 21.4142C15.9609 21.7893 16.4696 22 17 22C17.5304 22 18.0391 21.7893 18.4142 21.4142C18.7893 21.0391 19 20.5304 19 20C19 19.4696 18.7893 18.9609 18.4142 18.5858C18.0391 18.2107 17.5304 18 17 18ZM1 2V4H3L6.6 11.59L5.24 14.04C5.09 14.32 5 14.65 5 15C5 15.5304 5.21071 16.0391 5.58579 16.4142C5.96086 16.7893 6.46957 17 7 17H19V15H7.42C7.3537 15 7.29011 14.9737 7.24322 14.9268C7.19634 14.8799 7.17 14.8163 7.17 14.75C7.17 14.7 7.18 14.66 7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.58 17.3 11.97L20.88 5.5C20.95 5.34 21 5.17 21 5C21 4.73478 20.8946 4.48043 20.7071 4.29289C20.5196 4.10536 20.2652 4 20 4H5.21L4.27 2M7 18C5.89 18 5 18.89 5 20C5 20.5304 5.21071 21.0391 5.58579 21.4142C5.96086 21.7893 6.46957 22 7 22C7.53043 22 8.03914 21.7893 8.41421 21.4142C8.78929 21.0391 9 20.5304 9 20C9 19.4696 8.78929 18.9609 8.41421 18.5858C8.03914 18.2107 7.53043 18 7 18Z" fill="#666666"/>
+                                  </svg>
+    
+                                  <span class="tituloCuadrado" style="padding-left: 21px">Carrito</span>
+    
+                            </div>
+    
+                        </div>
+
+                    </a>
+
+                    <div class="cuadradoSelect" style="margin-top: 20px">
+                        <a href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">
+
+                            <div class="d-flex justify-content-start" style="padding-top: 32px; padding-left: 28px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none">
+                                    <path d="M8.75 11.25V8.75H26.25V11.25H8.75ZM8.75 16.25V13.75H26.25V16.25H8.75ZM8.75 21.25V18.75H26.25V21.25H8.75ZM5 11.25C4.64584 11.25 4.34875 11.13 4.10875 10.89C3.86875 10.65 3.74917 10.3533 3.75 10C3.75 9.64584 3.87 9.34875 4.11 9.10875C4.35 8.86875 4.64667 8.74917 5 8.75C5.35417 8.75 5.65125 8.87 5.89125 9.11C6.13125 9.35 6.25084 9.64667 6.25 10C6.25 10.3542 6.13 10.6513 5.89 10.8913C5.65 11.1313 5.35334 11.2508 5 11.25ZM5 16.25C4.64584 16.25 4.34875 16.13 4.10875 15.89C3.86875 15.65 3.74917 15.3533 3.75 15C3.75 14.6458 3.87 14.3488 4.11 14.1088C4.35 13.8688 4.64667 13.7492 5 13.75C5.35417 13.75 5.65125 13.87 5.89125 14.11C6.13125 14.35 6.25084 14.6467 6.25 15C6.25 15.3542 6.13 15.6513 5.89 15.8913C5.65 16.1313 5.35334 16.2508 5 16.25ZM5 21.25C4.64584 21.25 4.34875 21.13 4.10875 20.89C3.86875 20.65 3.74917 20.3533 3.75 20C3.75 19.6458 3.87 19.3488 4.11 19.1088C4.35 18.8688 4.64667 18.7492 5 18.75C5.35417 18.75 5.65125 18.87 5.89125 19.11C6.13125 19.35 6.25084 19.6467 6.25 20C6.25 20.3542 6.13 20.6513 5.89 20.8913C5.65 21.1313 5.35334 21.2508 5 21.25Z" fill="#666666"/>
+                                  </svg>
+    
+                                  <span class="tituloCuadrado" style="padding-left: 21px">Mis datos</span>
+    
+                            </div>
+
+                        </a>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@if($anuncio->mostrar )
+<div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style='overflow:hidden;'>
+        {!!$anuncio->contenido!!}
+      </div>
+    </div>
+  </div>
+</div>
+@endif
+
+
+@endsection
+

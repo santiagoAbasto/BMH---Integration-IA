@@ -1,0 +1,36 @@
+.producto{
+    padding-bottom: 200px;
+}
+
+.thumbnails img{
+    max-height:100%;
+    width:auto;
+}
+
+.thumbnail{
+    background-color: white;
+    width: 90%;
+    cursor: pointer;
+    border: 3px solid #dee2e6;
+}
+
+.thumbnail.active{
+    border: 3px solid #3AB616 !important;
+}
+
+.carousel-control-prev{
+    left:-60px;
+}
+
+.carousel-control-next{
+    right:-60px
+}
+
+@media (max-width: 768px) {
+    .info{
+        padding-top:230px;
+    }
+    .categorias-lista{
+        padding-bottom: 30px !important;
+    }
+}

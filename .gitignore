@@ -1,0 +1,56 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+auth.json
+
+# Dependencias y builds
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/public/storage
+
+# Datos, uploads y respaldos locales
+/storage/app/backups/
+/storage/app/ai/
+/storage/logs/*.log
+/storage/*.key
+/public/imagenes/*
+/public/archivos/*
+/public/*.zip
+!/public/imagenes/.gitignore
+!/public/archivos/.gitignore
+
+# Cachés de Laravel y pruebas
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
+/.phpunit.cache/
+/.phpunit.result.cache
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+!/storage/framework/cache/data/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/views/.gitignore
+
+# Logs y temporales
+*.log
+**/error_log
+*.tmp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE / sistema operativo
+.DS_Store
+Thumbs.db
+/.idea/
+/.vscode/
+/.fleet/
+/.claude/
+
+# Entornos locales
+Homestead.json
+Homestead.yaml
+Vagrantfile

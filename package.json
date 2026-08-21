@@ -1,0 +1,42 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@tailwindcss/forms": "^0.5.2",
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "^19.2.4",
+        "@vitejs/plugin-react": "^4.7.0",
+        "alpinejs": "^3.4.2",
+        "autoprefixer": "^10.4.2",
+        "axios": "^1.6.4",
+        "laravel-mix": "^6.0.49",
+        "laravel-vite-plugin": "^1.0.0",
+        "postcss": "^8.4.31",
+        "tailwindcss": "^3.1.0",
+        "typescript": "^7.0.2",
+        "vite": "^5.4.21"
+    },
+    "dependencies": {
+        "@inertiajs/react": "^2.3.27",
+        "@mercadopago/sdk-js": "^0.0.3",
+        "@radix-ui/react-dialog": "^1.1.23",
+        "@radix-ui/react-tooltip": "^1.2.16",
+        "aos": "^2.3.4",
+        "browserslist": "^4.28.8",
+        "clsx": "^2.1.1",
+        "cors": "^2.8.5",
+        "express": "^4.19.2",
+        "fotorama": "^4.6.4",
+        "lucide-react": "^1.31.0",
+        "mercadopago": "^2.0.9",
+        "motion": "^13.1.0",
+        "nouislider": "^15.7.2",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+        "toastr": "^2.1.4"
+    }
+}
