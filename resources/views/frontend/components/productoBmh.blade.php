@@ -113,7 +113,8 @@
     </div>
 
     @if ($tienePartes)
-    <div class="pbmh-panel d-none" data-panel="partes">
+    <div class="pbmh-panel" data-panel="partes">
+        <div class="pbmh-panel-inner">
         <table class="pbmh-tabla">
             <thead>
                 <tr>
@@ -189,18 +190,23 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
     @endif
 
     @if ($tieneEquivalencias)
-    <div class="pbmh-panel d-none" data-panel="equivalencias">
+    <div class="pbmh-panel" data-panel="equivalencias">
+        <div class="pbmh-panel-inner">
         @include('frontend.components.equivalencias-tabla', ['equivalencias' => $producto->equivalencias])
+        </div>
     </div>
     @endif
 
     @if ($tieneAplicaciones)
-    <div class="pbmh-panel d-none" data-panel="aplicaciones">
+    <div class="pbmh-panel" data-panel="aplicaciones">
+        <div class="pbmh-panel-inner">
         @include('frontend.components.aplicaciones-tabla', ['aplicaciones' => $producto->aplicaciones])
+        </div>
     </div>
     @endif
     @endif
@@ -212,17 +218,17 @@
         overflow:hidden; font-family:'Roboto',sans-serif; }
     .pbmh-top { display:flex; gap:22px; padding:22px 24px 18px; }
     .pbmh-gallery { display:flex; gap:10px; flex:0 0 auto; align-self:flex-start; }
-    .pbmh-thumbs { display:flex; flex-direction:column; gap:8px; width:68px; max-height:194px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
+    .pbmh-thumbs { display:flex; flex-direction:column; gap:8px; width:90px; max-height:295px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
     .pbmh-thumbs::-webkit-scrollbar { width:3px; height:3px; }
     .pbmh-thumbs::-webkit-scrollbar-track { background:transparent; }
     .pbmh-thumbs::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
     .pbmh-thumbs::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
-    .pbmh-thumb-btn { width:68px; height:58px; border:1px solid #E7E9EC; border-radius:6px; background:#fff; padding:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:border-color .15s, box-shadow .15s; flex-shrink:0; }
+    .pbmh-thumb-btn { width:90px; height:82px; border:1px solid #E7E9EC; border-radius:6px; background:#fff; padding:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:border-color .15s, box-shadow .15s; flex-shrink:0; }
     .pbmh-thumb-btn:hover { border-color:#B8C0CC; }
     .pbmh-thumb-btn.activo { border-color:#0098DA; border-width:2px; box-shadow:0 0 0 1px rgba(0,152,218,.15); }
     .pbmh-thumb-btn img { width:100%; height:100%; object-fit:contain; display:block; }
-    .pbmh-imgbox { flex:0 0 205px; align-self:flex-start; }
-    .pbmh-imgbox img { width:205px; height:150px; object-fit:contain; display:block; }
+    .pbmh-imgbox { flex:0 0 340px; align-self:flex-start; }
+    .pbmh-imgbox img { width:340px; height:295px; object-fit:contain; display:block; }
     .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
     .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
     .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
@@ -252,17 +258,27 @@
         font-weight:600; letter-spacing:.05em; cursor:pointer; transition:all .15s; }
     .pbmh-cart-btn:hover { background:#0098DA; color:#fff; }
     .pbmh-cart-btn:hover svg path { fill:#fff; }
-    .pbmh-tabs { display:flex; gap:38px; padding:12px 24px; border-top:1px solid #EDEFF2; }
-    .pbmh-tab { border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
-        color:#1F2430; cursor:pointer; display:inline-flex; align-items:center; gap:7px; padding:4px 0; }
-    .pbmh-tab:hover { color:#0098DA; }
-    .pbmh-caret { font-size:10px; transition:transform .18s; }
+    .pbmh-tabs { display:flex; gap:12px; flex-wrap:wrap; padding:16px 24px; border-top:1px solid #EDEFF2; }
+    .pbmh-tab { border:1.5px solid #E2E6EB; background:#F6F8FA; color:#1F2430; cursor:pointer;
+        font-family:inherit; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+        display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:10px;
+        transition:background .18s, color .18s, border-color .18s, box-shadow .18s, transform .12s; }
+    .pbmh-tab:hover { border-color:#0098DA; color:#0098DA; background:#fff; }
+    .pbmh-tab:active { transform:translateY(1px); }
+    .pbmh-tab.activa { background:#0098DA; border-color:#0098DA; color:#fff;
+        box-shadow:0 8px 18px rgba(0,152,218,.22); }
+    .pbmh-caret { font-size:10px; transition:transform .2s ease; }
     .pbmh-tab.activa .pbmh-caret { transform:rotate(180deg); }
-    .pbmh-panel { padding:0 24px 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; }
-    .pbmh-panel::-webkit-scrollbar { height:3px; }
-    .pbmh-panel::-webkit-scrollbar-track { background:transparent; }
-    .pbmh-panel::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
-    .pbmh-panel::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
+
+    /* Despliegue animado (max-height + opacidad; el contenido queda oculto cuando está cerrado) */
+    .pbmh-panel { overflow:hidden; max-height:0; opacity:0; transition:max-height .34s ease, opacity .26s ease; }
+    .pbmh-panel.abierto { opacity:1; }
+    .pbmh-panel-inner { overflow-x:auto; padding:0 24px 22px;
+        scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; }
+    .pbmh-panel-inner::-webkit-scrollbar { height:3px; }
+    .pbmh-panel-inner::-webkit-scrollbar-track { background:transparent; }
+    .pbmh-panel-inner::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
+    .pbmh-panel-inner::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
     .pbmh-tabla { width:100%; border-collapse:separate; border-spacing:0; }
     .pbmh-tabla thead tr { background:#111315; color:#fff; }
     .pbmh-tabla th { font-size:12px; font-weight:500; text-align:left; padding:11px 14px; }
@@ -304,11 +320,11 @@
         .pbmh-top { flex-direction:column; }
         .pbmh-gallery { width:100%; flex-direction:column; }
         .pbmh-thumbs { flex-direction:row; width:100%; max-height:none; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; padding-right:0; }
-        .pbmh-thumb-btn { flex:0 0 68px; }
+        .pbmh-thumb-btn { flex:0 0 90px; }
         .pbmh-imgbox { flex:none; width:100%; }
-        .pbmh-imgbox img { width:100%; }
+        .pbmh-imgbox img { width:100%; height:auto; max-height:420px; }
         .pbmh-tabs { gap:20px; flex-wrap:wrap; }
-        .pbmh-panel .pbmh-tabla { min-width:620px; }
+        .pbmh-panel-inner .pbmh-tabla { min-width:620px; }
     }
     /* Lupa zoom - preview flotante */
     #pbmh-zoom { position:fixed; display:none; width:460px; height:460px; background:#fff; border:1px solid #E7E9EC;
@@ -481,16 +497,31 @@
             return;
         }
 
-        // ---- Tabs desplegables (uno abierto a la vez) ----
+        // ---- Tabs desplegables (uno abierto a la vez, animado) ----
         var tab = ev.target.closest('.pbmh-tab');
         if (tab) {
             var nombre = tab.dataset.tab;
             var abrir = !tab.classList.contains('activa');
+            // Cerrar el panel que esté abierto (animado).
+            card.querySelectorAll('.pbmh-panel').forEach(function (p) {
+                if (p.classList.contains('abierto')) {
+                    p.style.maxHeight = p.scrollHeight + 'px';
+                    void p.offsetHeight; // fuerza reflow para que la transición a 0 se vea
+                    p.classList.remove('abierto');
+                    p.style.maxHeight = '0px';
+                }
+            });
             card.querySelectorAll('.pbmh-tab').forEach(function (t) { t.classList.remove('activa'); });
-            card.querySelectorAll('.pbmh-panel').forEach(function (p) { p.classList.add('d-none'); });
             if (abrir) {
                 tab.classList.add('activa');
-                card.querySelector('[data-panel="' + nombre + '"]').classList.remove('d-none');
+                var panel = card.querySelector('[data-panel="' + nombre + '"]');
+                panel.style.maxHeight = panel.scrollHeight + 'px';
+                panel.classList.add('abierto');
+                panel.addEventListener('transitionend', function te(e) {
+                    if (e.propertyName === 'max-height' && panel.classList.contains('abierto')) {
+                        panel.style.maxHeight = 'none';
+                    }
+                }, { once: true });
             }
             return;
         }

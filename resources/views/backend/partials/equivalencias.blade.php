@@ -31,15 +31,10 @@
     <div class="eqv-lista" data-eqv-lista role="list" aria-label="Equivalencias del producto">
         @forelse ($equivalencias as $equivalencia)
             <div class="eqv-item" role="listitem">
-                <span class="eqv-grip" title="Arrastrar para reordenar" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16" fill="currentColor"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
-                </span>
-                <span class="eqv-order">{{ $loop->index + 1 }}</span>
+                <input type="number" class="eqv-in eqv-orden" name="equiv_orden[]" value="{{ $equivalencia->orden }}" aria-label="Orden" min="0" step="1">
                 <input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" value="{{ $equivalencia->nombre }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
                 <input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" value="{{ $equivalencia->valor }}" aria-label="Valor" maxlength="255">
                 <div class="eqv-actions">
-                    <button type="button" class="eqv-btn" data-move="-1" title="Subir" aria-label="Subir">&#8593;</button>
-                    <button type="button" class="eqv-btn" data-move="1" title="Bajar" aria-label="Bajar">&#8595;</button>
                     <button type="button" class="eqv-btn eqv-btn-danger" data-remove title="Quitar" aria-label="Quitar equivalencia">&times;</button>
                 </div>
             </div>
@@ -85,10 +80,11 @@
         border-radius:10px; background:#fbfcfd; animation:eqv-flash .8s ease-out; }
     @keyframes eqv-flash { 0% { background:#e7f1ff; border-color:#bcd7ff; } 100% { background:#fbfcfd; } }
     .eqv-item.eqv-arrastrando { opacity:.45; }
-    .eqv-grip { cursor:grab; color:#ced4da; display:flex; align-items:center; padding:4px 2px; flex-shrink:0; }
-    .eqv-grip:hover { color:#868e96; }
-    .eqv-order { width:20px; height:20px; border-radius:50%; background:#e9ecef; color:#495057;
-        font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .eqv-item .eqv-orden { width:64px; flex:0 0 64px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
+        outline:none; font-size:13.5px; color:#212529; font-family:inherit; padding:7px 8px; text-align:center;
+        transition:border-color .12s, box-shadow .12s; }
+    .eqv-orden:hover { border-color:#ced4da; }
+    .eqv-orden:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); }
     .eqv-in { flex:1; min-width:40px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
         outline:none; font-size:13.5px; color:#212529; font-family:inherit; padding:7px 10px;
         transition:border-color .12s, box-shadow .12s; }
@@ -160,10 +156,23 @@
         countEl.textContent = items.filter(function (it) {
             return it.querySelector('.eqv-in-valor').value.trim() !== '';
         }).length;
-        items.forEach(function (item, i) {
-            item.querySelector('.eqv-order').textContent = i + 1;
-        });
         marcarDuplicados();
+        reordenarPorOrden();
+    }
+
+    // Reordena TODAS las filas por su número (estable: ante empate mantiene el orden actual).
+    function reordenarPorOrden() {
+        var nodos = Array.prototype.slice.call(lista.querySelectorAll('.eqv-item'));
+        nodos.forEach(function (n, i) { n.dataset.__ordenIdx = i; });
+        nodos.sort(function (a, b) {
+            var va = parseInt(a.querySelector('.eqv-orden').value, 10);
+            var vb = parseInt(b.querySelector('.eqv-orden').value, 10);
+            if (isNaN(va)) va = Infinity;
+            if (isNaN(vb)) vb = Infinity;
+            if (va !== vb) return va - vb;
+            return parseInt(a.dataset.__ordenIdx, 10) - parseInt(b.dataset.__ordenIdx, 10);
+        });
+        nodos.forEach(function (n) { lista.appendChild(n); });
     }
 
     function marcarDuplicados() {
@@ -187,21 +196,15 @@
         fila.className = 'eqv-item';
         fila.setAttribute('role', 'listitem');
         fila.innerHTML =
-            '<span class="eqv-grip" title="Arrastrar para reordenar" aria-hidden="true">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16" fill="currentColor">' +
-                '<circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/>' +
-                '<circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>' +
-            '</span>' +
-            '<span class="eqv-order"></span>' +
+            '<input type="number" class="eqv-in eqv-orden" name="equiv_orden[]" aria-label="Orden" min="0" step="1">' +
             '<input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">' +
             '<input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" aria-label="Valor" maxlength="255">' +
             '<div class="eqv-actions">' +
-                '<button type="button" class="eqv-btn" data-move="-1" title="Subir" aria-label="Subir">&#8593;</button>' +
-                '<button type="button" class="eqv-btn" data-move="1" title="Bajar" aria-label="Bajar">&#8595;</button>' +
                 '<button type="button" class="eqv-btn eqv-btn-danger" data-remove title="Quitar" aria-label="Quitar equivalencia">&times;</button>' +
             '</div>';
         fila.querySelector('.eqv-in-nombre').value = nombre || '';
         fila.querySelector('.eqv-in-valor').value = valor || '';
+        fila.querySelector('.eqv-orden').value = filas().length + 1;
         lista.appendChild(fila);
         actualizarEstado();
         if (enfocar) fila.querySelector('.eqv-in-valor').focus();
@@ -306,7 +309,7 @@
         actualizarEstado();
     });
 
-    {{-- Quitar y reordenar con botones (delegación) --}}
+    {{-- Quitar fila (delegación) --}}
     lista.addEventListener('click', function (ev) {
         var btn = ev.target.closest('button');
         if (!btn) return;
@@ -319,49 +322,11 @@
             setTimeout(function () { item.remove(); actualizarEstado(); }, 180);
             return;
         }
-        var delta = parseInt(btn.dataset.move, 10);
-        var items = filas();
-        var idx = items.indexOf(item);
-        var destino = idx + delta;
-        if (destino < 0 || destino >= items.length) return;
-        if (delta < 0) lista.insertBefore(item, items[destino]);
-        else lista.insertBefore(item, items[destino].nextSibling);
-        actualizarEstado();
     });
 
-    {{-- Reordenar arrastrando desde el grip --}}
-    var arrastre = null;
-    lista.addEventListener('mousedown', function (ev) {
-        var grip = ev.target.closest('.eqv-grip');
-        if (!grip) return;
-        var item = grip.closest('.eqv-item');
-        if (item) item.draggable = true;
-    });
-    lista.addEventListener('dragstart', function (ev) {
-        var item = ev.target.closest('.eqv-item');
-        if (!item) return;
-        arrastre = item;
-        item.classList.add('eqv-arrastrando');
-        ev.dataTransfer.effectAllowed = 'move';
-        try { ev.dataTransfer.setData('text/plain', ''); } catch (e) {}
-    });
-    lista.addEventListener('dragover', function (ev) {
-        if (!arrastre) return;
-        ev.preventDefault();
-        ev.dataTransfer.dropEffect = 'move';
-        var objetivo = ev.target.closest('.eqv-item');
-        if (!objetivo || objetivo === arrastre) return;
-        var rect = objetivo.getBoundingClientRect();
-        var antes = ev.clientY < rect.top + rect.height / 2;
-        lista.insertBefore(arrastre, antes ? objetivo : objetivo.nextSibling);
-    });
-    lista.addEventListener('drop', function (ev) { if (arrastre) ev.preventDefault(); });
-    lista.addEventListener('dragend', function () {
-        if (!arrastre) return;
-        arrastre.classList.remove('eqv-arrastrando');
-        arrastre.draggable = false;
-        arrastre = null;
-        actualizarEstado();
+    // Reordenar todas las filas por su número al cambiar cualquier input de orden.
+    lista.addEventListener('change', function (ev) {
+        if (ev.target.closest('.eqv-orden')) reordenarPorOrden();
     });
 
     actualizarEstado();

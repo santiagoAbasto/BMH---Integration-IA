@@ -2451,20 +2451,42 @@ public function dash_productos(Request $request)
             return; // El form no incluyó la sección: no tocar nada.
         }
 
-        // Preservar el ORDEN del formulario: pluck()/whereIn reordena por PK,
-        // así que la validez se verifica aparte y el orden viene del input.
-        $parteIds = collect($request->input('partes', []))
-            ->map(fn ($value): int => (int) $value)
-            ->filter(fn (int $id): bool => $id > 0 && $id !== (int) $producto->id)
-            ->unique()
+        // Preservar el ORDEN del formulario: el número viene del input
+        // `parte_orden[]` (alineado por posición con `partes[]`). Si falta,
+        // se usa la posición. Se permiten números repetidos (mismo lugar).
+        $ids = (array) $request->input('partes', []);
+        $ordenes = (array) $request->input('parte_orden', []);
+
+        $filasParte = collect($ids)
+            ->map(function ($value, $i) use ($ordenes): array {
+                $rawOrden = $ordenes[$i] ?? null;
+                return [
+                    'id' => (int) $value,
+                    'orden' => ($rawOrden !== null && $rawOrden !== '')
+                        ? (int) $rawOrden
+                        : $i,
+                ];
+            })
+            ->filter(fn (array $f): bool => $f['id'] > 0 && $f['id'] !== (int) $producto->id);
+
+        // Quitar ids duplicados conservando el primer orden encontrado.
+        $vistos = [];
+        $filasParte = $filasParte
+            ->filter(function (array $f) use (&$vistos): bool {
+                if (in_array($f['id'], $vistos, true)) {
+                    return false;
+                }
+                $vistos[] = $f['id'];
+                return true;
+            })
             ->values();
 
-        $existentes = Producto::whereIn('id', $parteIds)->pluck('id')->all();
-        $parteIds = $parteIds->filter(fn (int $id): bool => in_array($id, $existentes, true))->values();
+        $existentes = Producto::whereIn('id', $filasParte->pluck('id')->all())->pluck('id')->all();
+        $filasParte = $filasParte->filter(fn (array $f): bool => in_array($f['id'], $existentes, true))->values();
 
-        DB::transaction(function () use ($parteIds, $producto): void {
+        DB::transaction(function () use ($filasParte, $producto): void {
             $producto->partesRelacionadas()->sync(
-                $parteIds->mapWithKeys(fn (int $id, int $index): array => [$id => ['orden' => $index]])->all(),
+                $filasParte->mapWithKeys(fn (array $f): array => [$f['id'] => ['orden' => $f['orden']]])->all(),
             );
         });
     }
@@ -2481,12 +2503,19 @@ public function dash_productos(Request $request)
 
         $nombres = (array) $request->input('equiv_nombre', []);
         $valores = (array) $request->input('equiv_valor', []);
+        $ordenes = (array) $request->input('equiv_orden', []);
 
         $filas = collect($valores)
-            ->map(fn ($valor, $i): array => [
-                'nombre' => trim((string) ($nombres[$i] ?? '')),
-                'valor' => trim((string) $valor),
-            ])
+            ->map(function ($valor, $i) use ($nombres, $ordenes): array {
+                $rawOrden = $ordenes[$i] ?? null;
+                return [
+                    'nombre' => trim((string) ($nombres[$i] ?? '')),
+                    'valor' => trim((string) $valor),
+                    'orden' => ($rawOrden !== null && $rawOrden !== '')
+                        ? (int) $rawOrden
+                        : $i,
+                ];
+            })
             // Una fila sin valor no es una equivalencia: se descarta.
             ->filter(fn (array $fila): bool => $fila['valor'] !== '')
             ->values();
@@ -2503,7 +2532,7 @@ public function dash_productos(Request $request)
                 'producto_id' => $producto->id,
                 'nombre' => $fila['nombre'] !== '' ? $fila['nombre'] : null,
                 'valor' => mb_substr($fila['valor'], 0, 255),
-                'orden' => $i,
+                'orden' => $fila['orden'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all());
@@ -2523,12 +2552,19 @@ public function dash_productos(Request $request)
 
         $nombres = (array) $request->input('aplic_nombre', []);
         $valores = (array) $request->input('aplic_valor', []);
+        $ordenes = (array) $request->input('aplic_orden', []);
 
         $filas = collect($valores)
-            ->map(fn ($valor, $i): array => [
-                'nombre' => trim((string) ($nombres[$i] ?? '')),
-                'valor' => trim((string) $valor),
-            ])
+            ->map(function ($valor, $i) use ($nombres, $ordenes): array {
+                $rawOrden = $ordenes[$i] ?? null;
+                return [
+                    'nombre' => trim((string) ($nombres[$i] ?? '')),
+                    'valor' => trim((string) $valor),
+                    'orden' => ($rawOrden !== null && $rawOrden !== '')
+                        ? (int) $rawOrden
+                        : $i,
+                ];
+            })
             // Una fila sin valor no es una aplicación: se descarta.
             ->filter(fn (array $fila): bool => $fila['valor'] !== '')
             ->values();
@@ -2545,7 +2581,7 @@ public function dash_productos(Request $request)
                 'producto_id' => $producto->id,
                 'nombre' => $fila['nombre'] !== '' ? $fila['nombre'] : null,
                 'valor' => mb_substr($fila['valor'], 0, 255),
-                'orden' => $i,
+                'orden' => $fila['orden'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all());

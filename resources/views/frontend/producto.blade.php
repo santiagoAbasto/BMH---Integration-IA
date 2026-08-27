@@ -1165,34 +1165,29 @@
             var lens = document.createElement('div');
             lens.className = 'pbmh-lens';
             var activeImg = null, activeBox = null, zoom = 2.4;
+            var dragging = false, rafId = null, pendingEvent = null, hovering = false;
             function showFotorama(box, img) {
                 if (window.innerWidth < 992) return;
-                var src = img.currentSrc || img.src;
-                if (!src || src.includes('WhatsApp-Image')) return;
                 activeImg = img; activeBox = box;
-                preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
-                if (img.naturalWidth) {
-                    var cw0 = box.clientWidth || img.clientWidth || 48;
-                    var base = img.naturalWidth / cw0 * 1.35;
-                    var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
-                    var scale = Math.min(maxScale, Math.max(3.0, base));
-                    zoom = scale;
-                    preview.style.backgroundSize = (cw0 * scale) + 'px ' + (box.clientHeight * scale) + 'px';
-                } else {
-                    zoom = 3.6; preview.style.backgroundSize = '360%';
-                }
                 if (!box.contains(lens)) box.appendChild(lens);
-                // Fotorama necesita posicion relativa ya agregada por CSS
-                lens.style.display = 'block';
-                preview.style.display = 'block';
+                if (setSrc(img)) { lens.style.display = 'block'; preview.style.display = 'block'; }
             }
             function hideFotorama() {
+                if (dragging) return;
                 preview.style.display = 'none';
                 lens.style.display = 'none';
                 activeImg = null; activeBox = null;
             }
             function moveFotorama(e) {
-                if (!activeImg || !activeBox) return;
+                if (!activeImg || !activeBox || dragging) return;
+                pendingEvent = e;
+                if (rafId) return;
+                rafId = requestAnimationFrame(applyMove);
+            }
+            function applyMove() {
+                rafId = null;
+                var e = pendingEvent; if (!e) return;
+                preview.style.display = 'block'; lens.style.display = 'block';
                 var rect = activeBox.getBoundingClientRect();
                 var x = e.clientX - rect.left, y = e.clientY - rect.top;
                 var cw = rect.width, ch = rect.height;
@@ -1221,7 +1216,9 @@
                     if (!cell || cell.dataset.pbmhZoomAttachedThumb) return;
                     cell.dataset.pbmhZoomAttachedThumb = '1';
                     cell.style.position = 'relative';
-                    cell.addEventListener('mouseenter', function () { showFotorama(cell, img); });
+                    img.draggable = false;
+                    cell.addEventListener('dragstart', function (e) { e.preventDefault(); });
+                    cell.addEventListener('mouseenter', function () { if (!dragging) showFotorama(cell, img); });
                     cell.addEventListener('mousemove', moveFotorama);
                     cell.addEventListener('mouseleave', hideFotorama);
                 });
@@ -1232,42 +1229,55 @@
                 // Evitar doble attach
                 if (stage.dataset.pbmhZoomAttached) return;
                 stage.dataset.pbmhZoomAttached = '1';
+                // Evitar que el navegador inicie un "drag" nativo de la imagen: eso congela el
+                // mousemove y hace que la lupa zoom vaya entrecortada.
+                stage.addEventListener('dragstart', function (e) { e.preventDefault(); });
+                stage.querySelectorAll('img').forEach(function (im) { im.draggable = false; });
+                // Mientras el usuario arrastra (swipe) para cambiar de imagen, ocultamos la lupa;
+                // al soltar se reanuda sola en el próximo mousemove.
+                stage.addEventListener('pointerdown', function () { dragging = true; preview.style.display = 'none'; lens.style.display = 'none'; });
+                window.addEventListener('pointerup', function () { dragging = false; });
+                window.addEventListener('pointercancel', function () { dragging = false; });
                 function getActiveImg() {
                     return stage.querySelector('.fotorama__active img')
                         || stage.querySelector('img.fotorama__img')
                         || stage.querySelector('img');
                 }
                 stage.addEventListener('mouseenter', function () {
+                    if (dragging) return;
+                    hovering = true;
                     var img = getActiveImg();
                     if (img) showFotorama(stage, img);
                 });
                 stage.addEventListener('mousemove', function () {
                     // La imagen activa puede cambiar (fotorama crossfade) — refrescar antes de mover
                     var img = getActiveImg();
-                    if (img && activeImg !== img) { activeImg = img; refreshSrc(img); }
+                    if (img) { activeImg = img; if (!dragging) setSrc(img); }
                     moveFotorama.apply(null, arguments);
                 });
-                stage.addEventListener('mouseleave', hideFotorama);
+                stage.addEventListener('mouseleave', function () { hovering = false; hideFotorama(); });
                 // Rastrear el frame activo para que el zoom siempre use la imagen seleccionada
                 var root = document.querySelector('.fotorama');
                 if (root) {
-                    root.addEventListener('fotorama:showend', function () { var i = getActiveImg(); if (i) { activeImg = i; refreshSrc(i); } });
-                    root.addEventListener('fotorama:show', function () { var i = getActiveImg(); if (i) { activeImg = i; refreshSrc(i); } });
+                    var onShow = function () { var i = getActiveImg(); if (!i) return; activeImg = i; if (!dragging && hovering) showFotorama(stage, i); else setSrc(i); };
+                    root.addEventListener('fotorama:showend', onShow);
+                    root.addEventListener('fotorama:show', onShow);
                 }
             }
-            function refreshSrc(img) {
-                if (!img) return;
+            function setSrc(img) {
+                if (!img) return false;
                 var src = img.currentSrc || img.src;
-                if (!src || src.includes('WhatsApp-Image')) { preview.style.display = 'none'; if (img.parentElement) lens.style.display = 'none'; return; }
+                if (!src || src.includes('WhatsApp-Image')) { preview.style.display = 'none'; lens.style.display = 'none'; return false; }
                 preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
+                var box = activeBox || img.parentElement;
+                var cw0 = box.clientWidth || img.clientWidth || 48;
                 if (img.naturalWidth) {
-                    var box = activeBox || img.parentElement;
-                    var cw0 = box.clientWidth || img.clientWidth || 48;
                     var base = img.naturalWidth / cw0 * 1.35;
                     var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
                     zoom = Math.min(maxScale, Math.max(3.0, base));
                     preview.style.backgroundSize = (cw0 * zoom) + 'px ' + (box.clientHeight * zoom) + 'px';
                 }
+                return true;
             }
             // Fotorama se inicializa asincrónicamente, reintentar
             function initDetalleZoom() { attachFotorama(); initZoomThumbsDetalle(); }
