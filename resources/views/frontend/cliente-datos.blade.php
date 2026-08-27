@@ -63,7 +63,6 @@
     .bmh-subsection{ margin-bottom:24px; }
     .bmh-subsection:last-of-type{ margin-bottom:0; }
     .bmh-subsection__bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-    .bmh-bar-actions{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
     .bmh-subtitle{
         display:flex; align-items:center; gap:9px; font-family:'Montserrat';
         font-weight:600; font-size:15px; color:var(--bmh-ink); margin:0;
@@ -116,6 +115,11 @@
     }
     .bmh-cat .bmh-input-suffix{ width:88px; flex-shrink:0; }
     .bmh-cat.is-specific{ border-color:#bfe0f1; background:#eef8fe; }
+    .bmh-cat__info{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+    .bmh-cat__note{ font-family:'Montserrat'; font-size:11px; color:#9aa6b2; line-height:1.2; }
+    .bmh-cat__note--specific{ display:none; color:#0098DA; font-weight:600; }
+    .bmh-cat.is-specific .bmh-cat__note--general{ display:none; }
+    .bmh-cat.is-specific .bmh-cat__note--specific{ display:inline; }
 
     .alert-exito{
         background:#e7f7ec; border:1px solid #b7e4c7; color:#1d7a3a;
@@ -215,17 +219,17 @@
                 <div class="bmh-subsection">
                     <div class="bmh-subsection__bar">
                         <h3 class="bmh-subtitle"><span class="bmh-dot"></span>Margen por categorías</h3>
-                        <div class="bmh-bar-actions">
-                            <button type="button" class="bmh-link" id="copiarGeneralVacias">Aplicar general a las vacías</button>
-                            <button type="button" class="bmh-link" id="copiarGeneral">Aplicar el general a todas</button>
-                        </div>
                     </div>
 
                     <div class="bmh-cats" id="catsWrap">
                         @foreach ($categorias as $categoria)
                             @php($m = $margenes->get($categoria->id))
                             <label class="bmh-cat @if($m) is-specific @endif">
-                                <span class="bmh-cat__name" title="{{ $categoria->nombre }}">{{ $categoria->nombre }}</span>
+                                <span class="bmh-cat__info">
+                                    <span class="bmh-cat__name" title="{{ $categoria->nombre }}">{{ $categoria->nombre }}</span>
+                                    <span class="bmh-cat__note bmh-cat__note--general">Usa el margen general</span>
+                                    <span class="bmh-cat__note bmh-cat__note--specific">Margen propio</span>
+                                </span>
                                 <span class="bmh-input-suffix bmh-input-suffix--sm">
                                     <input type="number" step="0.01" min="0" name="margen_categoria[{{ $categoria->id }}]" value="{{ $m ? $m->porcentaje : '' }}" placeholder="General" class="cat-input">
                                     <span class="bmh-suffix">%</span>
@@ -233,7 +237,7 @@
                             </label>
                         @endforeach
                     </div>
-                    <p class="bmh-hint">Dejá el campo vacío para usar el margen general. Hay {{ $categorias->count() }} categorías.</p>
+                    <p class="bmh-hint">Las categorías que dejes vacías usan el margen general. Completá solo las que querés con un margen distinto. Hay {{ $categorias->count() }} categorías.</p>
                 </div>
 
                 <div class="bmh-actions">
@@ -262,40 +266,21 @@
             });
         }
 
-        // Placeholder dinámico: "General: X%".
-        function actualizarPlaceholders() {
+        // Nota dinámica: las vacías aclaran que usan el margen general.
+        var notasGenerales = Array.prototype.slice.call(document.querySelectorAll('.bmh-cat__note--general'));
+        function actualizarGeneral() {
             var g = general && general.value.trim() !== '' ? general.value.trim() : '0';
-            inputs.forEach(function (inp) { inp.placeholder = 'General: ' + g + '%'; });
+            notasGenerales.forEach(function (n) { n.textContent = 'Usa el margen general (' + g + '%)'; });
         }
 
         marcarEspecificos();
-        actualizarPlaceholders();
+        actualizarGeneral();
 
         inputs.forEach(function (inp) {
             inp.addEventListener('input', marcarEspecificos);
         });
         if (general) {
-            general.addEventListener('input', actualizarPlaceholders);
-        }
-
-        var btnCopiar = document.getElementById('copiarGeneral');
-        if (btnCopiar && general) {
-            btnCopiar.addEventListener('click', function () {
-                var g = general.value.trim();
-                inputs.forEach(function (inp) { inp.value = g; });
-                marcarEspecificos();
-            });
-        }
-
-        var btnVacias = document.getElementById('copiarGeneralVacias');
-        if (btnVacias && general) {
-            btnVacias.addEventListener('click', function () {
-                var g = general.value.trim();
-                inputs.forEach(function (inp) {
-                    if (inp.value.trim() === '') inp.value = g;
-                });
-                marcarEspecificos();
-            });
+            general.addEventListener('input', actualizarGeneral);
         }
 
         // Provincias / localidades (si el formulario las incluye).
