@@ -366,9 +366,9 @@ $producto->categoria()->first()->columna_78
                     </td>
 
                     <td style="padding-top: 25px; text-align: start !important">
-                        <a class="textoProductoLink" href="{{ route('producto', ['id' => $producto->id]) }}">
+                        <span class="textoProductoLink">
                             {{ ucfirst($producto->nombre) }}
-                        </a>
+                        </span>
 
                     </td>
 
@@ -589,7 +589,7 @@ $producto->categoria()->first()->columna_78
         var marcaSelect = document.getElementById('marca');
         var modeloSelect = document.getElementById('modelo');
 
-        marcaSelect.addEventListener('change', function() {
+        if (marcaSelect && modeloSelect) marcaSelect.addEventListener('change', function() {
             modeloSelect.disabled = false;
 
 
@@ -600,7 +600,7 @@ $producto->categoria()->first()->columna_78
 
             if (marcaSeleccionada && marcas[marcaSeleccionada]) {
                 var modelos = marcas[marcaSeleccionada];
-                for (var modelo in modelos) {
+                for (var modelo of modelos) {
                     var option = document.createElement('option');
                     option.value = modelo;
                     option.textContent = modelo;

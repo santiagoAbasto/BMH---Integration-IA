@@ -849,7 +849,8 @@ background-size: 100% 100%;
         $(document).ready(function() {
 
 
-            document.getElementById('limpiarFiltros').addEventListener('click', function () {
+            var _limpiarFiltros = document.getElementById('limpiarFiltros');
+            if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
     const form = document.querySelector('.filtroBuscadores form');
     localStorage.removeItem("atributosCategoria");
 

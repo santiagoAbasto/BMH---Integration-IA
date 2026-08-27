@@ -35,7 +35,7 @@ $cart = Cart::content();
   <link rel="stylesheet" href="css/styles2.css?v=70">
   
   {{-- FONTAWESOME --}}
-  <script src="https://kit.fontawesome.com/b9cbc4747f.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
    
      {{-- AOS --}}
@@ -73,19 +73,17 @@ $cart = Cart::content();
   
   @yield('styles')
   <style>
-    /* Asesor IA en el menú. Fuera del shadow root, así que va acotado. */
-    .bmh-advisor-nav { color: #0098DA !important; font-weight: 600; }
-    .bmh-advisor-nav:hover { color: #007CB2 !important; }
-    .bmh-advisor-dot {
-      display: inline-block; width: 7px; height: 7px; margin-right: 6px;
-      border-radius: 999px; background: #ABD430; vertical-align: middle;
-      box-shadow: 0 0 0 0 rgba(171, 212, 48, .7); animation: bmhDot 2.6s infinite;
+    header.scrolled .nav-link:hover { color: rgba(255,255,255,.7) !important; }
+
+    /* La barra inferior (link activo y hover) también debe ser blanca en
+       estado scrolled. Se usa box-shadow para no desplazar el layout. */
+    header.scrolled .nav-link.selectUrl {
+        border-bottom-color: transparent !important;
+        box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
     }
-    @keyframes bmhDot {
-      0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(171,212,48,.7); }
-      35% { box-shadow: 0 0 0 6px rgba(171,212,48,0); }
+    header.scrolled .nav-link:hover {
+        box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
     }
-    @media (prefers-reduced-motion: reduce) { .bmh-advisor-dot { animation: none; } }
   </style>
 </head>
 
@@ -202,13 +200,6 @@ $cart = Cart::content();
                     <a class="nav-link under active cartNav historial-nav" href="{{route('cliente.historial', ['id' => Auth::guard('web')->user()->id ])}}">Historial</a>
                   </li>
                   @endif
-                  {{-- Asesor IA: NO es una URL nueva. `data-bmh-advisor` abre el
-                       panel flotante en la misma pantalla. --}}
-                  <li class="nav-item">
-                    <a class="nav-link under cartNav active bmh-advisor-nav" href="#" data-bmh-advisor>
-                      <span class="bmh-advisor-dot"></span>Asesor IA
-                    </a>
-                  </li>
                   <li class="nav-item">
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'lista' ? 'selectUrl' : '' }}" href="{{route('lista')}}">Lista de precios</a>
                   </li>
@@ -547,8 +538,6 @@ $cart = Cart::content();
     @php($bmhEnZonaClientes = app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
 
     @if ($bmhEnZonaClientes)
-      {{-- Asesor Técnico BMH (IA) --}}
-      @include('components.bmh-advisor')
     @elseif (isset($contacto->whatsapp))
       <div class="whatsapp-container">
         <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $contacto->whatsapp) }}" class="whatsapp-btn" target="_blank" rel="noopener">
@@ -561,19 +550,50 @@ $cart = Cart::content();
   
   
   
-  @yield('script')
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+  <script>
+  // Shim: Bootstrap 5 quitó $.fn.modal (jQuery). El layout legacy aún usa $('#aviso').modal('show')
+  // Este shim lo polyfillea con la API nativa de Bootstrap 5 para no romper el sitio.
+  (function() {
+    if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.modal === 'undefined') {
+      window.jQuery.fn.modal = function(action) {
+        return this.each(function() {
+          try {
+            var instance = bootstrap.Modal.getOrCreateInstance(this);
+            if (action === 'show') instance.show();
+            else if (action === 'hide') instance.hide();
+            else if (action === 'toggle') instance.toggle();
+            else if (!action) instance.show();
+          } catch(e) { console.warn('modal shim', e); }
+        });
+      };
+      // También para eventos jQuery type `shown.bs.modal` ya funciona nativo, no hace falta más.
+    }
+  })();
+  </script>
   <script src="js/carrito.js?v=4"></script>
+  @yield('script')
   {{-- TAILWIND --}}
   {{-- <script src="https://cdn.tailwindcss.com"></script>  --}}
+
+  {{-- Las notificaciones (toastr / iziToast) viven abajo a la derecha, en la
+       misma esquina que el botón flotante del Asesor IA (z-index
+       2147483000). Sin esto quedaban por detrás. Se sube su z-index por
+       encima del asesor para que nunca se solapen. --}}
+  <style>
+      #toast-container,
+      .iziToast-wrapper { z-index: 2147483100 !important; }
+  </style>
+
   <script>
   
       $(document).ready(function() {
-            $('#aviso').modal('show');
+            if ($('#aviso').length) $('#aviso').modal('show');
         })
 
-document.getElementById("toggle-password").addEventListener("click", function() {
+var _togglePwd = document.getElementById("toggle-password");
+if (_togglePwd) _togglePwd.addEventListener("click", function() {
         var passwordField = document.getElementById("password");
         var icon = this.querySelector("svg");
 
@@ -695,6 +715,11 @@ $(window).scroll(function() {
       "hideMethod": "fadeOut"
     }
 
+    // Notificaciones por encima del Asesor IA (z-index 2147483000).
+    if (window.iziToast) {
+        iziToast.settings({ zindex: 2147483100 });
+    }
+
     $(document).ready(function() {
 
  
@@ -789,51 +814,51 @@ $(window).scroll(function() {
     const marca = document.querySelector("select[name='marca']");
     const equivalenciaFiltro = document.querySelector("input[name='equivalenciaFiltro']");
 
-    // Cargar la última búsqueda al cargar la página
-    if (localStorage.getItem("ultimaBusqueda")) {
+    // Cargar la última búsqueda al cargar la página (con guards para páginas sin buscador)
+    if (buscador && localStorage.getItem("ultimaBusqueda")) {
         buscador.value = localStorage.getItem("ultimaBusqueda");
     }
-    if (localStorage.getItem("codigoBMH")) {
+    if (codigoBMH && localStorage.getItem("codigoBMH")) {
         codigoBMH.value = localStorage.getItem("codigoBMH");
     }
-    if (localStorage.getItem("categoriaFiltro")) {
+    if (categoriaFiltro && localStorage.getItem("categoriaFiltro")) {
         categoriaFiltro.value = localStorage.getItem("categoriaFiltro");
     }
-    if (localStorage.getItem("marca")) {
+    if (marca && localStorage.getItem("marca")) {
         marca.value = localStorage.getItem("marca");
     }
-    if (localStorage.getItem("equivalenciaFiltro")) {
+    if (equivalenciaFiltro && localStorage.getItem("equivalenciaFiltro")) {
         equivalenciaFiltro.value = localStorage.getItem("equivalenciaFiltro");
     }
 
     // Cargar el estado de los checkboxes
-    if (localStorage.getItem("checkboxNuevo") === "true") {
+    if (checkboxNuevo && localStorage.getItem("checkboxNuevo") === "true") {
         checkboxNuevo.checked = true;
     }
-    if (localStorage.getItem("checkboxReconstruido") === "true") {
+    if (checkboxReconstruido && localStorage.getItem("checkboxReconstruido") === "true") {
         checkboxReconstruido.checked = true;
     }
 
-    buscador.addEventListener("input", function () {
+    if (buscador) buscador.addEventListener("input", function () {
         localStorage.setItem("ultimaBusqueda", buscador.value);
     });
-    codigoBMH.addEventListener("input", function () {
+    if (codigoBMH) codigoBMH.addEventListener("input", function () {
         localStorage.setItem("codigoBMH", codigoBMH.value);
     });
-    categoriaFiltro.addEventListener("change", function () {
+    if (categoriaFiltro) categoriaFiltro.addEventListener("change", function () {
         localStorage.setItem("categoriaFiltro", categoriaFiltro.value);
     });
-    marca.addEventListener("change", function () {
+    if (marca) marca.addEventListener("change", function () {
         localStorage.setItem("marca", marca.value);
     });
-    equivalenciaFiltro.addEventListener("input", function () {
+    if (equivalenciaFiltro) equivalenciaFiltro.addEventListener("input", function () {
         localStorage.setItem("equivalenciaFiltro", equivalenciaFiltro.value);
     });
 
-    checkboxNuevo.addEventListener("change", function () {
+    if (checkboxNuevo) checkboxNuevo.addEventListener("change", function () {
         localStorage.setItem("checkboxNuevo", checkboxNuevo.checked);
     });
-    checkboxReconstruido.addEventListener("change", function () {
+    if (checkboxReconstruido) checkboxReconstruido.addEventListener("change", function () {
         localStorage.setItem("checkboxReconstruido", checkboxReconstruido.checked);
     });
 });
@@ -968,7 +993,8 @@ $(window).scroll(function() {
 }
 
 // Ejecutar al cambiar select de categoría
-document.getElementById('selectCategoria').addEventListener('change', function () {
+var _selectCat = document.getElementById('selectCategoria');
+if (_selectCat) _selectCat.addEventListener('change', function () {
     const categoriaId = this.value;
     if (categoriaId) {
         cargarAtributosCategoria(categoriaId);
@@ -987,18 +1013,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         document.addEventListener('DOMContentLoaded', function() {
-        // Si hay datos guardados en localStorage, completamos el formulario
-        if (localStorage.getItem('username') && localStorage.getItem('password')) {
-            document.getElementById('input_type').value = localStorage.getItem('username');
-            document.getElementById('password').value = localStorage.getItem('password');
-            document.getElementById('remember_me').checked = true; // Marca el checkbox
+        // Si hay datos guardados en localStorage, completamos el formulario (con guards)
+        var _inpType = document.getElementById('input_type');
+        var _pwd = document.getElementById('password');
+        var _remember = document.getElementById('remember_me');
+        if (_inpType && _pwd && localStorage.getItem('username') && localStorage.getItem('password')) {
+            _inpType.value = localStorage.getItem('username');
+            _pwd.value = localStorage.getItem('password');
+            if (_remember) _remember.checked = true;
         }
 
-        // Al enviar el formulario, si se marca el checkbox de "Recordarme", guardamos los datos en localStorage
-        document.querySelector('form').addEventListener('submit', function(e) {
-            if (document.getElementById('remember_me').checked) {
-                localStorage.setItem('username', document.getElementById('input_type').value);
-                localStorage.setItem('password', document.getElementById('password').value);
+        var _form = document.querySelector('form');
+        if (_form && _inpType && _pwd && _remember) _form.addEventListener('submit', function(e) {
+            if (_remember.checked) {
+                localStorage.setItem('username', _inpType.value);
+                localStorage.setItem('password', _pwd.value);
             } else {
                 localStorage.removeItem('username');
                 localStorage.removeItem('password');

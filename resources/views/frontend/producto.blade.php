@@ -261,6 +261,103 @@
         .caracteristicas li {
             /* margin-bottom: 10px; */
         }
+
+        .pbmh-card { background:#fff; border:1px solid #E7E9EC; border-radius:10px; margin-bottom:18px;
+            overflow:hidden; font-family:'Roboto',sans-serif; }
+        .pbmh-top { display:flex; gap:22px; padding:22px 24px 18px; }
+        .pbmh-imgbox { flex:0 0 205px; align-self:flex-start; }
+        .pbmh-imgbox img { width:205px; height:150px; object-fit:contain; display:block; }
+        .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
+        .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+        .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
+        .pbmh-codigo { font-size:13px; font-weight:700; color:#1F2430; letter-spacing:.02em; }
+        .pbmh-nombre { font-size:15px; font-weight:700; color:#1F2430; line-height:1.3;
+            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .pbmh-ver { font-size:12px; color:#0098DA; text-decoration:none; white-space:nowrap; }
+        .pbmh-ver:hover { text-decoration:underline; color:#007CB2; }
+        .pbmh-cars { margin-top:10px; display:flex; flex-direction:column; gap:2px;
+            max-height:132px; overflow-y:auto; padding-right:6px; }
+        .pbmh-cars::-webkit-scrollbar { width:6px; }
+        .pbmh-cars::-webkit-scrollbar-thumb { background:#D9DDE3; border-radius:3px; }
+        .pbmh-cars::-webkit-scrollbar-track { background:transparent; }
+        .pbmh-car { display:flex; gap:6px; font-size:11px; line-height:1.5; }
+        .pbmh-car-label { color:#9AA0A8; letter-spacing:.03em; white-space:nowrap; }
+        .pbmh-car-valor { color:#3A3F47; font-weight:500; }
+        .pbmh-precios { margin-top:12px; display:flex; flex-direction:column; gap:4px; max-width:320px; }
+        .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
+        .pbmh-precio-valor { font-weight:500; color:#1F2430; }
+        .pbmh-actions { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+        .pbmh-stepper { display:inline-flex; align-items:center; border:1px solid #D9DDE3; border-radius:8px;
+            overflow:hidden; background:#fff; }
+        .pbmh-step { width:30px; height:32px; border:none; background:none; font-size:16px; color:#3A3F47;
+            cursor:pointer; line-height:1; }
+        .pbmh-step:hover { background:#F3F5F7; }
+        .pbmh-qty { min-width:30px; text-align:center; font-size:13px; font-weight:600; color:#1F2430; }
+        .pbmh-cart-btn { display:inline-flex; align-items:center; gap:9px; border:1.5px solid #0098DA;
+            color:#0098DA; background:#fff; border-radius:8px; padding:9px 22px; font-size:12px;
+            font-weight:600; letter-spacing:.05em; cursor:pointer; transition:all .15s; }
+        .pbmh-cart-btn:hover { background:#0098DA; color:#fff; }
+        .pbmh-cart-btn:hover svg path { fill:#fff; }
+        .pbmh-consultar { display:inline-flex; align-items:center; justify-content:center; border-radius:10px;
+            background:#0098DA; color:#fff; border:1px solid #0098DA; font-family:'Montserrat',sans-serif;
+            font-size:13px; font-weight:600; letter-spacing:.02em; padding:9px 22px; text-decoration:none;
+            transition:all .15s; cursor:pointer; white-space:nowrap; }
+        .pbmh-consultar:hover { background:#fff; color:#0098DA; }
+        .pbmh-consultar-sm { padding:7px 14px; font-size:11px; }
+        .pbmh-tabs { display:flex; gap:38px; padding:12px 24px; border-top:1px solid #EDEFF2; }
+        .pbmh-tab { border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
+            color:#1F2430; cursor:pointer; display:inline-flex; align-items:center; gap:7px; padding:4px 0; }
+        .pbmh-tab:hover { color:#0098DA; }
+        .pbmh-caret { font-size:10px; transition:transform .18s; }
+        .pbmh-tab.activa .pbmh-caret { transform:rotate(180deg); }
+        .pbmh-panel { padding:0 24px 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; }
+        .pbmh-panel::-webkit-scrollbar { height:3px; }
+        .pbmh-panel::-webkit-scrollbar-track { background:transparent; }
+        .pbmh-panel::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
+        .pbmh-panel::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
+        .pbmh-tabla { width:100%; border-collapse:separate; border-spacing:0; }
+        .pbmh-tabla thead tr { background:#111315; color:#fff; }
+        .pbmh-tabla th { font-size:12px; font-weight:500; text-align:left; padding:11px 14px; }
+        .pbmh-tabla thead th:first-child { border-top-left-radius:4px; }
+        .pbmh-tabla thead th:last-child { border-top-right-radius:4px; }
+        .pbmh-tabla td { padding:10px 14px; border-bottom:1px solid #F0F2F4; font-size:12px;
+            color:#3A3F47; vertical-align:middle; }
+        .pbmh-tabla tbody tr:hover { background:#FAFBFC; }
+        .pbmh-col-img { width:64px; }
+        .pbmh-thumb { width:48px; height:44px; object-fit:contain; display:block; }
+        .pbmh-celda-cod { font-weight:600; color:#1F2430; white-space:nowrap; }
+        .pbmh-celda-desc { display:flex; flex-direction:column; gap:2px; min-width:180px; }
+        .pbmh-celda-desc a { color:#9AA0A8; font-size:11px; text-decoration:none; }
+        .pbmh-celda-desc a:hover { color:#0098DA; }
+        .pbmh-num { white-space:nowrap; }
+        .pbmh-stepper-sm .pbmh-qty { min-width:24px; padding:0 2px 0 10px; font-size:13px; text-align:left; }
+        .pbmh-steps { display:flex; flex-direction:column; padding:0 7px 0 2px; }
+        .pbmh-stepper-sm .pbmh-step { width:16px; height:14px; display:flex; align-items:center; justify-content:center;
+            border:none; background:none; padding:0; color:#5A6169; cursor:pointer; }
+        .pbmh-stepper-sm .pbmh-step:hover { background:none; color:#0098DA; }
+        .pbmh-stepper-sm .pbmh-step svg { display:block; }
+        .pbmh-total { font-weight:600; color:#1F2430; }
+        .pbmh-mini-cart { width:38px; height:38px; border-radius:10px; border:1.5px solid #0098DA;
+            background:#fff; color:#0098DA; cursor:pointer; display:inline-flex; align-items:center;
+            justify-content:center; gap:3px; padding:0; transition:all .15s; }
+        .pbmh-mini-cart svg { display:block; flex-shrink:0; }
+        .pbmh-mini-cart:hover { background:#0098DA; color:#fff; }
+        .pbmh-vacio { font-size:12px; color:#9AA0A8; padding:14px 0 2px; margin:0; }
+        @media (max-width: 991px) {
+            .pbmh-top { flex-direction:column; }
+            .pbmh-imgbox { flex:none; }
+            .pbmh-tabs { gap:20px; flex-wrap:wrap; }
+            .pbmh-panel .pbmh-tabla { min-width:620px; }
+        }
+        /* Lupa zoom - fotorama del show y preview flotante */
+        #pbmh-zoom { position:fixed; display:none; width:460px; height:460px; background:#fff; border:1px solid #E7E9EC;
+            border-radius:10px; box-shadow:0 14px 36px rgba(16,24,40,.16); z-index:1060; pointer-events:none;
+            background-repeat:no-repeat; background-position:center; overflow:hidden; }
+        .pbmh-imgbox, .fotorama__stage, .pbmh-col-img { position:relative; }
+        .pbmh-lens { position:absolute; display:none; border:1px solid rgba(0,152,218,.35);
+            background:rgba(0,152,218,.08); pointer-events:none; border-radius:6px; z-index:2; }
+        .fotorama__stage .pbmh-lens { border-radius:4px; }
+        @media (max-width: 991px) { #pbmh-zoom, .pbmh-lens { display:none !important; } }
       
     </style>
 @endsection
@@ -797,9 +894,120 @@
                             </div>
                         </div>
 
+                        @php
+                            $detalleTienePartes = $producto->partesRelacionadas->isNotEmpty();
+                            $detalleTieneEquivalencias = $producto->equivalencias->isNotEmpty();
+                            $detalleTieneAplicaciones = $producto->aplicaciones->isNotEmpty();
+                            $detalleDescuentoCliente = Auth::guard('web')->check() ? (int) Auth::guard('web')->user()->descuento : 0;
+                            $detalleEsCliente = Auth::guard('web')->check();
+                        @endphp
+                        <div class="pbmh-card" data-pbmh data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}" style="margin-top:32px;">
+                            @if ($detalleTienePartes || $detalleTieneEquivalencias || $detalleTieneAplicaciones)
+                            <div class="pbmh-tabs">
+                                @if ($detalleTienePartes)
+                                    <button type="button" class="pbmh-tab" data-tab="partes">
+                                        Partes relacionadas <span class="pbmh-caret">&#9662;</span>
+                                    </button>
+                                @endif
+                                @if ($detalleTieneEquivalencias)
+                                    <button type="button" class="pbmh-tab" data-tab="equivalencias">
+                                        Equivalencias <span class="pbmh-caret">&#9662;</span>
+                                    </button>
+                                @endif
+                                @if ($detalleTieneAplicaciones)
+                                    <button type="button" class="pbmh-tab" data-tab="aplicaciones">
+                                        Aplicaciones <span class="pbmh-caret">&#9662;</span>
+                                    </button>
+                                @endif
+                            </div>
+                            @if ($detalleTienePartes)
+                            <div class="pbmh-panel d-none" data-panel="partes">
+                                <table class="pbmh-tabla">
+                                    <thead>
+                                        <tr>
+                                            <th class="pbmh-col-img"></th>
+                                            <th>Código</th>
+                                            <th>Descripción</th>
+                                            @if ($detalleEsCliente)
+                                                <th>Precio</th>
+                                                <th>Descuento</th>
+                                                <th>Cantidad</th>
+                                                <th>Total</th>
+                                                <th></th>
+                                            @else
+                                                <th></th>
+                                            @endif
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($producto->partesRelacionadas as $parte)
+                                            @php
+                                                $parteListaDet = (float) $parte->precio;
+                                                $parteDescDet = $parteListaDet * (1 - ((float) $parte->descuento / 100)) * (1 - ($detalleDescuentoCliente / 100));
+                                            @endphp
+                                            <tr data-precio="{{ number_format($parteDescDet, 2, '.', '') }}">
+                                                <td class="pbmh-col-img">
+                                                    <a href="{{ route('producto', ['id' => $parte->id]) }}" aria-label="Ver {{ $parte->nombre }}">
+                                                        <img class="pbmh-thumb" src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}" alt="" loading="lazy">
+                                                    </a>
+                                                </td>
+                                                <td class="pbmh-celda-cod">
+                                                    <a href="{{ route('producto', ['id' => $parte->id]) }}">{{ $parte->codigo }}</a>
+                                                </td>
+                                                <td class="pbmh-celda-desc">
+                                                    <a href="{{ route('producto', ['id' => $parte->id]) }}">
+                                                        <span>{{ $parte->nombre }}</span>
+                                                        <span>Medidas</span>
+                                                    </a>
+                                                </td>
+                                                @if ($detalleEsCliente)
+                                                    <td class="pbmh-num">${{ number_format($parteListaDet, 2, ',', '.') }}</td>
+                                                    <td class="pbmh-num">${{ number_format($parteDescDet, 2, ',', '.') }}</td>
+                                                    <td>
+                                                        <div class="pbmh-stepper pbmh-stepper-sm">
+                                                            <span class="pbmh-qty" data-qty>1</span>
+                                                            <span class="pbmh-steps">
+                                                                <button type="button" class="pbmh-step" data-step="1" aria-label="Sumar">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 5l4-4 4 4"/></svg>
+                                                                </button>
+                                                                <button type="button" class="pbmh-step" data-step="-1" aria-label="Restar">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+                                                                </button>
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="pbmh-num pbmh-total" data-total>${{ number_format($parteDescDet, 2, ',', '.') }}</td>
+                                                    <td>
+                                                        <button type="button" class="pbmh-mini-cart" data-add data-producto-id="{{ $parte->id }}" data-precio="{{ number_format($parteDescDet, 2, '.', '') }}" title="Sumar al carrito" aria-label="Sumar al carrito">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.2l2.5 11.3a1.7 1.7 0 0 0 1.7 1.3h7.9a1.7 1.7 0 0 0 1.7-1.3l1.8-8.3H6"/></svg>
+                                                        </button>
+                                                    </td>
+                                                @else
+                                                    <td><a href="{{ route('contacto', ['producto' => $parte->nombre]) }}" class="pbmh-consultar pbmh-consultar-sm">CONSULTAR</a></td>
+                                                @endif
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            @endif
+                            @if ($detalleTieneEquivalencias)
+                            <div class="pbmh-panel d-none" data-panel="equivalencias">
+                                @include('frontend.components.equivalencias-tabla', ['equivalencias' => $producto->equivalencias])
+                            </div>
+                            @endif
+                            @if ($detalleTieneAplicaciones)
+                            <div class="pbmh-panel d-none" data-panel="aplicaciones">
+                                @include('frontend.components.aplicaciones-tabla', ['aplicaciones' => $producto->aplicaciones])
+                            </div>
+                            @endif
+                            @endif
+                        </div>
+
                         @if ($productos != null)
                             <h4
-                                style='padding-bottom:10px; margin-top: 101px;
+                                style='padding-bottom:10px; margin-top: 40px;
             font-size: 24px;
             font-style: normal;
             font-weight: 600;
@@ -828,7 +1036,8 @@
 
 
         
-    document.getElementById('limpiarFiltros').addEventListener('click', function () {
+    var _limpiarFiltros = document.getElementById('limpiarFiltros');
+    if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
     const form = document.querySelector('.filtroBuscadores form');
     localStorage.removeItem("atributosCategoria");
 
@@ -894,5 +1103,183 @@
                 });
             }
         }
+
+        // Delegación para las cards horizontales (detalle del producto) — tabs, stepper y carrito
+        (function () {
+            if (window.__pbmhDelegado) return;
+            window.__pbmhDelegado = true;
+            function formatear(n) { return '$' + n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+            function toastOk() {
+                if (window.iziToast) {
+                    iziToast.success({ title: 'Producto agregado al carrito', backgroundColor: '#DAF6D3', titleColor: '#479831', iconColor: '#479831', progressBar: false, position: 'bottomRight', timeout: 2500 });
+                }
+            }
+            document.addEventListener('click', function (ev) {
+                var card = ev.target.closest('[data-pbmh]');
+                if (!card) return;
+                var stepBtn = ev.target.closest('[data-step]');
+                if (stepBtn) {
+                    var qtyEl = stepBtn.closest('.pbmh-stepper').querySelector('[data-qty]');
+                    var valor = Math.max(1, parseInt(qtyEl.textContent, 10) + parseInt(stepBtn.dataset.step, 10));
+                    qtyEl.textContent = valor;
+                    var fila = stepBtn.closest('tr');
+                    if (fila && fila.dataset.precio) {
+                        fila.querySelector('[data-total]').textContent = formatear(valor * parseFloat(fila.dataset.precio));
+                    }
+                    return;
+                }
+                var tab = ev.target.closest('.pbmh-tab');
+                if (tab) {
+                    var nombre = tab.dataset.tab;
+                    var abrir = !tab.classList.contains('activa');
+                    card.querySelectorAll('.pbmh-tab').forEach(function (t) { t.classList.remove('activa'); });
+                    card.querySelectorAll('.pbmh-panel').forEach(function (p) { p.classList.add('d-none'); });
+                    if (abrir) { tab.classList.add('activa'); card.querySelector('[data-panel="' + nombre + '"]').classList.remove('d-none'); }
+                    return;
+                }
+                var addBtn = ev.target.closest('[data-add]');
+                if (addBtn) {
+                    var grupo = addBtn.closest('.pbmh-actions') || addBtn.closest('tr');
+                    var qty = grupo ? parseInt(grupo.querySelector('[data-qty]').textContent, 10) || 1 : 1;
+                    var body = new URLSearchParams();
+                    body.append('producto_id', addBtn.dataset.productoId);
+                    body.append('precio', addBtn.dataset.precio);
+                    body.append('qty', qty);
+                    fetch(card.dataset.aggUrl, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': card.dataset.csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                        body: body,
+                    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then(function () { toastOk(); })
+                    .catch(function (e) { console.error('carrito', e); });
+                }
+            });
+        })();
+
+        // Lupa zoom para el fotorama del show (mismo comportamiento que en las cards)
+        (function () {
+            if (window.__pbmhZoomDetalleInit) return;
+            window.__pbmhZoomDetalleInit = true;
+            var preview = document.getElementById('pbmh-zoom');
+            if (!preview) { preview = document.createElement('div'); preview.id = 'pbmh-zoom'; document.body.appendChild(preview); }
+            var lens = document.createElement('div');
+            lens.className = 'pbmh-lens';
+            var activeImg = null, activeBox = null, zoom = 2.4;
+            function showFotorama(box, img) {
+                if (window.innerWidth < 992) return;
+                var src = img.currentSrc || img.src;
+                if (!src || src.includes('WhatsApp-Image')) return;
+                activeImg = img; activeBox = box;
+                preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
+                if (img.naturalWidth) {
+                    var cw0 = box.clientWidth || img.clientWidth || 48;
+                    var base = img.naturalWidth / cw0 * 1.35;
+                    var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
+                    var scale = Math.min(maxScale, Math.max(3.0, base));
+                    zoom = scale;
+                    preview.style.backgroundSize = (cw0 * scale) + 'px ' + (box.clientHeight * scale) + 'px';
+                } else {
+                    zoom = 3.6; preview.style.backgroundSize = '360%';
+                }
+                if (!box.contains(lens)) box.appendChild(lens);
+                // Fotorama necesita posicion relativa ya agregada por CSS
+                lens.style.display = 'block';
+                preview.style.display = 'block';
+            }
+            function hideFotorama() {
+                preview.style.display = 'none';
+                lens.style.display = 'none';
+                activeImg = null; activeBox = null;
+            }
+            function moveFotorama(e) {
+                if (!activeImg || !activeBox) return;
+                var rect = activeBox.getBoundingClientRect();
+                var x = e.clientX - rect.left, y = e.clientY - rect.top;
+                var cw = rect.width, ch = rect.height;
+                var pw = preview.offsetWidth || 460, ph = preview.offsetHeight || 460;
+                var lensW = pw / zoom, lensH = ph / zoom;
+                var frac = cw < 120 ? 0.42 : (cw < 300 ? 0.5 : 0.58);
+                lensW = Math.min(lensW, cw * frac); lensH = Math.min(lensH, ch * frac);
+                lensW = Math.max(lensW, 22); lensH = Math.max(lensH, 22);
+                lens.style.width = lensW + 'px'; lens.style.height = lensH + 'px';
+                var lx = x - lensW/2, ly = y - lensH/2;
+                lx = Math.max(0, Math.min(lx, cw - lensW));
+                ly = Math.max(0, Math.min(ly, ch - lensH));
+                lens.style.left = lx + 'px'; lens.style.top = ly + 'px';
+                var xPct = (cw - lensW) > 0 ? (lx / (cw - lensW)) * 100 : (x / cw) * 100;
+                var yPct = (ch - lensH) > 0 ? (ly / (ch - lensH)) * 100 : (y / ch) * 100;
+                preview.style.backgroundPosition = xPct + '% ' + yPct + '%';
+                var left = rect.right + 32, top = rect.top + (ch/2) - (ph/2);
+                if (left + pw > window.innerWidth - 12) left = rect.left - pw - 32;
+                top = Math.max(12, Math.min(top, window.innerHeight - ph - 12));
+                preview.style.left = left + 'px';
+                preview.style.top = top + 'px';
+            }
+            function initZoomThumbsDetalle() {
+                document.querySelectorAll('.pbmh-thumb').forEach(function (img) {
+                    var cell = img.closest('.pbmh-col-img') || img.closest('td') || img.parentElement;
+                    if (!cell || cell.dataset.pbmhZoomAttachedThumb) return;
+                    cell.dataset.pbmhZoomAttachedThumb = '1';
+                    cell.style.position = 'relative';
+                    cell.addEventListener('mouseenter', function () { showFotorama(cell, img); });
+                    cell.addEventListener('mousemove', moveFotorama);
+                    cell.addEventListener('mouseleave', hideFotorama);
+                });
+            }
+            function attachFotorama() {
+                var stage = document.querySelector('.fotorama__stage');
+                if (!stage) return;
+                // Evitar doble attach
+                if (stage.dataset.pbmhZoomAttached) return;
+                stage.dataset.pbmhZoomAttached = '1';
+                function getActiveImg() {
+                    return stage.querySelector('.fotorama__active img')
+                        || stage.querySelector('img.fotorama__img')
+                        || stage.querySelector('img');
+                }
+                stage.addEventListener('mouseenter', function () {
+                    var img = getActiveImg();
+                    if (img) showFotorama(stage, img);
+                });
+                stage.addEventListener('mousemove', function () {
+                    // La imagen activa puede cambiar (fotorama crossfade) — refrescar antes de mover
+                    var img = getActiveImg();
+                    if (img && activeImg !== img) { activeImg = img; refreshSrc(img); }
+                    moveFotorama.apply(null, arguments);
+                });
+                stage.addEventListener('mouseleave', hideFotorama);
+                // Rastrear el frame activo para que el zoom siempre use la imagen seleccionada
+                var root = document.querySelector('.fotorama');
+                if (root) {
+                    root.addEventListener('fotorama:showend', function () { var i = getActiveImg(); if (i) { activeImg = i; refreshSrc(i); } });
+                    root.addEventListener('fotorama:show', function () { var i = getActiveImg(); if (i) { activeImg = i; refreshSrc(i); } });
+                }
+            }
+            function refreshSrc(img) {
+                if (!img) return;
+                var src = img.currentSrc || img.src;
+                if (!src || src.includes('WhatsApp-Image')) { preview.style.display = 'none'; if (img.parentElement) lens.style.display = 'none'; return; }
+                preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
+                if (img.naturalWidth) {
+                    var box = activeBox || img.parentElement;
+                    var cw0 = box.clientWidth || img.clientWidth || 48;
+                    var base = img.naturalWidth / cw0 * 1.35;
+                    var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
+                    zoom = Math.min(maxScale, Math.max(3.0, base));
+                    preview.style.backgroundSize = (cw0 * zoom) + 'px ' + (box.clientHeight * zoom) + 'px';
+                }
+            }
+            // Fotorama se inicializa asincrónicamente, reintentar
+            function initDetalleZoom() { attachFotorama(); initZoomThumbsDetalle(); }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () { setTimeout(initDetalleZoom, 600); setTimeout(initDetalleZoom, 1800); });
+            } else { setTimeout(initDetalleZoom, 600); setTimeout(initDetalleZoom, 1800); }
+            // Reintentar al abrir el tab Partes relacionadas (panel estaba oculto al inicio)
+            document.addEventListener('click', function (e) { if (e.target.closest('.pbmh-tab[data-tab="partes"]')) setTimeout(initZoomThumbsDetalle, 80); });
+            // También observar cambios de imagen activa
+            var obs = new MutationObserver(function () { /* si cambia la imagen, actualizar src en próximo hover */ });
+            var fotoramaRoot = document.querySelector('.fotorama');
+            if (fotoramaRoot) obs.observe(fotoramaRoot, { childList: true, subtree: true });
+        })();
     </script>
 @endsection

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Image;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Impuesto;
@@ -36,13 +39,68 @@ class Producto extends Model
     {
         return ucfirst($value);
     }
-    public function getCategoriaAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
     public function portada(){
         return Imagen::where('sector','producto')->where('tipo', 'portada')->where('producto_id', $this->id)->get()->first();
+    }
+
+    public function portadaImagen(): HasOne
+    {
+        return $this->hasOne(Imagen::class, 'producto_id')
+            ->where('sector', 'producto')
+            ->where('tipo', 'portada');
+    }
+
+    public function imagenesGaleria()
+    {
+        return $this->hasMany(Imagen::class, 'producto_id')
+            ->where('sector', 'producto')
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")
+            ->orderBy('orden')
+            ->orderBy('id');
+    }
+
+    /**
+     * URLs validadas de la galería (portada + resto) listas para usar en la card.
+     * Usa la relación ya cargada si existe para evitar N+1.
+     * @return string[]
+     */
+    public function galeriaUrls(): array
+    {
+        $imagenes = $this->relationLoaded('imagenesGaleria')
+            ? $this->imagenesGaleria
+            : $this->imagenesGaleria()->get();
+
+        $urls = [];
+        foreach ($imagenes as $img) {
+            if (empty($img->path)) continue;
+            $abs = public_path('imagenes/' . $img->path);
+            if (is_file($abs)) {
+                $urls[] = asset('imagenes/' . $img->path);
+            }
+        }
+        $urls = array_values(array_unique($urls));
+        if (empty($urls)) {
+            $placeholder = asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
+            // Incluir placeholder como única imagen si no hay válidas
+            $urls = [$placeholder];
+        }
+        return $urls;
+    }
+
+    /**
+     * URL de la portada sólo si el archivo existe en disco. La base tiene
+     * referencias a imágenes que no están en el filesystem (ver
+     * docs/data-quality-report.md §6): preferimos el placeholder a un 404.
+     */
+    public function portadaUrl(): ?string
+    {
+        $path = $this->portadaImagen?->path;
+
+        if ($path !== null && $path !== '' && is_file(public_path('imagenes/' . $path))) {
+            return asset('imagenes/' . $path);
+        }
+
+        return null;
     }
 
     public function usos(){
@@ -164,7 +222,9 @@ class Producto extends Model
         }
 
 
-        $precio_reventa = $precio_neto * (1 + (Auth::guard('web')->user()->reventa / 100));
+        $user = Auth::guard('web')->user();
+        $margen = $user ? $user->margenReventaParaCategoria($this->categoria_id) : 0;
+        $precio_reventa = $precio_neto * (1 + ($margen / 100));
 
       
 
@@ -174,6 +234,27 @@ class Producto extends Model
     public function equivalencias()
     {
         return $this->hasMany(Equivalencia::class);
+    }
+
+    public function aplicaciones()
+    {
+        return $this->hasMany(Aplicacion::class);
+    }
+
+    /**
+     * Partes relacionadas: otros productos del catálogo asociados a este.
+     * El pivot `partes_relacionadas.orden` define el orden de mostrado.
+     */
+    public function partesRelacionadas(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Producto::class,
+            'partes_relacionadas',
+            'producto_id',
+            'parte_id',
+        )
+            ->withPivot('orden')
+            ->orderBy('partes_relacionadas.orden');
     }
     
     public function precio_neto(){

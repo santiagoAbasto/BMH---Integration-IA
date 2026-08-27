@@ -165,18 +165,21 @@
 
             </div>
 
-
-            <div class='col-12 mt-3'>
-                <label for="equivalencias[]" class='form-label'>Equivalencias</label>
-                <select class="js-example-tags form-control" multiple="multiple" name='equivalencias[]'>
-                    @foreach ($equivalencias as $equivalencia)
-                        <option value="{{$equivalencia->id}}">{{ucfirst($equivalencia->descripcion)}}</option>
-                    @endforeach
-                </select>
-            </div>
-
             <label class='mt-3' for="descripcion">Descripción</label><br>
             <textarea class='summernote-text'  id="summernote1" name="descripcion"></textarea>
+
+            @include('backend.partials.partes-relacionadas', [
+                'productoActualId' => null,
+                'partesRelacionadas' => $partesRelacionadas,
+            ])
+
+            @include('backend.partials.equivalencias', [
+                'equivalencias' => collect(),
+            ])
+
+            @include('backend.partials.aplicaciones', [
+                'aplicaciones' => collect(),
+            ])
 
             {{-- <label class='mt-3' for="caracteristicas">Características</label><br>
             <textarea class='summernote-text'  id="summernote2" name="caracteristicas"></textarea> --}}

@@ -1,5 +1,5 @@
 <div class='producto'>
-    <a href="{{route('producto', ['id' => $producto->id])}}" >
+    <div>
         <div class='producto-portada' style='position: relative;background-image: url("{{asset('imagenes/'.$producto->portada()->path)}}"); background-size: contain; background-position: center;background-repeat:no-repeat;'>
             {{-- <div class='middle'>
                 <div class='d-flex'>
@@ -40,6 +40,6 @@
                 </div>
                 
         </div>
-    </a>
+    </div>
 </div>
     

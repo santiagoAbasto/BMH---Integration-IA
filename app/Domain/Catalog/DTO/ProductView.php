@@ -18,6 +18,7 @@ final readonly class ProductView implements \JsonSerializable
      * @param list<AttributeValue> $attributes
      * @param list<CrossReference> $equivalences
      * @param list<CrossReference> $relatedParts
+     * @param list<CrossReference> $applications  aplicaciones nuevas (tabla `aplicaciones`)
      * @param list<string>         $images       nombres de archivo verificados
      */
     public function __construct(
@@ -31,6 +32,7 @@ final readonly class ProductView implements \JsonSerializable
         public array $attributes,
         public array $equivalences,
         public array $relatedParts,
+        public array $applications,
         public array $images,
         public ?float $listPrice,
         public bool $hasDuplicateCode,
@@ -89,6 +91,8 @@ final readonly class ProductView implements \JsonSerializable
                 []
             ),
             'equivalences'  => array_map(static fn (CrossReference $r): string => $r->code, $this->equivalences),
+            'related_parts' => array_map(static fn (CrossReference $r): string => $r->code, $this->relatedParts),
+            'applications'  => array_map(static fn (CrossReference $r): string => $r->code, $this->applications),
             'has_image'     => $this->images !== [],
             'duplicate_code'=> $this->hasDuplicateCode,
         ];
@@ -110,6 +114,7 @@ final readonly class ProductView implements \JsonSerializable
             'attributes'    => $this->attributes,
             'equivalences'  => $this->equivalences,
             'related_parts' => $this->relatedParts,
+            'applications'  => $this->applications,
             'images'        => $this->images,
             'duplicate_code'=> $this->hasDuplicateCode,
             'provenance'    => Provenance::database('productos', $this->id),

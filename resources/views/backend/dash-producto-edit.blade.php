@@ -227,24 +227,22 @@
 
 
 
-
-                <div class='col-12 mt-3'>
-                    <label for="equivalencias[]" class='form-label'>Equivalencias</label>
-                    <select class="js-example-tags form-control" multiple="multiple" name='equivalencias[]'>
-                        @foreach ($equivalencias as $equivalencias)
-                            <option {{ in_array($equivalencias->descripcion, $equivalencias_producto) ? 'selected' : '' }}
-                                value="{{ $equivalencias->descripcion }}">{{ ucfirst($equivalencias->descripcion) }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-
-
                 <label class='mt-3' for="descripcion">Descripción</label><br>
                 <textarea class='summernote-text' id="summernote1" name="descripcion">{!! $producto->descripcion !!}</textarea>
 
-                ¿
+                @include('backend.partials.partes-relacionadas', [
+                    'productoActualId' => $producto->id,
+                    'partesRelacionadas' => $partesRelacionadas,
+                ])
+
+                @include('backend.partials.equivalencias', [
+                    'equivalencias' => $equivalencias,
+                ])
+
+                @include('backend.partials.aplicaciones', [
+                    'aplicaciones' => $aplicaciones,
+                ])
+
                 <label class='mt-2 form-label' for=""
                     style='font-size:20px;font-weight:500;'>Imágenes</label><br>
                 <div class="row">
@@ -372,14 +370,6 @@
 
     <script>
         $(document).ready(function() {
-
-            $('.js-example-tags').select2({
-                tags: true, // Habilita la funcionalidad de tags
-                tokenSeparators: [',', ' '], // Puedes ajustar los separadores si es necesario
-                placeholder: 'Selecciona o agrega equivalencias', // Mensaje de placeholder
-                allowClear: true // Permite limpiar selección
-            });
-
 
             $('#select-categoria').change(function() {
     var categoriaId = $(this).val();

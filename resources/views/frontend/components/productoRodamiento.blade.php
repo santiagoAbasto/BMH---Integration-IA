@@ -1,5 +1,10 @@
+@php
+    $portadaUrl = $producto->portadaUrl();
+    $categoriaProducto = $producto->categoria;
+@endphp
+
 <div class='productoRodamiento'>
-    <a href="{{ route('producto', ['id' => $producto->id]) }}" >
+    <div>
         @if($producto->estado == 0)
         <div class="d-flex justify-content-start p-2">
          
@@ -26,8 +31,8 @@
         @endif
         <div class="p-4 hoverGradient">
             
-            @if ($producto->portada() && $producto->portada()->path)
-            <div class='producto-portada' style='position: relative; background-image: url("{{ asset('imagenes/'.$producto->portada()->path) }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>
+            @if ($portadaUrl)
+            <div class='producto-portada' style='position: relative; background-image: url("{{ $portadaUrl }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>
                 <div class="overlayThree">
                     <svg xmlns="http://www.w3.org/2000/svg" width="39" height="37" viewBox="0 0 39 37" fill="none">
                         <rect width="39" height="37" fill="#FCFCFC" fill-opacity="0.8"/>
@@ -62,9 +67,9 @@
                     @if ($producto->$columna)
 
 
-                    @if($producto->categoria()->first()->$columna)
+                    @if($categoriaProducto?->{$columna})
                     <div class="d-flex">
-                        <span class="infoR">{{ $producto->categoria()->first()->$columna }}:</span>
+                        <span class="infoR">{{ $categoriaProducto->{$columna} }}:</span>
                         <span class="nR">{{ $producto->$columna }}</span>
                     </div>
                     @endif
@@ -211,5 +216,5 @@
 
            
         </div>
-    </a>
+    </div>
 </div>

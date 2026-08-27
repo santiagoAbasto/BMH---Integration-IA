@@ -169,7 +169,21 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
 
         $viaSlots = $first ? [] : $query->limit($limit)->pluck('id')->all();
 
-        $ids = array_slice(array_values(array_unique([...$viaCharacteristics, ...$viaSlots])), 0, $limit);
+        // Fuente 3: tabla nueva `equivalencias` (clave-valor ordenada).
+        $viaNewEquivalences = $this->db()->table('equivalencias')
+            ->whereRaw(
+                "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(valor,' ',''),'-',''),'.',''),'/','')) LIKE ?",
+                [$like]
+            )
+            ->limit($limit)
+            ->pluck('producto_id')
+            ->all();
+
+        $ids = array_slice(
+            array_values(array_unique([...$viaCharacteristics, ...$viaSlots, ...$viaNewEquivalences])),
+            0,
+            $limit
+        );
 
         return $this->findMany(array_map('intval', $ids));
     }
@@ -335,6 +349,11 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         $imageMap        = $this->images->forProducts($productIds);
         $duplicates      = $this->duplicateCodes();
 
+        // Nuevas tablas del asesor: conviven con la info legacy, no la reemplazan.
+        $relatedPartsMap   = $this->relatedPartsFor($productIds);
+        $equivalencesMap   = $this->equivalencesFor($productIds);
+        $applicationsMap   = $this->applicationsFor($productIds);
+
         $categoryCounts = [];
         foreach ($this->categories() as $category) {
             $categoryCounts[$category->id] = $category->productCount;
@@ -352,6 +371,9 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 images: $imageMap[(int) $row->id] ?? [],
                 duplicateCode: isset($duplicates[(string) $row->codigo]),
                 categoryProductCount: $categoryCounts[$categoryId] ?? 0,
+                relatedPartsTable: $relatedPartsMap[(int) $row->id] ?? [],
+                equivalencesTable: $equivalencesMap[(int) $row->id] ?? [],
+                applicationsTable: $applicationsMap[(int) $row->id] ?? [],
             );
         }
 
@@ -374,6 +396,86 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         $grouped = [];
         foreach ($rows as $row) {
             $grouped[(int) $row->producto_id][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Partes relacionadas (tabla nueva `partes_relacionadas`): cada fila trae
+     * el código y nombre del producto-parte, ordenadas por `orden`.
+     *
+     * @param  list<int> $productIds
+     * @return array<int, list<array{code:string, name:string}>>
+     */
+    private function relatedPartsFor(array $productIds): array
+    {
+        $rows = $this->db()->table('partes_relacionadas as pr')
+            ->join('productos as p', 'p.id', '=', 'pr.parte_id')
+            ->whereIn('pr.producto_id', $productIds)
+            ->orderBy('pr.producto_id')
+            ->orderBy('pr.orden')
+            ->select('pr.producto_id', 'p.codigo', 'p.nombre')
+            ->get();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int) $row->producto_id][] = [
+                'code' => (string) $row->codigo,
+                'name' => (string) $row->nombre,
+            ];
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Equivalencias (tabla nueva `equivalencias`, estructura clave-valor).
+     *
+     * @param  list<int> $productIds
+     * @return array<int, list<array{label:?string, code:string}>>
+     */
+    private function equivalencesFor(array $productIds): array
+    {
+        $rows = $this->db()->table('equivalencias')
+            ->whereIn('producto_id', $productIds)
+            ->orderBy('producto_id')
+            ->orderBy('orden')
+            ->select('producto_id', 'nombre', 'valor')
+            ->get();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int) $row->producto_id][] = [
+                'label' => $row->nombre ?? null,
+                'code'  => (string) $row->valor,
+            ];
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Aplicaciones (tabla nueva `aplicaciones`).
+     *
+     * @param  list<int> $productIds
+     * @return array<int, list<array{label:?string, code:string}>>
+     */
+    private function applicationsFor(array $productIds): array
+    {
+        $rows = $this->db()->table('aplicaciones')
+            ->whereIn('producto_id', $productIds)
+            ->orderBy('producto_id')
+            ->orderBy('orden')
+            ->select('producto_id', 'nombre', 'valor')
+            ->get();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int) $row->producto_id][] = [
+                'label' => $row->nombre ?? null,
+                'code'  => (string) $row->valor,
+            ];
         }
 
         return $grouped;

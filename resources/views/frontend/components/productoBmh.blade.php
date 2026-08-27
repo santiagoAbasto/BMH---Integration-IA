@@ -1,330 +1,523 @@
-<div class='productoBmh cursor-pointer' style="cursor: pointer" onclick="window.location='{{ route('producto', ['id' => $producto->id]) }}'">
+{{--
+    Card horizontal de producto para la Zona de Clientes (diseño Figma).
+    Se incluye dentro de frontend/productos-carrito-bmh (una vez por producto).
 
-    <div class="p-4 hoverGradient col-lg-4">
+    Requiere en el controlador: $producto con eager load de
+    portadaImagen, productCaracteristicas.caracteristica y partesRelacionadas.
+--}}
+@php
+    $portadaUrl = $producto->portadaUrl();
+    $clienteLogueado = Auth::guard('web')->check();
+    $cliente = $clienteLogueado ? Auth::guard('web')->user() : null;
+    $descuentoCliente = $clienteLogueado ? (int) $cliente->descuento : 0;
+    $tienePartes = $producto->partesRelacionadas->isNotEmpty();
+    $tieneEquivalencias = $producto->equivalencias->isNotEmpty();
+    $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
+    $galeriaUrls = method_exists($producto, 'galeriaUrls') ? $producto->galeriaUrls() : [];
+    if (empty($galeriaUrls)) {
+        $galeriaUrls = $portadaUrl ? [$portadaUrl] : [asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg')];
+    }
+    $mostrarThumbs = count($galeriaUrls) > 1;
+@endphp
 
-        @if ($producto->portada() && $producto->portada()->path)
-            <div class='producto-portada'
-                style='position: relative; background-image: url("{{ asset('imagenes/' . $producto->portada()->path) }}"); background-size: cover; background-position: center; background-repeat: no-repeat; height: 70% !important;'>
-                <div class="overlayThree">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="39" height="37" viewBox="0 0 39 37" fill="none">
-                        <rect width="39" height="37" fill="#FCFCFC" fill-opacity="0.8" />
-                        <path
-                            d="M29.6781 26.8921L24.9175 22.1315C26.0637 20.6057 26.6824 18.7485 26.6803 16.8402C26.6803 11.9657 22.7146 8 17.8402 8C12.9657 8 9 11.9657 9 16.8402C9 21.7146 12.9657 25.6803 17.8402 25.6803C19.7485 25.6824 21.6057 25.0637 23.1315 23.9175L27.8921 28.6781C28.1331 28.8936 28.4474 29.0085 28.7705 28.9995C29.0936 28.9905 29.401 28.8581 29.6295 28.6295C29.8581 28.401 29.9905 28.0936 29.9995 27.7705C30.0085 27.4474 29.8936 27.1331 29.6781 26.8921ZM11.5258 16.8402C11.5258 15.5913 11.8961 14.3705 12.5899 13.3321C13.2838 12.2937 14.2699 11.4843 15.4237 11.0064C16.5775 10.5285 17.8472 10.4034 19.072 10.6471C20.2969 10.8907 21.422 11.4921 22.3051 12.3752C23.1882 13.2583 23.7896 14.3834 24.0332 15.6083C24.2769 16.8332 24.1518 18.1028 23.6739 19.2566C23.196 20.4104 22.3867 21.3966 21.3483 22.0904C20.3099 22.7842 19.089 23.1546 17.8402 23.1546C16.1661 23.1526 14.5612 22.4866 13.3774 21.3029C12.1937 20.1192 11.5278 18.5142 11.5258 16.8402Z"
-                            fill="#6B6B6B" />
-                    </svg>
+<div class="pbmh-card" data-pbmh data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}">
+
+    {{-- ==================== Parte superior ==================== --}}
+    <div class="pbmh-top">
+        <div class="pbmh-gallery">
+            @if ($mostrarThumbs)
+            <div class="pbmh-thumbs" aria-label="Vista previa de imágenes">
+                @foreach ($galeriaUrls as $idx => $thumbUrl)
+                    <button type="button" class="pbmh-thumb-btn {{ $idx === 0 ? 'activo' : '' }}" data-src="{{ $thumbUrl }}" aria-label="Imagen {{ $idx + 1 }}">
+                        <img src="{{ $thumbUrl }}" alt="" loading="lazy">
+                    </button>
+                @endforeach
+            </div>
+            @endif
+            <div class="pbmh-imgbox">
+                <img src="{{ $galeriaUrls[0] }}" alt="{{ $producto->nombre }}" loading="lazy">
+            </div>
+        </div>
+
+        <div class="pbmh-body">
+            <div class="pbmh-headrow">
+                <div class="pbmh-titulos">
+                    <span class="pbmh-codigo">{{ $producto->codigo }}</span>
+                    <span class="pbmh-nombre">{{ $producto->nombre }}</span>
                 </div>
             </div>
-        @else
-            <div class='producto-portada'
-                style='position: relative; background-image: url("{{ asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}"); background-size: cover; background-position: center; background-repeat: no-repeat;'>
-                <div class="overlayThree">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="39" height="37" viewBox="0 0 39 37"
-                        fill="none">
-                        <rect width="39" height="37" fill="#FCFCFC" fill-opacity="0.8" />
-                        <path
-                            d="M29.6781 26.8921L24.9175 22.1315C26.0637 20.6057 26.6824 18.7485 26.6803 16.8402C26.6803 11.9657 22.7146 8 17.8402 8C12.9657 8 9 11.9657 9 16.8402C9 21.7146 12.9657 25.6803 17.8402 25.6803C19.7485 25.6824 21.6057 25.0637 23.1315 23.9175L27.8921 28.6781C28.1331 28.8936 28.4474 29.0085 28.7705 28.9995C29.0936 28.9905 29.401 28.8581 29.6295 28.6295C29.8581 28.401 29.9905 28.0936 29.9995 27.7705C30.0085 27.4474 29.8936 27.1331 29.6781 26.8921ZM11.5258 16.8402C11.5258 15.5913 11.8961 14.3705 12.5899 13.3321C13.2838 12.2937 14.2699 11.4843 15.4237 11.0064C16.5775 10.5285 17.8472 10.4034 19.072 10.6471C20.2969 10.8907 21.422 11.4921 22.3051 12.3752C23.1882 13.2583 23.7896 14.3834 24.0332 15.6083C24.2769 16.8332 24.1518 18.1028 23.6739 19.2566C23.196 20.4104 22.3867 21.3966 21.3483 22.0904C20.3099 22.7842 19.089 23.1546 17.8402 23.1546C16.1661 23.1526 14.5612 22.4866 13.3774 21.3029C12.1937 20.1192 11.5278 18.5142 11.5258 16.8402Z"
-                            fill="#6B6B6B" />
-                    </svg>
-                </div>
+
+            <div class="pbmh-cars">
+                @foreach ($producto->productCaracteristicas as $caracteristica)
+                    @continue(blank($caracteristica->valor))
+                    <div class="pbmh-car">
+                        <span class="pbmh-car-label">{{ mb_strtoupper($caracteristica->caracteristica->nombre ?? '') }}:</span>
+                        <span class="pbmh-car-valor">{{ $caracteristica->valor }}</span>
+                    </div>
+                @endforeach
             </div>
+
+            @if ($clienteLogueado)
+                <div class="pbmh-precios">
+                    <div class="pbmh-precio-fila">
+                        <span class="pbmh-precio-label">Precio Lista:</span>
+                        <span class="pbmh-precio-valor">${{ number_format($producto->precio(), 2, ',', '.') }}</span>
+                    </div>
+                    <div class="pbmh-precio-fila">
+                        <span class="pbmh-precio-label">Precio reventa:</span>
+                        <span class="pbmh-precio-valor">${{ $producto->precio_reventa() }}</span>
+                    </div>
+                </div>
+
+                <div class="pbmh-actions">
+                    <div class="pbmh-stepper">
+                        <button type="button" class="pbmh-step" data-step="-1" aria-label="Restar">&minus;</button>
+                        <span class="pbmh-qty" data-qty>1</span>
+                        <button type="button" class="pbmh-step" data-step="1" aria-label="Sumar">+</button>
+                    </div>
+                    <button type="button" class="pbmh-cart-btn"
+                        data-add data-producto-id="{{ $producto->id }}"
+                        data-precio="{{ number_format($producto->precio_unitario_descontado(), 2, '.', '') }}">
+                        SUMAR AL CARRITO
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="17" viewBox="0 0 15 17" fill="none">
+                            <path d="M4.50416 16.5C4.09128 16.5 3.73795 16.3435 3.44418 16.0304C3.15041 15.7173 3.00327 15.3405 3.00277 14.9C3.00277 14.46 3.14991 14.0835 3.44418 13.7704C3.73845 13.4573 4.09178 13.3005 4.50416 13.3C4.91704 13.3 5.27062 13.4568 5.56489 13.7704C5.85916 14.084 6.00605 14.4605 6.00555 14.9C6.00555 15.34 5.85866 15.7168 5.56489 16.0304C5.27112 16.344 4.91754 16.5005 4.50416 16.5ZM12.0111 16.5C11.5982 16.5 11.2449 16.3435 10.9511 16.0304C10.6573 15.7173 10.5102 15.3405 10.5097 14.9C10.5097 14.46 10.6568 14.0835 10.9511 13.7704C11.2454 13.4573 11.5987 13.3005 12.0111 13.3C12.424 13.3 12.7776 13.4568 13.0718 13.7704C13.3661 14.084 13.513 14.4605 13.5125 14.9C13.5125 15.34 13.3656 15.7168 13.0718 16.0304C12.7781 16.344 12.4245 16.5005 12.0111 16.5ZM3.86607 3.7L5.66774 7.7H10.9226L12.987 3.7H3.86607ZM3.15291 2.1H14.2256C14.5134 2.1 14.7324 2.2368 14.8825 2.5104C15.0326 2.784 15.0389 3.06053 14.9013 3.34L12.2363 8.46C12.0987 8.72667 11.9143 8.93333 11.683 9.08C11.4518 9.22667 11.1983 9.3 10.9226 9.3H5.32992L4.50416 10.9H13.5125V12.5H4.50416C3.94114 12.5 3.51575 12.2368 3.22798 11.7104C2.94022 11.184 2.9277 10.6605 3.19045 10.14L4.20388 8.18L1.50139 2.1H0V0.5H2.43975L3.15291 2.1Z" fill="#0098DA"/>
+                        </svg>
+                    </button>
+                </div>
+            @else
+                <div class="pbmh-actions pbmh-actions-consultar">
+                    <a href="{{ route('contacto', ['producto' => $producto->nombre]) }}" class="pbmh-consultar">CONSULTAR</a>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- ==================== Desplegables ==================== --}}
+    @if ($tienePartes || $tieneEquivalencias || $tieneAplicaciones)
+    <div class="pbmh-tabs">
+        @if ($tienePartes)
+            <button type="button" class="pbmh-tab" data-tab="partes">
+                Partes relacionadas <span class="pbmh-caret">&#9662;</span>
+            </button>
+        @endif
+        @if ($tieneEquivalencias)
+            <button type="button" class="pbmh-tab" data-tab="equivalencias">
+                Equivalencias <span class="pbmh-caret">&#9662;</span>
+            </button>
+        @endif
+        @if ($tieneAplicaciones)
+            <button type="button" class="pbmh-tab" data-tab="aplicaciones">
+                Aplicaciones <span class="pbmh-caret">&#9662;</span>
+            </button>
         @endif
     </div>
-    <div style="background: transparent !important"
-        class='producto-texto-bmh d-flex flex-column justify-content-between col-lg-8'>
 
-        <div class="d-flex flex-column">
-            <div class="d-flex justify-content-between">
-                <div class="col-lg-6">
-                    <span class="textoTitulo"> {{ $producto->codigo }}</span>
-                </div>
-                <div class="col-lg-6 text-end" style="padding-right: 10px; color: #0098DA">
-                    <a href="{{ route('producto', ['id' => $producto->id]) }}">Ver producto</a>
-
-                </div>
-
-            </div>
-            <span class="textoTitulo">{{ $producto->nombre }}</span>
-        </div>
-
-
-        {{-- @if ($producto->estado == 0)
-            <div class="d-flex justify-content-start p-2">
-             
-                <div class="d-flex justify-content-start col-lg-6" >
-                    <label class="textoCodigoDown">Código:</label>
-                    <span class="textoCodigo"> {{ $producto->codigo }}</span>
-                </div>
-            
-    
-       
-    
-            </div>
-         
-            @else
-            <div class="d-flex justify-content-between p-2">
-                <div class="col-lg-6">
-                    @if ($producto->estado == 1)
-                    <span class="textoNuevo" style="color: #ABD430">Nuevo</span>
-                    @elseif ($producto->estado == 2)
-                    <span class="textoNuevo">Reconstruido</span>
+    @if ($tienePartes)
+    <div class="pbmh-panel d-none" data-panel="partes">
+        <table class="pbmh-tabla">
+            <thead>
+                <tr>
+                    <th class="pbmh-col-img"></th>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    @if ($clienteLogueado)
+                        <th>Precio</th>
+                        <th>Descuento</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th></th>
+                    @else
+                        <th></th>
                     @endif
-                </div>
-                <div class="d-flex justify-content-start col-lg-6" style="padding-right: 14px">
-                    <label class="textoCodigoDown">Código:</label>
-                    <span class="textoCodigo"> {{ $producto->codigo }}</span>
-    
-    
-                </div>
-       
-    
-            </div>
-            @endif --}}
-
-
-        <div class="row mt-3">
-            <div class="col-lg-12" style="max-height: 200px; overflow-y: auto;">
-                @for ($i = 1; $i <= 78; $i++)
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($producto->partesRelacionadas as $parte)
                     @php
-                        $columna = "columna_$i";
-                        $backgroundClass = 'background-color: #E2EAFF !important;';
-
+                        $parteLista = (float) $parte->precio;
+                        $parteDesc = $parteLista * (1 - ((float) $parte->descuento / 100)) * (1 - ($descuentoCliente / 100));
                     @endphp
-
-                    @if ($producto->$columna)
-                        @if ($producto->categoria()->first()->$columna)
-                            <div class="d-flex" style="{{ $backgroundClass }}">
-                                <span class="infoR">{{ $producto->categoria()->first()->$columna }}:</span>
-                                <span class="nR">{{ $producto->$columna }}</span>
-                            </div>
+                    <tr data-precio="{{ number_format($parteDesc, 2, '.', '') }}">
+                        <td class="pbmh-col-img">
+                            <a href="{{ route('producto', ['id' => $parte->id]) }}" aria-label="Ver {{ $parte->nombre }}">
+                                <img class="pbmh-thumb"
+                                    src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}"
+                                    alt="" loading="lazy">
+                            </a>
+                        </td>
+                        <td class="pbmh-celda-cod">
+                            <a href="{{ route('producto', ['id' => $parte->id]) }}">{{ $parte->codigo }}</a>
+                        </td>
+                        <td class="pbmh-celda-desc">
+                            <a href="{{ route('producto', ['id' => $parte->id]) }}">
+                                <span>{{ $parte->nombre }}</span>
+                                <span>Medidas</span>
+                            </a>
+                        </td>
+                        @if ($clienteLogueado)
+                            <td class="pbmh-num">${{ number_format($parteLista, 2, ',', '.') }}</td>
+                            <td class="pbmh-num">${{ number_format($parteDesc, 2, ',', '.') }}</td>
+                            <td>
+                                <div class="pbmh-stepper pbmh-stepper-sm">
+                                    <span class="pbmh-qty" data-qty>1</span>
+                                    <span class="pbmh-steps">
+                                        <button type="button" class="pbmh-step" data-step="1" aria-label="Sumar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 5l4-4 4 4"/></svg>
+                                        </button>
+                                        <button type="button" class="pbmh-step" data-step="-1" aria-label="Restar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+                                        </button>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="pbmh-num pbmh-total" data-total>${{ number_format($parteDesc, 2, ',', '.') }}</td>
+                            <td>
+                                <button type="button" class="pbmh-mini-cart" data-add
+                                    data-producto-id="{{ $parte->id }}"
+                                    data-precio="{{ number_format($parteDesc, 2, '.', '') }}"
+                                    title="Sumar al carrito" aria-label="Sumar al carrito">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.2l2.5 11.3a1.7 1.7 0 0 0 1.7 1.3h7.9a1.7 1.7 0 0 0 1.7-1.3l1.8-8.3H6"/></svg>
+                                </button>
+                            </td>
+                        @else
+                            <td>
+                                <a href="{{ route('contacto', ['producto' => $parte->nombre]) }}" class="pbmh-consultar pbmh-consultar-sm">CONSULTAR</a>
+                            </td>
                         @endif
-                    @endif
-
-                @endfor
-                
-                    @if($producto->productCaracteristicas->isNotEmpty())
-        @foreach($producto->productCaracteristicas as $caracteristica)
-            <div class="d-flex">
-                <span class="infoR">{{ $caracteristica->caracteristica->nombre ?? 'Nombre no disponible' }}:</span>
-                <span class="nR">{{ $caracteristica->valor ?? 'Valor no disponible' }}</span>
-            </div>
-        @endforeach
-   
-    @endif
-                
-                
-                @if ($producto->marca)
-                    <div class="d-flex">
-                        <span class="infoR">Marca:</span>
-                        <span class="nR">{{ $producto->marca }}</span>
-                    </div>
-                @endif
-                
-                        @if ($producto->modelo)
-                    <div class="d-flex">
-                        <span class="infoR">Modelo:</span>
-                        <span class="nR">{{ $producto->modelo }}</span>
-                    </div>
-                @endif
-            </div>
-
-
-        </div>
-
-
-        <div class="col-lg-12">
-
-
-            <div class="d-flex" style="width: 250px;">
-                <div class="col-lg-8">
-                    <span>
-                        Precio Lista:
-                    </span>
-
-                </div>
-                <div class="col-lg-6" style='text-align:end;'>
-                    <span>
-                        ${{ number_format($producto->precio(), 2, ',', '.') }}
-                    </span>
-
-                </div>
-
-            </div>
-            @if ($producto->descuento > 0)
-                <div class="d-flex" style=" width: 250px;">
-                    <div class="col-lg-8">
-                        <span>
-                            Descuento producto:
-                        </span>
-
-                    </div>
-                    <div class="col-lg-6" style='text-align:end; '>
-                        <span>
-                            -{{ $producto->descuento }}%
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="d-flex" style=" width: 250px;">
-                    <div class="col-lg-8">
-                        <span>
-                            Precio con descuento:
-                        </span>
-
-                    </div>
-                    <div class="col-lg-6" style='text-align:end; '>
-                        <span>
-                            ${{ number_format($producto->precio_final(), 2, ',', '.') }}
-                        </span>
-
-                    </div>
-
-                </div>
-            @endif
-
-            @if (Auth::guard('web')->user()->descuento > 0)
-                <div class="d-flex" style=" width: 250px;">
-                    <div class="col-lg-8">
-                        <span>
-                            Descuento cliente:
-                        </span>
-
-                    </div>
-                    <div class="col-lg-6" style='text-align:end; '>
-                        <span>
-                            -{{ Auth::guard('web')->user()->descuento }}%
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="d-flex" style=" width: 250px;">
-                    <div class="col-lg-8">
-                        <span>
-                            Precio con descuento:
-                        </span>
-
-                    </div>
-                    <div class="col-lg-6" style='text-align:end; '>
-                        <span>
-                            ${{ number_format($producto->precio_unitario_descontado(), 2, ',', '.') }}
-                        </span>
-
-                    </div>
-
-                </div>
-            @endif
-
-            <div class="d-flex" style="width: 250px;">
-                <div class="col-lg-8">
-                    <span>
-                        Precio reventa:
-                    </span>
-
-                </div>
-                <div class="col-lg-6" style='text-align:end; '>
-                    <span>
-                        ${{ $producto->precio_reventa() }}
-                    </span>
-
-                </div>
-
-            </div>
-
-            <!--<div class="d-flex" style="padding-top: 15px; width: 250px;">-->
-            <!--    <div class="col-lg-8">-->
-            <!--        <span>-->
-            <!--            Subtotal-->
-
-
-
-            <!--            :-->
-            <!--        </span>-->
-
-            <!--    </div>-->
-            <!--    <div class="col-lg-6">-->
-            <!--        <div class='fila col-1 monitor subtotal{{ $producto->id }}' style='text-align:end; width: 100%;'>-->
-            <!--            <div>-->
-
-            <!--                ${{ number_format($producto->precio_unitario_descontado(), 2, ',', '.') }}-->
-            <!--            </div>-->
-            <!--        </div>-->
-
-            <!--    </div>-->
-
-            <!--</div>-->
-
-
-        </div>
-
-        <div class="col-lg-12 d-flex justify-content-between">
-            <div class='cantidad' style="width: 80px !important;">
-                <div>
-                    <span class="addC" onclick="event.stopPropagation(); sumar_restar('restar', '{{ $producto->id }}')">-</span>
-                </div>
-                <div class='cantidad-contador{{ $producto->id }}' style='width:auto;'>1</div>
-                <div>
-                    <span class="addC" onclick="event.stopPropagation(); sumar_restar('sumar', '{{ $producto->id }}')">+</span>
-
-                </div>
-
-            </div>
-
-            <button class='carrito-btn' style="margin-right: 30px"
-                onclick="event.stopPropagation(); agregar_carrito_publico('{{ $producto->id }}', {{ $producto->precio_unitario_descontado() }})">
-                SUMAR AL CARRITO <svg xmlns="http://www.w3.org/2000/svg" width="15" height="17"
-                    viewBox="0 0 15 17" fill="none">
-                    <path
-                        d="M4.50416 16.5C4.09128 16.5 3.73795 16.3435 3.44418 16.0304C3.15041 15.7173 3.00327 15.3405 3.00277 14.9C3.00277 14.46 3.14991 14.0835 3.44418 13.7704C3.73845 13.4573 4.09178 13.3005 4.50416 13.3C4.91704 13.3 5.27062 13.4568 5.56489 13.7704C5.85916 14.084 6.00605 14.4605 6.00555 14.9C6.00555 15.34 5.85866 15.7168 5.56489 16.0304C5.27112 16.344 4.91754 16.5005 4.50416 16.5ZM12.0111 16.5C11.5982 16.5 11.2449 16.3435 10.9511 16.0304C10.6573 15.7173 10.5102 15.3405 10.5097 14.9C10.5097 14.46 10.6568 14.0835 10.9511 13.7704C11.2454 13.4573 11.5987 13.3005 12.0111 13.3C12.424 13.3 12.7776 13.4568 13.0718 13.7704C13.3661 14.084 13.513 14.4605 13.5125 14.9C13.5125 15.34 13.3656 15.7168 13.0718 16.0304C12.7781 16.344 12.4245 16.5005 12.0111 16.5ZM3.86607 3.7L5.66774 7.7H10.9226L12.987 3.7H3.86607ZM3.15291 2.1H14.2256C14.5134 2.1 14.7324 2.2368 14.8825 2.5104C15.0326 2.784 15.0389 3.06053 14.9013 3.34L12.2363 8.46C12.0987 8.72667 11.9143 8.93333 11.683 9.08C11.4518 9.22667 11.1983 9.3 10.9226 9.3H5.32992L4.50416 10.9H13.5125V12.5H4.50416C3.94114 12.5 3.51575 12.2368 3.22798 11.7104C2.94022 11.184 2.9277 10.6605 3.19045 10.14L4.20388 8.18L1.50139 2.1H0V0.5H2.43975L3.15291 2.1Z"
-                        fill="#0098DA" />
-                </svg>
-            </button>
-
-        </div>
-
-
-
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
+    @endif
+
+    @if ($tieneEquivalencias)
+    <div class="pbmh-panel d-none" data-panel="equivalencias">
+        @include('frontend.components.equivalencias-tabla', ['equivalencias' => $producto->equivalencias])
+    </div>
+    @endif
+
+    @if ($tieneAplicaciones)
+    <div class="pbmh-panel d-none" data-panel="aplicaciones">
+        @include('frontend.components.aplicaciones-tabla', ['aplicaciones' => $producto->aplicaciones])
+    </div>
+    @endif
+    @endif
 </div>
-@section('script')
-    <script>
-        var carritoQuitarUrl = "{{ route('carrito.quitar') }}";
-        var carritoSumarUrl = "{{ route('carrito.sumar') }}";
-        var carritoAddUrl = "{{ route('carrito.agregar') }}";
-        var carritoRemoverUrl = "{{ route('carrito.remover') }}";
-        var carritoActualizarUrl = "{{ route('carrito.actualizar') }}";
 
+@once
+<style>
+    .pbmh-card { background:#fff; border:1px solid #E7E9EC; border-radius:10px; margin-bottom:18px;
+        overflow:hidden; font-family:'Roboto',sans-serif; }
+    .pbmh-top { display:flex; gap:22px; padding:22px 24px 18px; }
+    .pbmh-gallery { display:flex; gap:10px; flex:0 0 auto; align-self:flex-start; }
+    .pbmh-thumbs { display:flex; flex-direction:column; gap:8px; width:68px; max-height:194px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
+    .pbmh-thumbs::-webkit-scrollbar { width:3px; height:3px; }
+    .pbmh-thumbs::-webkit-scrollbar-track { background:transparent; }
+    .pbmh-thumbs::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
+    .pbmh-thumbs::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
+    .pbmh-thumb-btn { width:68px; height:58px; border:1px solid #E7E9EC; border-radius:6px; background:#fff; padding:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:border-color .15s, box-shadow .15s; flex-shrink:0; }
+    .pbmh-thumb-btn:hover { border-color:#B8C0CC; }
+    .pbmh-thumb-btn.activo { border-color:#0098DA; border-width:2px; box-shadow:0 0 0 1px rgba(0,152,218,.15); }
+    .pbmh-thumb-btn img { width:100%; height:100%; object-fit:contain; display:block; }
+    .pbmh-imgbox { flex:0 0 205px; align-self:flex-start; }
+    .pbmh-imgbox img { width:205px; height:150px; object-fit:contain; display:block; }
+    .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+    .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
+    .pbmh-codigo { font-size:13px; font-weight:700; color:#1F2430; letter-spacing:.02em; }
+    .pbmh-nombre { font-size:15px; font-weight:700; color:#1F2430; line-height:1.3;
+        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .pbmh-cars { margin-top:10px; display:flex; flex-direction:column; gap:2px;
+        max-height:132px; overflow-y:auto; padding-right:6px; }
+    .pbmh-cars::-webkit-scrollbar { width:6px; }
+    .pbmh-cars::-webkit-scrollbar-thumb { background:#D9DDE3; border-radius:3px; }
+    .pbmh-cars::-webkit-scrollbar-track { background:transparent; }
+    .pbmh-car { display:flex; gap:6px; font-size:11px; line-height:1.5; }
+    .pbmh-car-label { color:#9AA0A8; letter-spacing:.03em; white-space:nowrap; }
+    .pbmh-car-valor { color:#3A3F47; font-weight:500; }
+    .pbmh-precios { margin-top:12px; display:flex; flex-direction:column; gap:4px; max-width:320px; }
+    .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
+    .pbmh-precio-valor { font-weight:500; color:#1F2430; }
+    .pbmh-actions { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .pbmh-stepper { display:inline-flex; align-items:center; border:1px solid #D9DDE3; border-radius:8px;
+        overflow:hidden; background:#fff; }
+    .pbmh-step { width:30px; height:32px; border:none; background:none; font-size:16px; color:#3A3F47;
+        cursor:pointer; line-height:1; }
+    .pbmh-step:hover { background:#F3F5F7; }
+    .pbmh-qty { min-width:30px; text-align:center; font-size:13px; font-weight:600; color:#1F2430; }
+    .pbmh-cart-btn { display:inline-flex; align-items:center; gap:9px; border:1.5px solid #0098DA;
+        color:#0098DA; background:#fff; border-radius:8px; padding:9px 22px; font-size:12px;
+        font-weight:600; letter-spacing:.05em; cursor:pointer; transition:all .15s; }
+    .pbmh-cart-btn:hover { background:#0098DA; color:#fff; }
+    .pbmh-cart-btn:hover svg path { fill:#fff; }
+    .pbmh-tabs { display:flex; gap:38px; padding:12px 24px; border-top:1px solid #EDEFF2; }
+    .pbmh-tab { border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
+        color:#1F2430; cursor:pointer; display:inline-flex; align-items:center; gap:7px; padding:4px 0; }
+    .pbmh-tab:hover { color:#0098DA; }
+    .pbmh-caret { font-size:10px; transition:transform .18s; }
+    .pbmh-tab.activa .pbmh-caret { transform:rotate(180deg); }
+    .pbmh-panel { padding:0 24px 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; }
+    .pbmh-panel::-webkit-scrollbar { height:3px; }
+    .pbmh-panel::-webkit-scrollbar-track { background:transparent; }
+    .pbmh-panel::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
+    .pbmh-panel::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
+    .pbmh-tabla { width:100%; border-collapse:separate; border-spacing:0; }
+    .pbmh-tabla thead tr { background:#111315; color:#fff; }
+    .pbmh-tabla th { font-size:12px; font-weight:500; text-align:left; padding:11px 14px; }
+    .pbmh-tabla thead th:first-child { border-top-left-radius:4px; }
+    .pbmh-tabla thead th:last-child { border-top-right-radius:4px; }
+    .pbmh-tabla td { padding:10px 14px; border-bottom:1px solid #F0F2F4; font-size:12px;
+        color:#3A3F47; vertical-align:middle; }
+    .pbmh-tabla tbody tr:hover { background:#FAFBFC; }
+    .pbmh-col-img { width:64px; position:relative; }
+    .pbmh-thumb { width:48px; height:44px; object-fit:contain; display:block; }
+    .pbmh-celda-cod { font-weight:600; color:#1F2430; white-space:nowrap; }
+    .pbmh-celda-desc { display:flex; flex-direction:column; gap:2px; min-width:180px; }
+    .pbmh-celda-cod a { color:inherit; text-decoration:none; }
+    .pbmh-celda-cod a:hover { color:#0098DA; }
+    .pbmh-celda-desc a { display:flex; flex-direction:column; gap:2px; color:inherit; text-decoration:none; }
+    .pbmh-celda-desc a:hover { color:#0098DA; }
+    .pbmh-col-img a { display:block; }
+    .pbmh-num { white-space:nowrap; }
+    .pbmh-stepper-sm .pbmh-qty { min-width:24px; padding:0 2px 0 10px; font-size:13px; text-align:left; }
+    .pbmh-steps { display:flex; flex-direction:column; padding:0 7px 0 2px; }
+    .pbmh-stepper-sm .pbmh-step { width:16px; height:14px; display:flex; align-items:center; justify-content:center;
+        border:none; background:none; padding:0; color:#5A6169; cursor:pointer; }
+    .pbmh-stepper-sm .pbmh-step:hover { background:none; color:#0098DA; }
+    .pbmh-stepper-sm .pbmh-step svg { display:block; }
+    .pbmh-total { font-weight:600; color:#1F2430; }
+    .pbmh-mini-cart { width:38px; height:38px; border-radius:10px; border:1.5px solid #0098DA;
+        background:#fff; color:#0098DA; cursor:pointer; display:inline-flex; align-items:center;
+        justify-content:center; gap:3px; padding:0; transition:all .15s; }
+    .pbmh-mini-cart svg { display:block; flex-shrink:0; }
+    .pbmh-mini-cart:hover { background:#0098DA; color:#fff; }
+    .pbmh-consultar { display:inline-flex; align-items:center; justify-content:center; border-radius:10px;
+        background:#0098DA; color:#fff; border:1px solid #0098DA; font-family:'Montserrat',sans-serif;
+        font-size:13px; font-weight:600; letter-spacing:.02em; padding:9px 22px; text-decoration:none;
+        transition:all .15s; cursor:pointer; white-space:nowrap; }
+    .pbmh-consultar:hover { background:#fff; color:#0098DA; }
+    .pbmh-consultar-sm { padding:7px 14px; font-size:11px; }
+    .pbmh-vacio { font-size:12px; color:#9AA0A8; padding:14px 0 2px; margin:0; }
+    @media (max-width: 991px) {
+        .pbmh-top { flex-direction:column; }
+        .pbmh-gallery { width:100%; flex-direction:column; }
+        .pbmh-thumbs { flex-direction:row; width:100%; max-height:none; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; padding-right:0; }
+        .pbmh-thumb-btn { flex:0 0 68px; }
+        .pbmh-imgbox { flex:none; width:100%; }
+        .pbmh-imgbox img { width:100%; }
+        .pbmh-tabs { gap:20px; flex-wrap:wrap; }
+        .pbmh-panel .pbmh-tabla { min-width:620px; }
+    }
+    /* Lupa zoom - preview flotante */
+    #pbmh-zoom { position:fixed; display:none; width:460px; height:460px; background:#fff; border:1px solid #E7E9EC;
+        border-radius:10px; box-shadow:0 14px 36px rgba(16,24,40,.16); z-index:1060; pointer-events:none;
+        background-repeat:no-repeat; background-position:center; overflow:hidden; }
+    .pbmh-imgbox { position:relative; overflow:visible; }
+    .pbmh-lens { position:absolute; display:none; border:1px solid rgba(0,152,218,.35);
+        background:rgba(0,152,218,.08); pointer-events:none; border-radius:6px; z-index:2; }
+    @media (max-width: 991px) { #pbmh-zoom, .pbmh-lens { display:none !important; } }
+</style>
+@endonce
 
-        function sumar_restar(tipo, id) {
-            var cantidad = document.querySelector('.cantidad-contador' + id)
-            if (tipo == 'sumar') {
-                var resultado = parseInt(cantidad.innerText) + 1
+@once
+<script>
+(function () {
+    // Lupa zoom para las imágenes de las cards (hover -> preview flotante al costado)
+    if (!window.__pbmhZoomInit) {
+        window.__pbmhZoomInit = true;
+        var preview = document.createElement('div');
+        preview.id = 'pbmh-zoom';
+        document.body.appendChild(preview);
+        var lens = document.createElement('div');
+        lens.className = 'pbmh-lens';
+        var activeImg = null, activeBox = null, zoom = 2.4;
+        function showZoom(box, img) {
+            if (window.innerWidth < 992) return;
+            var src = img.currentSrc || img.src;
+            if (!src || src.includes('WhatsApp-Image')) return;
+            activeImg = img; activeBox = box;
+            preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
+            if (img.naturalWidth) {
+                var cw0 = box.clientWidth || img.clientWidth || 48;
+                var base = img.naturalWidth / cw0 * 1.35;
+                var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
+                var scale = Math.min(maxScale, Math.max(3.0, base));
+                zoom = scale;
+                preview.style.backgroundSize = (cw0 * scale) + 'px ' + (box.clientHeight * scale) + 'px';
             } else {
-                var resultado = parseInt(cantidad.innerText) - 1
+                zoom = 3.6;
+                preview.style.backgroundSize = '360%';
             }
-            if (resultado > 0) {
-                cantidad.innerText = resultado
-                $.ajax({
-                    url: "{{ route('actualizar.subtotal') }}",
-                    type: 'GET',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        id: id,
-                        cantidad: resultado,
-                    },
-                    success: function(response) {
-                        console.log(response, '?')
-                        document.querySelector('.subtotal' + id).innerText = '$' + response.total
-                    },
-                    error: function(xhr) {
-                        console.error(xhr.responseText);
-                    }
-                });
-            }
+            if (!box.contains(lens)) box.appendChild(lens);
+            lens.style.display = 'block';
+            preview.style.display = 'block';
         }
-    </script>
-@endsection
+        function hideZoom() {
+            preview.style.display = 'none';
+            lens.style.display = 'none';
+            activeImg = null; activeBox = null;
+        }
+        function moveZoom(e) {
+            if (!activeImg || !activeBox) return;
+            var rect = activeBox.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            var cw = rect.width, ch = rect.height;
+            var pw = preview.offsetWidth || 460, ph = preview.offsetHeight || 460;
+            var lensW = pw / zoom, lensH = ph / zoom;
+            // Para miniaturas muy pequeñas el lens debe ser menor (más zoom útil) y caber en el contenedor
+            var frac = cw < 120 ? 0.42 : (cw < 300 ? 0.5 : 0.58);
+            lensW = Math.min(lensW, cw * frac);
+            lensH = Math.min(lensH, ch * frac);
+            lensW = Math.max(lensW, 22);
+            lensH = Math.max(lensH, 22);
+            lens.style.width = lensW + 'px';
+            lens.style.height = lensH + 'px';
+            var lx = x - lensW / 2, ly = y - lensH / 2;
+            lx = Math.max(0, Math.min(lx, cw - lensW));
+            ly = Math.max(0, Math.min(ly, ch - lensH));
+            lens.style.left = lx + 'px';
+            lens.style.top = ly + 'px';
+            var xPct = (cw - lensW) > 0 ? (lx / (cw - lensW)) * 100 : (x / cw) * 100;
+            var yPct = (ch - lensH) > 0 ? (ly / (ch - lensH)) * 100 : (y / ch) * 100;
+            preview.style.backgroundPosition = xPct + '% ' + yPct + '%';
+            var left = rect.right + 32;
+            var top = rect.top + (ch / 2) - (ph / 2);
+            if (left + pw > window.innerWidth - 12) left = rect.left - pw - 32;
+            top = Math.max(12, Math.min(top, window.innerHeight - ph - 12));
+            preview.style.left = left + 'px';
+            preview.style.top = top + 'px';
+        }
+        function initZoomBoxes() {
+            document.querySelectorAll('.pbmh-imgbox').forEach(function (box) {
+                if (box.dataset.pbmhZoomAttached) return;
+                box.dataset.pbmhZoomAttached = '1';
+                var img = box.querySelector('img');
+                if (!img) return;
+                box.addEventListener('mouseenter', function () { showZoom(box, img); });
+                box.addEventListener('mousemove', moveZoom);
+                box.addEventListener('mouseleave', hideZoom);
+            });
+            // También las miniaturas de Partes relacionadas (48px) — mismo zoom preparado para imagen pequeña
+            document.querySelectorAll('.pbmh-thumb').forEach(function (img) {
+                var cell = img.closest('.pbmh-col-img') || img.closest('td') || img.parentElement;
+                if (!cell || cell.dataset.pbmhZoomAttachedThumb) return;
+                cell.dataset.pbmhZoomAttachedThumb = '1';
+                cell.style.position = 'relative';
+                cell.addEventListener('mouseenter', function () { showZoom(cell, img); });
+                cell.addEventListener('mousemove', moveZoom);
+                cell.addEventListener('mouseleave', hideZoom);
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initZoomBoxes);
+        } else {
+            initZoomBoxes();
+        }
+        // Por si las filas de partes se abren después (panel oculto al inicio), reintentar al abrir tabs
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.pbmh-tab')) setTimeout(initZoomBoxes, 80);
+        });
+    }
+})();
+</script>
+@endonce
+
+@once
+<script>
+(function () {
+    // Delegación global: una sola suscripción para todas las cards.
+    if (window.__pbmhDelegado) return;
+    window.__pbmhDelegado = true;
+
+    function formatear(n) {
+        return '$' + n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function toastOk() {
+        if (window.iziToast) {
+            iziToast.success({
+                title: 'Producto agregado al carrito',
+                backgroundColor: '#DAF6D3', titleColor: '#479831', iconColor: '#479831',
+                progressBar: false, position: 'bottomRight', timeout: 2500,
+            });
+        }
+    }
+
+    document.addEventListener('click', function (ev) {
+        var card = ev.target.closest('[data-pbmh]');
+        if (!card) return;
+
+        // ---- Galería: cambiar imagen principal desde las previews (thumbs verticales) ----
+        var thumbBtn = ev.target.closest('.pbmh-thumb-btn');
+        if (thumbBtn) {
+            var gallery = thumbBtn.closest('.pbmh-gallery');
+            var mainImg = gallery ? gallery.querySelector('.pbmh-imgbox img') : null;
+            if (mainImg && thumbBtn.dataset.src) {
+                // Evitar recargar si ya es la activa
+                if (mainImg.getAttribute('src') !== thumbBtn.dataset.src && mainImg.src !== thumbBtn.dataset.src) {
+                    mainImg.src = thumbBtn.dataset.src;
+                }
+                gallery.querySelectorAll('.pbmh-thumb-btn').forEach(function (b) { b.classList.remove('activo'); });
+                thumbBtn.classList.add('activo');
+            }
+            return;
+        }
+
+        // ---- Steppers (+/-) ----
+        var stepBtn = ev.target.closest('[data-step]');
+        if (stepBtn) {
+            var qtyEl = stepBtn.closest('.pbmh-stepper').querySelector('[data-qty]');
+            var valor = Math.max(1, parseInt(qtyEl.textContent, 10) + parseInt(stepBtn.dataset.step, 10));
+            qtyEl.textContent = valor;
+
+            // Si la fila tiene total, recalcularlo.
+            var fila = stepBtn.closest('tr');
+            if (fila && fila.dataset.precio) {
+                fila.querySelector('[data-total]').textContent = formatear(valor * parseFloat(fila.dataset.precio));
+            }
+            return;
+        }
+
+        // ---- Tabs desplegables (uno abierto a la vez) ----
+        var tab = ev.target.closest('.pbmh-tab');
+        if (tab) {
+            var nombre = tab.dataset.tab;
+            var abrir = !tab.classList.contains('activa');
+            card.querySelectorAll('.pbmh-tab').forEach(function (t) { t.classList.remove('activa'); });
+            card.querySelectorAll('.pbmh-panel').forEach(function (p) { p.classList.add('d-none'); });
+            if (abrir) {
+                tab.classList.add('activa');
+                card.querySelector('[data-panel="' + nombre + '"]').classList.remove('d-none');
+            }
+            return;
+        }
+
+        // ---- Sumar al carrito (card principal y filas de partes) ----
+        var addBtn = ev.target.closest('[data-add]');
+        if (addBtn) {
+            var grupo = addBtn.closest('.pbmh-actions') || addBtn.closest('tr');
+            var qty = grupo ? parseInt(grupo.querySelector('[data-qty]').textContent, 10) || 1 : 1;
+            var body = new URLSearchParams();
+            body.append('producto_id', addBtn.dataset.productoId);
+            body.append('precio', addBtn.dataset.precio);
+            body.append('qty', qty);
+
+            fetch(card.dataset.aggUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': card.dataset.csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: body,
+            })
+                .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function () { toastOk(); })
+                .catch(function (e) { console.error('carrito', e); });
+        }
+    });
+})();
+</script>
+@endonce

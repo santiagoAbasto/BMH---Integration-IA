@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Equivalencia extends Model
 {
@@ -11,8 +12,13 @@ class Equivalencia extends Model
 
     protected $table = 'equivalencias';
 
+    protected $fillable = ['producto_id', 'nombre', 'valor', 'orden'];
 
-    public function producto()
+    protected $casts = [
+        'orden' => 'integer',
+    ];
+
+    public function producto(): BelongsTo
     {
         return $this->belongsTo(Producto::class);
     }

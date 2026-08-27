@@ -15,17 +15,33 @@
     </div>
   @endif
   
-  <form method="GET" action="{{ route('dashboard.productos') }}" class="mb-3 d-flex align-items-center">
-    <label for="categoria_id" class="me-2 fw-bold">Filtrar por categoría:</label>
-    <select name="categoria_id" id="categoria_id" class="form-select w-auto" onchange="this.form.submit()">
-        <option value="todos">Todas</option>
-        @foreach($categorias as $categoria)
-            <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
-                {{ $categoria->nombre }}
-            </option>
-        @endforeach
-    </select>
-</form>
+  @php
+      if (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') {
+          $catName = $categorias->firstWhere('id', $categoria_id)->nombre ?? 'la categoría';
+          $catLabel = ' de ' . $catName;
+      } else {
+          $catLabel = ' de todos los productos';
+      }
+  @endphp
+
+  <div class="mb-3 d-flex align-items-center gap-2">
+    <form method="GET" action="{{ route('dashboard.productos') }}" class="d-flex align-items-center">
+      <label for="categoria_id" class="me-2 fw-bold">Filtrar por categoría:</label>
+      <select name="categoria_id" id="categoria_id" class="form-select w-auto" onchange="this.form.submit()">
+          <option value="todos">Todas</option>
+          @foreach($categorias as $categoria)
+              <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
+                  {{ $categoria->nombre }}
+              </option>
+          @endforeach
+      </select>
+    </form>
+
+    <a href="#" id="btn-exportar-excel" class="btn btn-success d-flex align-items-center" onclick="exportarExcelProductos(event)">
+      <img style="height:18px; padding-right:5px;" src="{{ asset('imagenes/iconos/excel.png') }}" alt="">
+      <span id="label-exportar-excel">Descargar Excel{{ $catLabel }}</span>
+    </a>
+  </div>
 
 
   <div class="card">
@@ -232,6 +248,19 @@
           }
         });
       });
+  });
+
+  function exportarExcelProductos(e) {
+      e.preventDefault();
+      var cat = document.getElementById('categoria_id').value;
+      window.location.href = '{{ route('dashboard.productos.exportar') }}?categoria_id=' + encodeURIComponent(cat);
+  }
+
+  document.getElementById('categoria_id').addEventListener('change', function () {
+      var label = document.getElementById('label-exportar-excel');
+      label.textContent = this.value === 'todos'
+          ? 'Descargar Excel de todos los productos'
+          : 'Descargar Excel de ' + this.options[this.selectedIndex].text;
   });
 </script>
 

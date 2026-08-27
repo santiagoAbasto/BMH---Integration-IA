@@ -17,7 +17,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
   <link rel="icon" href="{{asset('imagenes/'.$logo2->path)}}" type="image/x-icon">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
   {{-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"> --}}
-  <script src="https://kit.fontawesome.com/b9cbc4747f.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
   {{-- FONTS --}}
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -587,6 +587,19 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
 
   
   
+<style>
+    .password-wrap { position: relative; }
+    .password-wrap .form-control { padding-right: 40px; }
+    .btn-toggle-password {
+        position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+        background: none; border: none; padding: 0; cursor: pointer; color: #6b7280;
+        display: flex; align-items: center;
+    }
+    .btn-toggle-password svg { width: 18px; height: 18px; }
+    .btn-toggle-password .eye-off { display: none; }
+    .btn-toggle-password.showing .eye-open { display: none; }
+    .btn-toggle-password.showing .eye-off { display: block; }
+</style>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
 
@@ -743,6 +756,18 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
     
     
   });
+
+    function toggleClientePasswordVisibility(btn) {
+        var input = btn.parentElement.querySelector('input');
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.classList.add('showing');
+        } else {
+            input.type = 'password';
+            btn.classList.remove('showing');
+        }
+    }
 </script>
 
 

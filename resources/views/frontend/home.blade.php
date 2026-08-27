@@ -444,8 +444,8 @@
 
             <div class='row'>
                 @foreach ($productos as $producto)
-                    <div class="producto-cont col-lg-3" data-aos="fade-up">
-                        @include('frontend/components/productoRodamiento')
+                    <div class="col-lg-6" data-aos="fade-up">
+                        @include('frontend/components/productoBmh')
                     </div>
                 @endforeach
             </div>
@@ -522,7 +522,9 @@
 @section('script')
     <script>
 
-document.getElementById('limpiarFiltros').addEventListener('click', function () {
+// Guarda: el botón "Limpiar" sólo existe para usuarios logueados.
+var _limpiarFiltros = document.getElementById('limpiarFiltros');
+if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
     const form = document.querySelector('.filtroBuscadores form');
     localStorage.removeItem("atributosCategoria");
 

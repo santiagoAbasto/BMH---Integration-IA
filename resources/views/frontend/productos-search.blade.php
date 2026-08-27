@@ -333,7 +333,9 @@ input[type="checkbox"]:checked + .custom-checkbox-2 {
 
     
 
-    document.getElementById('limpiarFiltros').addEventListener('click', function () {
+    // Guarda: el botón "Limpiar" sólo existe en la Zona de Clientes.
+    var _limpiarFiltros = document.getElementById('limpiarFiltros');
+    if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
     const form = document.querySelector('.filtroBuscadores form');
     localStorage.removeItem("atributosCategoria");
 
@@ -378,7 +380,7 @@ var marcas = @json($marcas); // Obtener las marcas desde PHP
 var marcaSelect = document.getElementById('marca');
 var modeloSelect = document.getElementById('modelo');
 
-marcaSelect.addEventListener('change', function () {
+if (marcaSelect && modeloSelect) marcaSelect.addEventListener('change', function () {
 modeloSelect.disabled = false;
 
 
@@ -389,7 +391,7 @@ modeloSelect.innerHTML = '<option value="">Selecciona un modelo</option>';
 
 if (marcaSeleccionada && marcas[marcaSeleccionada]) {
     var modelos = marcas[marcaSeleccionada];
-    for (var modelo in modelos) {
+    for (var modelo of modelos) {
         var option = document.createElement('option');
         option.value = modelo;
         option.textContent = modelo;

@@ -33,9 +33,9 @@
 <?php
 $producto = App\Models\Producto::find(strval($imagen->baner_texto));
 ?>
-<a href="{{$producto != null ? route('producto', ['id' => $producto->id]) : ''}}">
+<div>
     <div id='hotspot{{$imagen->id}}' data-id='{{$imagen->id}}' class='hotspot' style='
     background-image:url("{{asset('imagenes/iconos/hotspot.png')}}");background-position:center;background-size:contain;z-index:100;
     position:absolute;border-radius:50%;height:50px;width:50px;top:{{$imagen->top()}}%;left:{{$imagen->left()}}%' 
-    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{$producto != null ? $producto->nombre : ''}}" data-bs-placement="bottom"></div>
-</a>
+    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{$producto != null ? $producto->nombre : ''}}"     data-bs-placement="bottom"></div>
+</div>

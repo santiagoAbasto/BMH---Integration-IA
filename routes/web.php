@@ -141,6 +141,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
+        Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');
         Route::post('dashboard/producto/store', 'store')->name('producto.store');
         Route::get('dashboard/productos/editar', 'edit')->name('producto.edit');
@@ -149,6 +150,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::put('dashboard/producto-imagen-update', 'imagen_update')->name('producto.imagen.update');
         Route::put('dashboard/producto-portada-update', 'portada_update')->name('producto.portada');
         Route::post('dashboard/buscar-producto', 'dash_buscar_producto')->name('dashboard.buscar.producto');
+        Route::get('dashboard/productos/buscar-partes', 'buscarPartes')->name('producto.buscar.partes');
         Route::post('dashboard/buscar-producto-oferta', 'dash_buscar_producto_oferta')->name('dashboard.buscar.producto.oferta');
         Route::post('dashboard/oferta/store', 'oferta_store')->name('oferta.store');
         Route::post('actualizar-precios', 'actualizarPreciosExcel')->name('actualizar.precios');
@@ -328,6 +330,7 @@ Route::controller(UserController::class)->group(function () {
     Route::middleware('cliente')->group(function(){
         Route::get('mis-datos', 'cliente_datos')->name('cliente.datos');
         Route::post('mis-datos-reventa', 'reventaCliente')->name('reventa.user');
+        Route::post('mis-datos-margenes', 'margenesReventa')->name('reventa.margenes');
         Route::post('mis-datos-cliente', 'updateDate')->name('clienteD.update');
         Route::get('historial', 'cliente_historial')->name('cliente.historial');
         Route::get('cliente-pedido', 'vendedor_pedido_datos')->name('cliente.pedido');
