@@ -326,8 +326,8 @@
         .pbmh-col-img { width:64px; }
         .pbmh-thumb { width:48px; height:44px; object-fit:contain; display:block; }
         .pbmh-celda-cod { font-weight:600; color:#1F2430; white-space:nowrap; }
-        .pbmh-celda-desc { display:flex; flex-direction:column; gap:2px; min-width:180px; }
-        .pbmh-celda-desc a { color:#9AA0A8; font-size:11px; text-decoration:none; }
+        .pbmh-celda-desc { min-width:180px; }
+        .pbmh-celda-desc a { display:inline-flex; flex-direction:column; gap:2px; color:#9AA0A8; font-size:11px; text-decoration:none; justify-content:center; vertical-align:middle; }
         .pbmh-celda-desc a:hover { color:#0098DA; }
         .pbmh-num { white-space:nowrap; }
         .pbmh-stepper-sm .pbmh-qty { min-width:24px; padding:0 2px 0 10px; font-size:13px; text-align:left; }

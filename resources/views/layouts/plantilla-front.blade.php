@@ -32,7 +32,7 @@ $cart = Cart::content();
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/styles2.css?v=70">
+  <link rel="stylesheet" href="css/styles2.css?v=71">
   
   {{-- FONTAWESOME --}}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
@@ -224,7 +224,7 @@ $cart = Cart::content();
                 @endif 
                 
                 <li class="nav-item" style='align-content:center;'>
-                  @if(isset($zonaclientes) && Auth::guard('web')->check())
+                  @if(Auth::guard('web')->check())
                   <form method="POST" action="{{ route('logout', ['ventana' => 'home']) }}">
                     @csrf
 
@@ -233,13 +233,9 @@ $cart = Cart::content();
                         onclick="event.preventDefault();this.closest('form').submit();">
                         <span style='margin-right:5px;'>Cerrar sesión</span>
                     </button>
-                </form>
+                  </form>
                   @else
-
-                    @if(Auth::guard('web')->check())<a href="{{route('productos.clientes')}}" style='margin-right:0;'>@endif
-                      <button class='green-btn-inverse zona-cliente-btn {{ Route::is('home') ? '' : 'boton-home isHome' }}'  {{Auth::guard('web')->check() ? '' : 'onclick=toggleCarrito()'}}>Zona Clientes</button>
-                    @if(Auth::guard('web')->check())</a>@endif
-                  
+                    <button class='green-btn-inverse zona-cliente-btn {{ Route::is('home') ? '' : 'boton-home isHome' }}' onclick=toggleCarrito()>Zona Clientes</button>
                   @endif
                 </li>
 
@@ -313,11 +309,18 @@ $cart = Cart::content();
             </li>
 
             <li class="mb-3">
-                     @if(Auth::guard('web')->check() && !isset($zonaclientes))<a href="{{route('productos.clientes')}}" style=''>@endif
-        <div class='mobile user-mobile' onclick="{{Auth::guard('web')->check() && !isset($zonaclientes) ? '' : 'toggleCarrito()'}}">
-          <button class='green-btn-inverse zona-cliente-btn boton-home'>Zona Clientes</button>
-        </div>
-        
+              @if(Auth::guard('web')->check())
+              <form method="POST" action="{{ route('logout', ['ventana' => 'home']) }}">
+                @csrf
+                <button class='green-btn-inverse zona-cliente-btn boton-home' onclick="event.preventDefault();this.closest('form').submit();">
+                  <span style='margin-right:5px;'>Cerrar sesión</span>
+                </button>
+              </form>
+              @else
+              <div class='mobile user-mobile' onclick="toggleCarrito()">
+                <button class='green-btn-inverse zona-cliente-btn boton-home'>Zona Clientes</button>
+              </div>
+              @endif
             </li>
             @endif
           </ul>

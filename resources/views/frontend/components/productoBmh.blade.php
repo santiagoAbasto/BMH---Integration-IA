@@ -10,6 +10,10 @@
     $clienteLogueado = Auth::guard('web')->check();
     $cliente = $clienteLogueado ? Auth::guard('web')->user() : null;
     $descuentoCliente = $clienteLogueado ? (int) $cliente->descuento : 0;
+    $precioListaF = number_format($producto->precio(), 2, ',', '.');
+    $precioConDescF = number_format($producto->precio_unitario_descontado(), 2, ',', '.');
+    $precioConDescNum = number_format($producto->precio_unitario_descontado(), 2, '.', '');
+    $precioReventaF = $producto->precio_reventa();
     $tienePartes = $producto->partesRelacionadas->isNotEmpty();
     $tieneEquivalencias = $producto->equivalencias->isNotEmpty();
     $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
@@ -20,7 +24,7 @@
     $mostrarThumbs = count($galeriaUrls) > 1;
 @endphp
 
-<div class="pbmh-card" data-pbmh data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}">
+<div class="pbmh-card" data-pbmh data-subtotal-base="{{ $precioConDescNum }}" data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}">
 
     {{-- ==================== Parte superior ==================== --}}
     <div class="pbmh-top">
@@ -48,6 +52,29 @@
             </div>
 
             <div class="pbmh-cars">
+                @if ($producto->marca)
+                    <div class="pbmh-car">
+                        <span class="pbmh-car-label">Marca:</span>
+                        <span class="pbmh-car-valor">{{ $producto->marca }}</span>
+                    </div>
+                @endif
+                @if ($producto->modelo)
+                    <div class="pbmh-car">
+                        <span class="pbmh-car-label">Modelo:</span>
+                        <span class="pbmh-car-valor">{{ $producto->modelo }}</span>
+                    </div>
+                @endif
+
+                @for ($i = 1; $i <= 78; $i++)
+                    @php $columna = 'columna_' . $i; @endphp
+                    @if (!empty($producto->$columna) && $producto->categoria && !empty($producto->categoria->$columna))
+                        <div class="pbmh-car">
+                            <span class="pbmh-car-label">{{ mb_strtoupper($producto->categoria->$columna) }}:</span>
+                            <span class="pbmh-car-valor">{{ $producto->$columna }}</span>
+                        </div>
+                    @endif
+                @endfor
+
                 @foreach ($producto->productCaracteristicas as $caracteristica)
                     @continue(blank($caracteristica->valor))
                     <div class="pbmh-car">
@@ -61,11 +88,23 @@
                 <div class="pbmh-precios">
                     <div class="pbmh-precio-fila">
                         <span class="pbmh-precio-label">Precio Lista:</span>
-                        <span class="pbmh-precio-valor">${{ number_format($producto->precio(), 2, ',', '.') }}</span>
+                        <span class="pbmh-precio-valor">${{ $precioListaF }}</span>
+                    </div>
+                    <div class="pbmh-precio-fila">
+                        <span class="pbmh-precio-label">Descuento cliente:</span>
+                        <span class="pbmh-precio-valor">{{ $descuentoCliente }}%</span>
+                    </div>
+                    <div class="pbmh-precio-fila">
+                        <span class="pbmh-precio-label">Precio con descuento:</span>
+                        <span class="pbmh-precio-valor">${{ $precioConDescF }}</span>
                     </div>
                     <div class="pbmh-precio-fila">
                         <span class="pbmh-precio-label">Precio reventa:</span>
-                        <span class="pbmh-precio-valor">${{ $producto->precio_reventa() }}</span>
+                        <span class="pbmh-precio-valor">${{ $precioReventaF }}</span>
+                    </div>
+                    <div class="pbmh-precio-fila pbmh-precio-subtotal">
+                        <span class="pbmh-precio-label">Subtotal:</span>
+                        <span class="pbmh-precio-valor" data-subtotal>${{ $precioConDescF }}</span>
                     </div>
                 </div>
 
@@ -232,7 +271,7 @@
     .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
     .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
     .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
-    .pbmh-codigo { font-size:13px; font-weight:700; color:#1F2430; letter-spacing:.02em; }
+    .pbmh-codigo { display:inline-block; align-self:flex-start; font-size:14px; font-weight:800; color:#0098DA; background:#EAF6FC; padding:2px 8px; border-radius:6px; letter-spacing:.03em; }
     .pbmh-nombre { font-size:15px; font-weight:700; color:#1F2430; line-height:1.3;
         display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .pbmh-cars { margin-top:10px; display:flex; flex-direction:column; gap:2px;
@@ -246,6 +285,9 @@
     .pbmh-precios { margin-top:12px; display:flex; flex-direction:column; gap:4px; max-width:320px; }
     .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
     .pbmh-precio-valor { font-weight:500; color:#1F2430; }
+    .pbmh-precio-subtotal { border-top:1px dashed #E2E6EB; margin-top:2px; padding-top:6px; }
+    .pbmh-precio-subtotal .pbmh-precio-label { font-weight:700; color:#1F2430; }
+    .pbmh-precio-subtotal .pbmh-precio-valor { font-weight:700; color:#0098DA; }
     .pbmh-actions { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
     .pbmh-stepper { display:inline-flex; align-items:center; border:1px solid #D9DDE3; border-radius:8px;
         overflow:hidden; background:#fff; }
@@ -287,13 +329,13 @@
     .pbmh-tabla td { padding:10px 14px; border-bottom:1px solid #F0F2F4; font-size:12px;
         color:#3A3F47; vertical-align:middle; }
     .pbmh-tabla tbody tr:hover { background:#FAFBFC; }
-    .pbmh-col-img { width:64px; position:relative; }
-    .pbmh-thumb { width:48px; height:44px; object-fit:contain; display:block; }
+    .pbmh-col-img { width:172px; position:relative; }
+    .pbmh-thumb { width:164px; height:148px; object-fit:contain; display:block; margin:2px 0; }
     .pbmh-celda-cod { font-weight:600; color:#1F2430; white-space:nowrap; }
-    .pbmh-celda-desc { display:flex; flex-direction:column; gap:2px; min-width:180px; }
+    .pbmh-celda-desc { min-width:180px; }
     .pbmh-celda-cod a { color:inherit; text-decoration:none; }
     .pbmh-celda-cod a:hover { color:#0098DA; }
-    .pbmh-celda-desc a { display:flex; flex-direction:column; gap:2px; color:inherit; text-decoration:none; }
+    .pbmh-celda-desc a { display:inline-flex; flex-direction:column; gap:2px; color:inherit; text-decoration:none; justify-content:center; vertical-align:middle; }
     .pbmh-celda-desc a:hover { color:#0098DA; }
     .pbmh-col-img a { display:block; }
     .pbmh-num { white-space:nowrap; }
@@ -324,7 +366,7 @@
         .pbmh-imgbox { flex:none; width:100%; }
         .pbmh-imgbox img { width:100%; height:auto; max-height:420px; }
         .pbmh-tabs { gap:20px; flex-wrap:wrap; }
-        .pbmh-panel-inner .pbmh-tabla { min-width:620px; }
+        .pbmh-panel-inner .pbmh-tabla { min-width:780px; }
     }
     /* Lupa zoom - preview flotante */
     #pbmh-zoom { position:fixed; display:none; width:460px; height:460px; background:#fff; border:1px solid #E7E9EC;
@@ -493,6 +535,12 @@
             var fila = stepBtn.closest('tr');
             if (fila && fila.dataset.precio) {
                 fila.querySelector('[data-total]').textContent = formatear(valor * parseFloat(fila.dataset.precio));
+            }
+            // Subtotal de la card principal (precio con descuento x cantidad).
+            var cardEl = stepBtn.closest('[data-pbmh]');
+            var subEl = cardEl ? cardEl.querySelector('[data-subtotal]') : null;
+            if (subEl && cardEl.dataset.subtotalBase) {
+                subEl.textContent = formatear(valor * parseFloat(cardEl.dataset.subtotalBase));
             }
             return;
         }

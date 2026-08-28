@@ -735,6 +735,13 @@ header:not(.home) .zona-cliente-btn:hover svg{
   color: #0098DA !important;
 }
 
+/* En la home el botón siempre se ve blanco (tanto en el hero como al hacer scroll) */
+header.home .zona-cliente-btn,
+header.home .zona-cliente-btn:hover{
+  border-color: #fff !important;
+  color: #fff !important;
+}
+
 .textoProductoLink{
   text-align: start !important;
 }
