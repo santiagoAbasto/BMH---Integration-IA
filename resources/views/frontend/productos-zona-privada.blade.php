@@ -793,20 +793,7 @@ background-size: 100% 100%;
         </div>
     </section>
 
-    @if ($anuncio && $anuncio->mostrar)
-    <div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg" style="width: 100% !important">
-            <div class="modal-content" style="width: 100% !important">
-                <div class="modal-header" style="width: 100% !important">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" style='overflow:hidden;'>
-                    {!! $anuncio->contenido !!}
-                </div>
-            </div>
-        </div>
-    </div>
-@endif
+
 
 @endsection
 

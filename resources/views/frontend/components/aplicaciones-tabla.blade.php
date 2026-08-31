@@ -9,7 +9,7 @@
     proporciones. Header negro con radio superior de 4px.
 --}}
 @php
-    $aplicLista = collect($aplicaciones)->sortBy('orden')->values();
+    $aplicLista = collect($aplicaciones)->values();
     $aplicMaxPorColumna = 12;
     $aplicColumnas = $aplicLista->isEmpty()
         ? collect()

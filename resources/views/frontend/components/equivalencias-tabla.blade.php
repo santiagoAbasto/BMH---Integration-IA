@@ -9,7 +9,7 @@
     proporciones. Header negro con radio superior de 4px.
 --}}
 @php
-    $equivLista = collect($equivalencias)->sortBy('orden')->values();
+    $equivLista = collect($equivalencias)->values();
     $equivMaxPorColumna = 12;
     $equivColumnas = $equivLista->isEmpty()
         ? collect()

@@ -11,6 +11,19 @@
 <div class="eqv-card" id="equivalencias">
     <input type="hidden" name="equivalencias_presente" value="1">
 
+    @php
+        $modoEquiv = old('orden_equivalencias_mode', isset($producto) ? ($producto->orden_equivalencias ?? 'manual') : 'manual');
+    @endphp
+
+    <div class="eqv-orden-mode-wrap">
+        <label class="eqv-orden-mode-label" for="eqv-orden-mode">Criterio de orden</label>
+        <select id="eqv-orden-mode" name="orden_equivalencias_mode" class="eqv-orden-mode" data-eqv-orden-mode>
+            <option value="manual" @selected($modoEquiv === 'manual')>Campo orden (manual)</option>
+            <option value="alfa_asc" @selected($modoEquiv === 'alfa_asc')>Alfabético ascendente</option>
+            <option value="alfa_desc" @selected($modoEquiv === 'alfa_desc')>Alfabético descendente</option>
+        </select>
+    </div>
+
     <div class="eqv-header">
         <div>
             <h2 class="eqv-title">Equivalencias</h2>
@@ -31,7 +44,7 @@
     <div class="eqv-lista" data-eqv-lista role="list" aria-label="Equivalencias del producto">
         @forelse ($equivalencias as $equivalencia)
             <div class="eqv-item" role="listitem">
-                <input type="number" class="eqv-in eqv-orden" name="equiv_orden[]" value="{{ $equivalencia->orden }}" aria-label="Orden" min="0" step="1">
+                <input type="text" class="eqv-in eqv-orden" name="equiv_orden[]" value="{{ $equivalencia->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
                 <input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" value="{{ $equivalencia->nombre }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
                 <input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" value="{{ $equivalencia->valor }}" aria-label="Valor" maxlength="255">
                 <div class="eqv-actions">
@@ -85,6 +98,13 @@
         transition:border-color .12s, box-shadow .12s; }
     .eqv-orden:hover { border-color:#ced4da; }
     .eqv-orden:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); }
+    .eqv-orden--off { background:#f1f3f5; color:#adb5bd; cursor:not-allowed; border-color:#e9ecef; box-shadow:none; }
+
+    .eqv-orden-mode-wrap { display:flex; align-items:center; gap:10px; margin:0 0 14px; flex-wrap:wrap; }
+    .eqv-orden-mode-label { font-size:13px; font-weight:600; color:#495057; }
+    .eqv-orden-mode { font-family:'Poppins',sans-serif; font-size:13px; color:#212529; background:#fff;
+        border:1px solid #ced4da; border-radius:8px; padding:7px 10px; cursor:pointer; }
+    .eqv-orden-mode:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); outline:none; }
     .eqv-in { flex:1; min-width:40px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
         outline:none; font-size:13.5px; color:#212529; font-family:inherit; padding:7px 10px;
         transition:border-color .12s, box-shadow .12s; }
@@ -157,22 +177,46 @@
             return it.querySelector('.eqv-in-valor').value.trim() !== '';
         }).length;
         marcarDuplicados();
-        reordenarPorOrden();
+        ordenarSegunModo();
     }
 
-    // Reordena TODAS las filas por su número (estable: ante empate mantiene el orden actual).
-    function reordenarPorOrden() {
+    // Ordena todas las filas según el criterio elegido en el selector.
+    function ordenarSegunModo() {
+        var sel = document.querySelector('[data-eqv-orden-mode]');
+        var modo = sel ? sel.value : 'manual';
         var nodos = Array.prototype.slice.call(lista.querySelectorAll('.eqv-item'));
         nodos.forEach(function (n, i) { n.dataset.__ordenIdx = i; });
+
         nodos.sort(function (a, b) {
-            var va = parseInt(a.querySelector('.eqv-orden').value, 10);
-            var vb = parseInt(b.querySelector('.eqv-orden').value, 10);
-            if (isNaN(va)) va = Infinity;
-            if (isNaN(vb)) vb = Infinity;
-            if (va !== vb) return va - vb;
+            if (modo === 'alfa_asc' || modo === 'alfa_desc') {
+                var na = (a.querySelector('.eqv-in-nombre').value || '').trim().toLowerCase();
+                var nb = (b.querySelector('.eqv-in-nombre').value || '').trim().toLowerCase();
+                if (na !== nb) return na < nb ? -1 : 1;
+                var va = (a.querySelector('.eqv-in-valor').value || '').trim().toLowerCase();
+                var vb = (b.querySelector('.eqv-in-valor').value || '').trim().toLowerCase();
+                if (va !== vb) return va < vb ? -1 : 1;
+                return parseInt(a.dataset.__ordenIdx, 10) - parseInt(b.dataset.__ordenIdx, 10);
+            }
+            // Manual: por el valor del campo orden (texto, vacío al final).
+            var va = (a.querySelector('.eqv-orden').value || '').trim().toLowerCase();
+            var vb = (b.querySelector('.eqv-orden').value || '').trim().toLowerCase();
+            if (va === '') va = '~';
+            if (vb === '') vb = '~';
+            if (va !== vb) return va < vb ? -1 : 1;
             return parseInt(a.dataset.__ordenIdx, 10) - parseInt(b.dataset.__ordenIdx, 10);
         });
+
+        if (modo === 'alfa_desc') nodos.reverse();
+
         nodos.forEach(function (n) { lista.appendChild(n); });
+
+        var deshabilitar = (modo !== 'manual');
+        nodos.forEach(function (n) {
+            var inp = n.querySelector('.eqv-orden');
+            if (!inp) return;
+            inp.disabled = deshabilitar;
+            inp.classList.toggle('eqv-orden--off', deshabilitar);
+        });
     }
 
     function marcarDuplicados() {
@@ -190,13 +234,20 @@
         });
     }
 
+    // Genera un código alfanumérico de 2 letras para el índice (aa, ab, …, az, ba, …).
+    function codigoAlfa(i) {
+        var a = Math.floor(i / 26);
+        var b = i % 26;
+        return String.fromCharCode(97 + a) + String.fromCharCode(97 + b);
+    }
+
     function agregarFila(nombre, valor, enfocar) {
         quitarVacio();
         var fila = document.createElement('div');
         fila.className = 'eqv-item';
         fila.setAttribute('role', 'listitem');
         fila.innerHTML =
-            '<input type="number" class="eqv-in eqv-orden" name="equiv_orden[]" aria-label="Orden" min="0" step="1">' +
+            '<input type="text" class="eqv-in eqv-orden" name="equiv_orden[]" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">' +
             '<input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">' +
             '<input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" aria-label="Valor" maxlength="255">' +
             '<div class="eqv-actions">' +
@@ -204,7 +255,7 @@
             '</div>';
         fila.querySelector('.eqv-in-nombre').value = nombre || '';
         fila.querySelector('.eqv-in-valor').value = valor || '';
-        fila.querySelector('.eqv-orden').value = filas().length + 1;
+        fila.querySelector('.eqv-orden').value = codigoAlfa(filas().length);
         lista.appendChild(fila);
         actualizarEstado();
         if (enfocar) fila.querySelector('.eqv-in-valor').focus();
@@ -324,12 +375,14 @@
         }
     });
 
-    // Reordenar todas las filas por su número al cambiar cualquier input de orden.
-    lista.addEventListener('change', function (ev) {
-        if (ev.target.closest('.eqv-orden')) reordenarPorOrden();
-    });
+    // Reordenar al cambiar cualquier dato de la fila o el criterio de orden.
+    lista.addEventListener('change', function () { ordenarSegunModo(); });
+
+    var selEquivModo = document.querySelector('[data-eqv-orden-mode]');
+    if (selEquivModo) selEquivModo.addEventListener('change', ordenarSegunModo);
 
     actualizarEstado();
+    ordenarSegunModo();
 })();
 </script>
 @endonce

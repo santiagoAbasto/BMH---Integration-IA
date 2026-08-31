@@ -32,7 +32,7 @@ $cart = Cart::content();
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/styles2.css?v=71">
+  <link rel="stylesheet" href="css/styles2.css?v=76">
   
   {{-- FONTAWESOME --}}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
@@ -370,6 +370,25 @@ $cart = Cart::content();
     @yield('content')
   </main>
 
+  @php
+    $anuncio = \App\Models\Anuncio::find(1);
+  @endphp
+  @if($anuncio && $anuncio->mostrar && (session('anuncio_pendiente') || request()->query('anuncio')))
+    <div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="anuncioLabel" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered anuncio-dialog">
+        <div class="modal-content anuncio-card">
+          <button type="button" class="anuncio-close" data-bs-dismiss="modal" aria-label="Cerrar">&times;</button>
+          <div class="anuncio-media">
+            <div class="anuncio-content">
+              {!! $anuncio->contenido !!}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    @php session()->forget('anuncio_pendiente'); @endphp
+  @endif
+
   <footer>
     <div class='container d-flex flex-column' style='margin-bottom:56px;'>
         <div>
@@ -630,40 +649,33 @@ if (_togglePwd) _togglePwd.addEventListener("click", function() {
 
 
 $(window).scroll(function() {
-            if ($(this).scrollTop() > 50) {
-                $('header').addClass('scrolled');
-                $('.infoHeader').addClass('esconder');
-                $('.nav-link').addClass('itemScroll');
-                $('.nav-link').removeClass('itemNavb');
-                $('.isHome').removeClass('boton-home');
-
-                
-                
+            if (window.innerWidth >= 992) {
+                if ($(this).scrollTop() > 50) {
+                    $('header').addClass('scrolled');
+                    $('.infoHeader').addClass('esconder');
+                    $('.nav-link').addClass('itemScroll');
+                    $('.nav-link').removeClass('itemNavb');
+                    $('.isHome').removeClass('boton-home');
+                } else {
+                    $('header').removeClass('scrolled');
+                    $('.infoHeader').removeClass('esconder');
+                    $('.nav-link').removeClass('itemScroll');
+                    $('.nav-link').addClass('itemNavb');
+                    $('.isHome').addClass('boton-home');
+                }
             } else {
+                // Mobile: el header no cambia de color al hacer scroll.
                 $('header').removeClass('scrolled');
                 $('.infoHeader').removeClass('esconder');
                 $('.nav-link').removeClass('itemScroll');
                 $('.nav-link').addClass('itemNavb');
                 $('.isHome').addClass('boton-home');
-
-                }
-
             }
-
-        );
+        });
 
 
     window.addEventListener('load', function() {
-      $('#anuncio').on('shown.bs.modal', function () {
-        var modal = $(this);
-        var modalContent = modal.find('.modal-content');
-        var modalBody = modal.find('.modal-body');
-
-        var contentWidth = modalBody.outerWidth();
-        modalContent.css('width', contentWidth + 'px');
-    });
-
-    $('#anuncio').modal('show');
+      $('#anuncio').modal('show');
       
 
       

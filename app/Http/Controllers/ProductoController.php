@@ -1397,6 +1397,10 @@ public function dash_productos(Request $request)
 
 
 
+        $nuevo_producto->orden_equivalencias = Producto::normalizarModoOrden($request->input('orden_equivalencias_mode'));
+        $nuevo_producto->orden_aplicaciones = Producto::normalizarModoOrden($request->input('orden_aplicaciones_mode'));
+        $nuevo_producto->orden_partes = Producto::normalizarModoOrden($request->input('orden_partes_mode'));
+
         $nuevo_producto->save();
 
         $this->sincronizarPartesRelacionadas($request, $nuevo_producto);
@@ -1558,8 +1562,9 @@ public function dash_productos(Request $request)
             $producto->estado = 2;
         }
 
-
-
+        $producto->orden_equivalencias = Producto::normalizarModoOrden($request->input('orden_equivalencias_mode'));
+        $producto->orden_aplicaciones = Producto::normalizarModoOrden($request->input('orden_aplicaciones_mode'));
+        $producto->orden_partes = Producto::normalizarModoOrden($request->input('orden_partes_mode'));
 
         $producto->save();
 
@@ -2462,9 +2467,9 @@ public function dash_productos(Request $request)
                 $rawOrden = $ordenes[$i] ?? null;
                 return [
                     'id' => (int) $value,
-                    'orden' => ($rawOrden !== null && $rawOrden !== '')
-                        ? (int) $rawOrden
-                        : $i,
+                'orden' => ($rawOrden !== null && $rawOrden !== '')
+                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
+                    : (string) $i,
                 ];
             })
             ->filter(fn (array $f): bool => $f['id'] > 0 && $f['id'] !== (int) $producto->id);
@@ -2511,9 +2516,9 @@ public function dash_productos(Request $request)
                 return [
                     'nombre' => trim((string) ($nombres[$i] ?? '')),
                     'valor' => trim((string) $valor),
-                    'orden' => ($rawOrden !== null && $rawOrden !== '')
-                        ? (int) $rawOrden
-                        : $i,
+                'orden' => ($rawOrden !== null && $rawOrden !== '')
+                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
+                    : (string) $i,
                 ];
             })
             // Una fila sin valor no es una equivalencia: se descarta.
@@ -2560,9 +2565,9 @@ public function dash_productos(Request $request)
                 return [
                     'nombre' => trim((string) ($nombres[$i] ?? '')),
                     'valor' => trim((string) $valor),
-                    'orden' => ($rawOrden !== null && $rawOrden !== '')
-                        ? (int) $rawOrden
-                        : $i,
+                'orden' => ($rawOrden !== null && $rawOrden !== '')
+                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
+                    : (string) $i,
                 ];
             })
             // Una fila sin valor no es una aplicación: se descarta.

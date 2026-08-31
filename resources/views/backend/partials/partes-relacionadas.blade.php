@@ -20,6 +20,19 @@
         <span class="prt-count-badge"><span data-prt-count>{{ $partesRelacionadas->count() }}</span> agregadas</span>
     </div>
 
+    @php
+        $modoPartes = old('orden_partes_mode', isset($producto) ? ($producto->orden_partes ?? 'manual') : 'manual');
+    @endphp
+
+    <div class="prt-orden-mode-wrap">
+        <label class="prt-orden-mode-label" for="prt-orden-mode">Criterio de orden</label>
+        <select id="prt-orden-mode" name="orden_partes_mode" class="prt-orden-mode" data-prt-orden-mode>
+            <option value="manual" @selected($modoPartes === 'manual')>Campo orden (manual)</option>
+            <option value="alfa_asc" @selected($modoPartes === 'alfa_asc')>Alfabético ascendente</option>
+            <option value="alfa_desc" @selected($modoPartes === 'alfa_desc')>Alfabético descendente</option>
+        </select>
+    </div>
+
     {{-- Buscador --}}
     <div class="prt-search-wrap" data-prt-search-wrap>
         {{-- Centinela: indica que la sección viajó en el form, aunque no quede ninguna parte. --}}
@@ -49,8 +62,8 @@
     {{-- Lista de seleccionadas --}}
     <div class="prt-lista" data-prt-lista>
         @forelse ($partesRelacionadas as $parte)
-            <div class="prt-item" data-id="{{ $parte->id }}">
-                <input type="number" class="prt-orden" name="parte_orden[]" value="{{ $parte->pivot->orden }}" aria-label="Orden" min="0" step="1">
+            <div class="prt-item" data-id="{{ $parte->id }}" data-nombre="{{ $parte->nombre }}">
+                <input type="text" class="prt-orden" name="parte_orden[]" value="{{ $parte->pivot->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
                 <img class="prt-thumb" src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}" alt="">
                 <div class="prt-info">
                     <span class="prt-code">{{ $parte->codigo }}</span>
@@ -112,6 +125,13 @@
         transition:border-color .12s, box-shadow .12s; }
     .prt-orden:hover { border-color:#ced4da; }
     .prt-orden:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); }
+    .prt-orden--off { background:#f1f3f5; color:#adb5bd; cursor:not-allowed; border-color:#e9ecef; box-shadow:none; }
+
+    .prt-orden-mode-wrap { display:flex; align-items:center; gap:10px; margin:0 0 14px; flex-wrap:wrap; }
+    .prt-orden-mode-label { font-size:13px; font-weight:600; color:#495057; }
+    .prt-orden-mode { font-family:'Poppins',sans-serif; font-size:13px; color:#212529; background:#fff;
+        border:1px solid #ced4da; border-radius:8px; padding:7px 10px; cursor:pointer; }
+    .prt-orden-mode:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); outline:none; }
     .prt-thumb { width:48px; height:48px; object-fit:contain; border-radius:8px; background:#fff;
         border:1px solid #eef0f2; flex-shrink:0; }
     .prt-info { display:flex; flex-direction:column; min-width:0; flex:1; }
@@ -181,22 +201,50 @@
         countEl.textContent = lista.querySelectorAll('.prt-item').length;
         var vacio = lista.querySelector('.prt-vacio');
         if (vacio) vacio.remove();
-        reordenarPorOrden();
+        ordenarSegunModo();
     }
 
-    // Reordena TODAS las filas por su número (estable: ante empate mantiene el orden actual).
-    function reordenarPorOrden() {
+    // Ordena todas las filas según el criterio elegido en el selector.
+    function ordenarSegunModo() {
+        var sel = document.querySelector('[data-prt-orden-mode]');
+        var modo = sel ? sel.value : 'manual';
         var nodos = Array.prototype.slice.call(lista.querySelectorAll('.prt-item'));
         nodos.forEach(function (n, i) { n.dataset.__ordenIdx = i; });
+
         nodos.sort(function (a, b) {
-            var va = parseInt(a.querySelector('.prt-orden').value, 10);
-            var vb = parseInt(b.querySelector('.prt-orden').value, 10);
-            if (isNaN(va)) va = Infinity;
-            if (isNaN(vb)) vb = Infinity;
-            if (va !== vb) return va - vb;
+            if (modo === 'alfa_asc' || modo === 'alfa_desc') {
+                var na = (a.dataset.nombre || '').trim().toLowerCase();
+                var nb = (b.dataset.nombre || '').trim().toLowerCase();
+                if (na !== nb) return na < nb ? -1 : 1;
+                return parseInt(a.dataset.__ordenIdx, 10) - parseInt(b.dataset.__ordenIdx, 10);
+            }
+            // Manual: por el valor del campo orden (texto, vacío al final).
+            var va = (a.querySelector('.prt-orden').value || '').trim().toLowerCase();
+            var vb = (b.querySelector('.prt-orden').value || '').trim().toLowerCase();
+            if (va === '') va = '~';
+            if (vb === '') vb = '~';
+            if (va !== vb) return va < vb ? -1 : 1;
             return parseInt(a.dataset.__ordenIdx, 10) - parseInt(b.dataset.__ordenIdx, 10);
         });
+
+        if (modo === 'alfa_desc') nodos.reverse();
+
         nodos.forEach(function (n) { lista.appendChild(n); });
+
+        var deshabilitar = (modo !== 'manual');
+        nodos.forEach(function (n) {
+            var inp = n.querySelector('.prt-orden');
+            if (!inp) return;
+            inp.disabled = deshabilitar;
+            inp.classList.toggle('prt-orden--off', deshabilitar);
+        });
+    }
+
+    // Genera un código alfanumérico de 2 letras para el índice (aa, ab, …, az, ba, …).
+    function codigoAlfa(i) {
+        var a = Math.floor(i / 26);
+        var b = i % 26;
+        return String.fromCharCode(97 + a) + String.fromCharCode(97 + b);
     }
 
     function agregarParte(p) {
@@ -206,7 +254,7 @@
         fila.className = 'prt-item';
         fila.dataset.id = p.id;
         fila.innerHTML =
-            '<input type="number" class="prt-orden" name="parte_orden[]" aria-label="Orden" min="0" step="1">' +
+            '<input type="text" class="prt-orden" name="parte_orden[]" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">' +
             '<img class="prt-thumb" src="' + escapar(p.portada_url || placeholder) + '" alt="">' +
             '<div class="prt-info">' +
                 '<span class="prt-code">' + escapar(p.codigo) + '</span>' +
@@ -217,7 +265,7 @@
             '<div class="prt-actions">' +
                 '<button type="button" class="prt-btn prt-btn-danger" data-remove title="Quitar">&times;</button>' +
             '</div>';
-        fila.querySelector('.prt-orden').value = lista.querySelectorAll('.prt-item').length + 1;
+        fila.querySelector('.prt-orden').value = codigoAlfa(lista.querySelectorAll('.prt-item').length);
         lista.appendChild(fila);
         actualizarContador();
     }
@@ -324,10 +372,13 @@
         }
     });
 
-    // Reordenar todas las filas por su número al cambiar cualquier input de orden.
-    lista.addEventListener('change', function (ev) {
-        if (ev.target.closest('.prt-orden')) reordenarPorOrden();
-    });
+    // Reordenar al cambiar cualquier dato de la fila o el criterio de orden.
+    lista.addEventListener('change', function () { ordenarSegunModo(); });
+
+    var selParteModo = document.querySelector('[data-prt-orden-mode]');
+    if (selParteModo) selParteModo.addEventListener('change', ordenarSegunModo);
+
+    ordenarSegunModo();
 })();
 </script>
 @endonce

@@ -217,7 +217,8 @@ Route::controller(ContactoController::class)->group(function () {
 
 Route::controller(PedidoController::class)->middleware('admin')->group(function () {
     Route::get('pedidos', 'ventas')->name('ventas');
-    Route::get('pedido-datos', 'pedido_datos')->name('pedido.datos');
+        Route::get('pedido-datos', 'pedido_datos')->name('pedido.datos');
+        Route::get('pedido-pdf', 'pedido_pdf')->name('pedido.pdf');
     Route::post('dashboard/buscar-pedido', 'dash_buscar_pedido')->name('dashboard.buscar.pedido');
     Route::post('dashboard/modificar-estado', 'update_estado')->name('update.estado');
     Route::post('dashboard/modificar-estado-orden', 'update_estado_orden')->name('update.estado.orden');

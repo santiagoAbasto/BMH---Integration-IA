@@ -42,6 +42,7 @@ class UserAuthController extends Controller
         // Intenta autenticar al usuario, pasando 'remember' como segundo parámetro
         if (Auth::guard('web')->attempt($credentials, $remember)) {
             // Si la autenticación es exitosa, redirige a la página de productos
+            session()->put('anuncio_pendiente', true);
             return route('productos.home');
         }
     

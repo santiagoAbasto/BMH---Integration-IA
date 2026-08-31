@@ -112,17 +112,7 @@
         }
 
 
-        #anuncio .modal-header {
-            border: none
-        }
-
-        #anuncio .modal-body {
-            max-width: 100%;
-        }
-
-        #anuncio img {
-            max-width: 100%;
-        }
+        /* estilos del anuncio ahora en styles2.css */
     </style>
 @endsection
 
@@ -611,20 +601,6 @@ if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
         if (aviso !== null) {
             toastr.warning('Un producto de tu carrito ha sido modificado por falta de stock')
         }
-
-        $('#anuncio').on('shown.bs.modal', function() {
-            var modal = $(this);
-            var modalContent = modal.find('.modal-content');
-            var modalBody = modal.find('.modal-body');
-
-            // Obtiene el ancho del contenido del modal
-            var contentWidth = modalBody.outerWidth();
-
-            // Ajusta el ancho del modal para que se ajuste al contenido
-            modalContent.css('width', contentWidth + 'px');
-        });
-
-        $('#anuncio').modal('show');
 
         $('#registro').modal('show');
 

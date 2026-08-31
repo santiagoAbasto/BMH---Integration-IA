@@ -9,11 +9,14 @@
     $portadaUrl = $producto->portadaUrl();
     $clienteLogueado = Auth::guard('web')->check();
     $cliente = $clienteLogueado ? Auth::guard('web')->user() : null;
-    $descuentoCliente = $clienteLogueado ? (int) $cliente->descuento : 0;
+    $descuentoCliente = $clienteLogueado ? (float) ($cliente->descuento ?? 0) : 0;
     $precioListaF = number_format($producto->precio(), 2, ',', '.');
     $precioConDescF = number_format($producto->precio_unitario_descontado(), 2, ',', '.');
-    $precioConDescNum = number_format($producto->precio_unitario_descontado(), 2, '.', '');
-    $precioReventaF = $producto->precio_reventa();
+    $margenReventa = $clienteLogueado
+        ? (float) $cliente->margenReventaParaCategoria($producto->categoria_id)
+        : 0.0;
+    $tieneMargenReventa = abs($margenReventa) > 0.00001;
+    $precioReventaF = $tieneMargenReventa ? $producto->precio_reventa() : null;
     $tienePartes = $producto->partesRelacionadas->isNotEmpty();
     $tieneEquivalencias = $producto->equivalencias->isNotEmpty();
     $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
@@ -24,7 +27,7 @@
     $mostrarThumbs = count($galeriaUrls) > 1;
 @endphp
 
-<div class="pbmh-card" data-pbmh data-subtotal-base="{{ $precioConDescNum }}" data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}">
+<div class="pbmh-card" data-pbmh data-agg-url="{{ route('carrito.agregar') }}" data-csrf="{{ csrf_token() }}">
 
     {{-- ==================== Parte superior ==================== --}}
     <div class="pbmh-top">
@@ -90,22 +93,33 @@
                         <span class="pbmh-precio-label">Precio Lista:</span>
                         <span class="pbmh-precio-valor">${{ $precioListaF }}</span>
                     </div>
-                    <div class="pbmh-precio-fila">
-                        <span class="pbmh-precio-label">Descuento cliente:</span>
-                        <span class="pbmh-precio-valor">{{ $descuentoCliente }}%</span>
-                    </div>
-                    <div class="pbmh-precio-fila">
-                        <span class="pbmh-precio-label">Precio con descuento:</span>
-                        <span class="pbmh-precio-valor">${{ $precioConDescF }}</span>
-                    </div>
-                    <div class="pbmh-precio-fila">
-                        <span class="pbmh-precio-label">Precio reventa:</span>
-                        <span class="pbmh-precio-valor">${{ $precioReventaF }}</span>
-                    </div>
-                    <div class="pbmh-precio-fila pbmh-precio-subtotal">
-                        <span class="pbmh-precio-label">Subtotal:</span>
-                        <span class="pbmh-precio-valor" data-subtotal>${{ $precioConDescF }}</span>
-                    </div>
+                    @if ($descuentoCliente > 0)
+                        <div class="pbmh-precio-fila">
+                            <span class="pbmh-precio-label">Descuento cliente:</span>
+                            <span class="pbmh-precio-valor">{{ $descuentoCliente }}%</span>
+                        </div>
+                    @endif
+                    @if ($descuentoCliente > 0)
+                        <div class="pbmh-precio-fila">
+                            <span class="pbmh-precio-label">Precio con descuento:</span>
+                            <span class="pbmh-precio-valor">${{ $precioConDescF }}</span>
+                        </div>
+                    @endif
+                    @if ($tieneMargenReventa)
+                        <div class="pbmh-precio-fila pbmh-precio-reventa" data-reventa-row>
+                            <span class="pbmh-precio-label" data-reventa-label hidden>Precio reventa:</span>
+                            <span class="pbmh-reventa-control">
+                                <span class="pbmh-precio-valor pbmh-reventa-valor" data-reventa-value hidden>${{ $precioReventaF }}</span>
+                                <button type="button" class="pbmh-reventa-toggle" data-reventa-toggle
+                                    aria-label="Mostrar precio de reventa" aria-pressed="false" title="Mostrar precio de reventa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                        <path d="M2.1 12s3.4-6 9.9-6 9.9 6 9.9 6-3.4 6-9.9 6-9.9-6-9.9-6Z"></path>
+                                        <circle cx="12" cy="12" r="2.6"></circle>
+                                    </svg>
+                                </button>
+                            </span>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="pbmh-actions">
@@ -285,9 +299,14 @@
     .pbmh-precios { margin-top:12px; display:flex; flex-direction:column; gap:4px; max-width:320px; }
     .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
     .pbmh-precio-valor { font-weight:500; color:#1F2430; }
-    .pbmh-precio-subtotal { border-top:1px dashed #E2E6EB; margin-top:2px; padding-top:6px; }
-    .pbmh-precio-subtotal .pbmh-precio-label { font-weight:700; color:#1F2430; }
-    .pbmh-precio-subtotal .pbmh-precio-valor { font-weight:700; color:#0098DA; }
+    .pbmh-reventa-control { display:inline-flex; align-items:center; justify-content:flex-end; gap:8px; min-height:28px; }
+    .pbmh-reventa-valor[hidden] { display:none; }
+    .pbmh-reventa-toggle { width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+        border:1px solid #D9DDE3; border-radius:7px; background:#fff; color:#0098DA; padding:0; cursor:pointer;
+        transition:background .18s, border-color .18s, color .18s, transform .18s, box-shadow .18s; }
+    .pbmh-reventa-toggle:hover, .pbmh-reventa-toggle.visible { background:#EAF6FC; border-color:#0098DA; color:#0078AD; }
+    .pbmh-reventa-toggle:hover { transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,152,218,.16); }
+    .pbmh-reventa-toggle:focus-visible { outline:2px solid #0098DA; outline-offset:2px; }
     .pbmh-actions { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
     .pbmh-stepper { display:inline-flex; align-items:center; border:1px solid #D9DDE3; border-radius:8px;
         overflow:hidden; background:#fff; }
@@ -508,6 +527,24 @@
         var card = ev.target.closest('[data-pbmh]');
         if (!card) return;
 
+        // ---- Mostrar u ocultar el precio de reventa ----
+        var reventaToggle = ev.target.closest('[data-reventa-toggle]');
+        if (reventaToggle) {
+            var reventaRow = reventaToggle.closest('[data-reventa-row]');
+            var reventaValue = reventaRow ? reventaRow.querySelector('[data-reventa-value]') : null;
+            var reventaLabel = reventaRow ? reventaRow.querySelector('[data-reventa-label]') : null;
+            if (!reventaValue || !reventaLabel) return;
+
+            var mostrarReventa = reventaValue.hidden;
+            reventaValue.hidden = !mostrarReventa;
+            reventaLabel.hidden = !mostrarReventa;
+            reventaToggle.classList.toggle('visible', mostrarReventa);
+            reventaToggle.setAttribute('aria-pressed', mostrarReventa ? 'true' : 'false');
+            reventaToggle.setAttribute('aria-label', mostrarReventa ? 'Ocultar precio de reventa' : 'Mostrar precio de reventa');
+            reventaToggle.title = mostrarReventa ? 'Ocultar precio de reventa' : 'Mostrar precio de reventa';
+            return;
+        }
+
         // ---- Galería: cambiar imagen principal desde las previews (thumbs verticales) ----
         var thumbBtn = ev.target.closest('.pbmh-thumb-btn');
         if (thumbBtn) {
@@ -535,12 +572,6 @@
             var fila = stepBtn.closest('tr');
             if (fila && fila.dataset.precio) {
                 fila.querySelector('[data-total]').textContent = formatear(valor * parseFloat(fila.dataset.precio));
-            }
-            // Subtotal de la card principal (precio con descuento x cantidad).
-            var cardEl = stepBtn.closest('[data-pbmh]');
-            var subEl = cardEl ? cardEl.querySelector('[data-subtotal]') : null;
-            if (subEl && cardEl.dataset.subtotalBase) {
-                subEl.textContent = formatear(valor * parseFloat(cardEl.dataset.subtotalBase));
             }
             return;
         }

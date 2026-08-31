@@ -2826,6 +2826,27 @@ line-height: normal;
     position:fixed;
     background-color: #FFF;
   }
+
+  /* No-home (Nosotros, Productos, Novedades, Contacto) en mobile: header fijo al hacer scroll */
+  header:not(.home){
+    position: sticky;
+    top: 0;
+  }
+
+  /* Home (mobile): el botón de zona de clientes en azul y fijo, sin cambiar al hacer scroll */
+  header.home .zona-cliente-btn,
+  header.home .zona-cliente-btn:hover{
+    border-color: #0098DA !important;
+    color: #0098DA !important;
+  }
+
+  /* No-home (Nosotros, Productos, Novedades, Contacto) en mobile:
+     links en negro y fijos, sin cambiar al hacer scroll */
+  header:not(.home) .nav-link,
+  header:not(.home) .nav-link:hover,
+  header:not(.home) .nav-link.active{
+    color: #000 !important;
+  }
   header{
     max-height: 72px;
   }
@@ -2976,4 +2997,168 @@ line-height: normal;
   /* .producto-cont{
     padding:0px 0px 0px 25px;
   } */
+}
+
+/* ===== Modal de anuncio / cartel (BMH) ===== */
+#anuncio .modal-dialog.anuncio-dialog{
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  margin: 1.5rem auto !important;
+}
+#anuncio .anuncio-card{
+  position: relative;
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 30px 80px rgba(8, 28, 54, .35);
+  animation: anuncioIn .45s cubic-bezier(.2, .85, .25, 1) both;
+  transition: box-shadow .35s ease, transform .35s ease;
+}
+@keyframes anuncioIn{
+  from{ opacity: 0; transform: translateY(26px) scale(.965); }
+  to{ opacity: 1; transform: none; }
+}
+#anuncio .anuncio-media{ line-height: 0; }
+#anuncio .anuncio-media{
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 500px !important;
+  box-sizing: border-box;
+}
+#anuncio .anuncio-content{
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 700px !important;
+}
+#anuncio .anuncio-content > p,
+#anuncio .anuncio-content > div,
+#anuncio .anuncio-content > figure{
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#anuncio .anuncio-media img{
+  display: block !important;
+  width: 700px !important;
+  min-width: 700px !important;
+  max-width: 700px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  object-fit: fill !important;
+  object-position: center center !important;
+  margin: 0 !important;
+  transition: transform .45s cubic-bezier(.2, .85, .25, 1);
+}
+#anuncio .anuncio-media p{ margin: 0; }
+#anuncio .anuncio-close{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .92);
+  color: #0b2a4a;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  transition: transform .18s ease, background .18s ease;
+}
+#anuncio .anuncio-close:hover{
+  transform: rotate(90deg);
+  background: #ffffff;
+}
+#anuncio .anuncio-card:hover{
+  box-shadow: 0 40px 110px rgba(8, 28, 54, .45);
+  transform: translateY(-2px);
+}
+#anuncio .anuncio-card:hover .anuncio-media img{
+  transform: scale(1.04);
+}
+@media (max-width: 990px){
+  #anuncio .modal-dialog.anuncio-dialog{
+    width: calc(100% - 28px) !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 28px) !important;
+    margin: 1rem auto !important;
+  }
+  #anuncio .anuncio-card{
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+  #anuncio .anuncio-media{
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+  }
+  #anuncio .anuncio-content,
+  #anuncio .anuncio-content > p,
+  #anuncio .anuncio-content > div,
+  #anuncio .anuncio-content > figure{
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+  }
+  #anuncio .anuncio-media img{
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    object-fit: contain !important;
+  }
 }

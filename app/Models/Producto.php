@@ -15,6 +15,22 @@ class Producto extends Model
 {
     use HasFactory;
 
+    public const ORDEN_MANUAL = 'manual';
+    public const ORDEN_ALFA_ASC = 'alfa_asc';
+    public const ORDEN_ALFA_DESC = 'alfa_desc';
+
+    /** Modos válidos para el criterio de orden de equivalencias/aplicaciones/partes. */
+    public const MODOS_ORDEN = [
+        self::ORDEN_MANUAL,
+        self::ORDEN_ALFA_ASC,
+        self::ORDEN_ALFA_DESC,
+    ];
+
+    public static function normalizarModoOrden($valor): string
+    {
+        return in_array($valor, self::MODOS_ORDEN, true) ? (string) $valor : self::ORDEN_MANUAL;
+    }
+
     protected $fillable = [
         'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 
         'columna_7', 'columna_8', 'columna_9', 'columna_10', 'columna_11', 'columna_12',
@@ -231,30 +247,54 @@ class Producto extends Model
         return number_format($precio_reventa, 2, ',', '.');
     }
 
+    /**
+     * Equivalencias del producto, ordenadas según el criterio elegido:
+     * manual (campo orden) o alfabético (asc/desc) por nombre.
+     */
     public function equivalencias()
     {
-        return $this->hasMany(Equivalencia::class);
+        $rel = $this->hasMany(Equivalencia::class);
+
+        return match ($this->orden_equivalencias ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('nombre', 'desc'),
+            default               => $rel->orderBy('orden', 'asc'),
+        };
     }
 
+    /**
+     * Aplicaciones del producto, ordenadas igual que equivalencias.
+     */
     public function aplicaciones()
     {
-        return $this->hasMany(Aplicacion::class);
+        $rel = $this->hasMany(Aplicacion::class);
+
+        return match ($this->orden_aplicaciones ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('nombre', 'desc'),
+            default               => $rel->orderBy('orden', 'asc'),
+        };
     }
 
     /**
      * Partes relacionadas: otros productos del catálogo asociados a este.
-     * El pivot `partes_relacionadas.orden` define el orden de mostrado.
+     * El orden se define por el criterio elegido: manual (pivot `orden`) o
+     * alfabético (asc/desc) por el nombre del producto relacionado.
      */
     public function partesRelacionadas(): BelongsToMany
     {
-        return $this->belongsToMany(
+        $rel = $this->belongsToMany(
             Producto::class,
             'partes_relacionadas',
             'producto_id',
             'parte_id',
-        )
-            ->withPivot('orden')
-            ->orderBy('partes_relacionadas.orden');
+        )->withPivot('orden');
+
+        return match ($this->orden_partes ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('productos.nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('productos.nombre', 'desc'),
+            default               => $rel->orderBy('partes_relacionadas.orden', 'asc'),
+        };
     }
     
     public function precio_neto(){

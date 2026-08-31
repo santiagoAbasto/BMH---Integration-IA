@@ -15,7 +15,7 @@ class Equivalencia extends Model
     protected $fillable = ['producto_id', 'nombre', 'valor', 'orden'];
 
     protected $casts = [
-        'orden' => 'integer',
+        'orden' => 'string',
     ];
 
     public function producto(): BelongsTo
