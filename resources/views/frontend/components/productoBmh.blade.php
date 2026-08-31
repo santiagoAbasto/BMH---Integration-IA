@@ -16,7 +16,7 @@
         ? (float) $cliente->margenReventaParaCategoria($producto->categoria_id)
         : 0.0;
     $tieneMargenReventa = abs($margenReventa) > 0.00001;
-    $precioReventaF = $tieneMargenReventa ? $producto->precio_reventa() : null;
+    $precioReventaF = $tieneMargenReventa ? $producto->precio_reventa() : $precioListaF;
     $tienePartes = $producto->partesRelacionadas->isNotEmpty();
     $tieneEquivalencias = $producto->equivalencias->isNotEmpty();
     $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
@@ -89,37 +89,35 @@
 
             @if ($clienteLogueado)
                 <div class="pbmh-precios">
-                    <div class="pbmh-precio-fila">
+                    <div class="pbmh-precio-fila" data-sensitive-fields>
                         <span class="pbmh-precio-label">Precio Lista:</span>
                         <span class="pbmh-precio-valor">${{ $precioListaF }}</span>
                     </div>
                     @if ($descuentoCliente > 0)
-                        <div class="pbmh-precio-fila">
+                        <div class="pbmh-precio-fila" data-sensitive-fields>
                             <span class="pbmh-precio-label">Descuento cliente:</span>
                             <span class="pbmh-precio-valor">{{ $descuentoCliente }}%</span>
                         </div>
                     @endif
                     @if ($descuentoCliente > 0)
-                        <div class="pbmh-precio-fila">
+                        <div class="pbmh-precio-fila" data-sensitive-fields>
                             <span class="pbmh-precio-label">Precio con descuento:</span>
                             <span class="pbmh-precio-valor">${{ $precioConDescF }}</span>
                         </div>
                     @endif
-                    @if ($tieneMargenReventa)
-                        <div class="pbmh-precio-fila pbmh-precio-reventa" data-reventa-row>
-                            <span class="pbmh-precio-label" data-reventa-label hidden>Precio reventa:</span>
-                            <span class="pbmh-reventa-control">
-                                <span class="pbmh-precio-valor pbmh-reventa-valor" data-reventa-value hidden>${{ $precioReventaF }}</span>
-                                <button type="button" class="pbmh-reventa-toggle" data-reventa-toggle
-                                    aria-label="Mostrar precio de reventa" aria-pressed="false" title="Mostrar precio de reventa">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                                        <path d="M2.1 12s3.4-6 9.9-6 9.9 6 9.9 6-3.4 6-9.9 6-9.9-6-9.9-6Z"></path>
-                                        <circle cx="12" cy="12" r="2.6"></circle>
-                                    </svg>
-                                </button>
-                            </span>
-                        </div>
-                    @endif
+                    <div class="pbmh-precio-fila pbmh-precio-reventa" data-reventa-row>
+                        <span class="pbmh-precio-label" data-reventa-label>Precio reventa:</span>
+                        <span class="pbmh-reventa-control">
+                            <span class="pbmh-precio-valor pbmh-reventa-valor" data-reventa-value>${{ $precioReventaF }}</span>
+                            <button type="button" class="pbmh-reventa-toggle" data-reventa-toggle
+                                aria-label="Ocultar precios y campos" aria-pressed="true" title="Ocultar precios y campos">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                    <path d="M2.1 12s3.4-6 9.9-6 9.9 6 9.9 6-3.4 6-9.9 6-9.9-6-9.9-6Z"></path>
+                                    <circle cx="12" cy="12" r="2.6"></circle>
+                                </svg>
+                            </button>
+                        </span>
+                    </div>
                 </div>
 
                 <div class="pbmh-actions">
@@ -300,7 +298,7 @@
     .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
     .pbmh-precio-valor { font-weight:500; color:#1F2430; }
     .pbmh-reventa-control { display:inline-flex; align-items:center; justify-content:flex-end; gap:8px; min-height:28px; }
-    .pbmh-reventa-valor[hidden] { display:none; }
+    [data-sensitive-fields][hidden] { display:none; }
     .pbmh-reventa-toggle { width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
         border:1px solid #D9DDE3; border-radius:7px; background:#fff; color:#0098DA; padding:0; cursor:pointer;
         transition:background .18s, border-color .18s, color .18s, transform .18s, box-shadow .18s; }
@@ -527,21 +525,17 @@
         var card = ev.target.closest('[data-pbmh]');
         if (!card) return;
 
-        // ---- Mostrar u ocultar el precio de reventa ----
+        // ---- Mostrar u ocultar precios y campos, conservando reventa ----
         var reventaToggle = ev.target.closest('[data-reventa-toggle]');
         if (reventaToggle) {
-            var reventaRow = reventaToggle.closest('[data-reventa-row]');
-            var reventaValue = reventaRow ? reventaRow.querySelector('[data-reventa-value]') : null;
-            var reventaLabel = reventaRow ? reventaRow.querySelector('[data-reventa-label]') : null;
-            if (!reventaValue || !reventaLabel) return;
-
-            var mostrarReventa = reventaValue.hidden;
-            reventaValue.hidden = !mostrarReventa;
-            reventaLabel.hidden = !mostrarReventa;
-            reventaToggle.classList.toggle('visible', mostrarReventa);
-            reventaToggle.setAttribute('aria-pressed', mostrarReventa ? 'true' : 'false');
-            reventaToggle.setAttribute('aria-label', mostrarReventa ? 'Ocultar precio de reventa' : 'Mostrar precio de reventa');
-            reventaToggle.title = mostrarReventa ? 'Ocultar precio de reventa' : 'Mostrar precio de reventa';
+            var ocultarDatos = reventaToggle.getAttribute('aria-pressed') === 'true';
+            card.querySelectorAll('[data-sensitive-fields]').forEach(function (field) {
+                field.hidden = ocultarDatos;
+            });
+            reventaToggle.classList.toggle('visible', !ocultarDatos);
+            reventaToggle.setAttribute('aria-pressed', ocultarDatos ? 'false' : 'true');
+            reventaToggle.setAttribute('aria-label', ocultarDatos ? 'Mostrar precios y campos' : 'Ocultar precios y campos');
+            reventaToggle.title = ocultarDatos ? 'Mostrar precios y campos' : 'Ocultar precios y campos';
             return;
         }
 
