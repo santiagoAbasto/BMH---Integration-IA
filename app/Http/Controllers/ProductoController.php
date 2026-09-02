@@ -2521,8 +2521,9 @@ public function dash_productos(Request $request)
                     : (string) $i,
                 ];
             })
-            // Una fila sin valor no es una equivalencia: se descarta.
-            ->filter(fn (array $fila): bool => $fila['valor'] !== '')
+            // Conservar filas con solo el origen o solo el código. Una fila
+            // completamente vacía sigue siendo un borrador y se descarta.
+            ->filter(fn (array $fila): bool => $fila['nombre'] !== '' || $fila['valor'] !== '')
             ->values();
 
         DB::transaction(function () use ($filas, $producto): void {
@@ -2570,8 +2571,9 @@ public function dash_productos(Request $request)
                     : (string) $i,
                 ];
             })
-            // Una fila sin valor no es una aplicación: se descarta.
-            ->filter(fn (array $fila): bool => $fila['valor'] !== '')
+            // Conservar filas con solo el origen o solo el valor. Una fila
+            // completamente vacía sigue siendo un borrador y se descarta.
+            ->filter(fn (array $fila): bool => $fila['nombre'] !== '' || $fila['valor'] !== '')
             ->values();
 
         DB::transaction(function () use ($filas, $producto): void {

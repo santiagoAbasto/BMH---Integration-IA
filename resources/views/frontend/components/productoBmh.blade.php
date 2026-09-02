@@ -407,24 +407,42 @@
         document.body.appendChild(preview);
         var lens = document.createElement('div');
         lens.className = 'pbmh-lens';
-        var activeImg = null, activeBox = null, zoom = 2.4;
-        function showZoom(box, img) {
-            if (window.innerWidth < 992) return;
-            var src = img.currentSrc || img.src;
-            if (!src || src.includes('WhatsApp-Image')) return;
-            activeImg = img; activeBox = box;
-            preview.style.backgroundImage = 'url("' + src.replace(/"/g, '&quot;') + '")';
+        var activeImg = null, activeBox = null, activeSrc = '', zoom = 2.4;
+        function imageSrc(img) {
+            return img.currentSrc || img.src || '';
+        }
+        function isPlaceholder(src) {
+            return src.includes('WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
+        }
+        function syncZoomImage(box, img, force) {
+            if (!img || window.innerWidth < 992) return false;
+
+            var src = imageSrc(img);
+            if (!src || isPlaceholder(src)) return false;
+
+            activeImg = img;
+            activeBox = box;
+            if (!force && src === activeSrc) return true;
+
+            activeSrc = src;
+            preview.style.backgroundImage = 'url("' + src.replace(/["\\]/g, '\\$&') + '")';
+
+            var cw = box.clientWidth || img.clientWidth || 48;
+            var ch = box.clientHeight || img.clientHeight || 48;
             if (img.naturalWidth) {
-                var cw0 = box.clientWidth || img.clientWidth || 48;
-                var base = img.naturalWidth / cw0 * 1.35;
-                var maxScale = cw0 < 120 ? 10 : (cw0 < 300 ? 6 : 4.2);
-                var scale = Math.min(maxScale, Math.max(3.0, base));
-                zoom = scale;
-                preview.style.backgroundSize = (cw0 * scale) + 'px ' + (box.clientHeight * scale) + 'px';
+                var base = img.naturalWidth / cw * 1.35;
+                var maxScale = cw < 120 ? 10 : (cw < 300 ? 6 : 4.2);
+                zoom = Math.min(maxScale, Math.max(3.0, base));
+                preview.style.backgroundSize = (cw * zoom) + 'px ' + (ch * zoom) + 'px';
             } else {
                 zoom = 3.6;
                 preview.style.backgroundSize = '360%';
             }
+
+            return true;
+        }
+        function showZoom(box, img) {
+            if (!syncZoomImage(box, img, true)) return;
             if (!box.contains(lens)) box.appendChild(lens);
             lens.style.display = 'block';
             preview.style.display = 'block';
@@ -432,10 +450,15 @@
         function hideZoom() {
             preview.style.display = 'none';
             lens.style.display = 'none';
-            activeImg = null; activeBox = null;
+            activeImg = null; activeBox = null; activeSrc = '';
         }
         function moveZoom(e) {
             if (!activeImg || !activeBox) return;
+            // El src puede haber cambiado mientras el cursor seguia sobre la card.
+            if (!syncZoomImage(activeBox, activeImg)) {
+                hideZoom();
+                return;
+            }
             var rect = activeBox.getBoundingClientRect();
             var x = e.clientX - rect.left;
             var y = e.clientY - rect.top;
@@ -474,6 +497,12 @@
                 box.addEventListener('mouseenter', function () { showZoom(box, img); });
                 box.addEventListener('mousemove', moveZoom);
                 box.addEventListener('mouseleave', hideZoom);
+                img.addEventListener('pbmh:image-change', function () {
+                    if (activeImg === img) syncZoomImage(box, img, true);
+                });
+                img.addEventListener('load', function () {
+                    if (activeImg === img) syncZoomImage(box, img, true);
+                });
             });
             // También las miniaturas de Partes relacionadas (48px) — mismo zoom preparado para imagen pequeña
             document.querySelectorAll('.pbmh-thumb').forEach(function (img) {
@@ -548,6 +577,7 @@
                 // Evitar recargar si ya es la activa
                 if (mainImg.getAttribute('src') !== thumbBtn.dataset.src && mainImg.src !== thumbBtn.dataset.src) {
                     mainImg.src = thumbBtn.dataset.src;
+                    mainImg.dispatchEvent(new Event('pbmh:image-change'));
                 }
                 gallery.querySelectorAll('.pbmh-thumb-btn').forEach(function (b) { b.classList.remove('activo'); });
                 thumbBtn.classList.add('activo');

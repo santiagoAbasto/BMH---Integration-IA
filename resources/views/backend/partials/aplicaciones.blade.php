@@ -177,7 +177,8 @@
     function actualizarEstado() {
         var items = filas();
         countEl.textContent = items.filter(function (it) {
-            return it.querySelector('.app-in-valor').value.trim() !== '';
+            return it.querySelector('.app-in-nombre').value.trim() !== '' ||
+                it.querySelector('.app-in-valor').value.trim() !== '';
         }).length;
         marcarDuplicados();
         ordenarSegunModo();
