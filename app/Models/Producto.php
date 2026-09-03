@@ -143,7 +143,19 @@ class Producto extends Model
     // }
     public function productCaracteristicas()
     {
-        return $this->hasMany(ProductCaracteristica::class, 'producto_id');
+        return $this->hasMany(ProductCaracteristica::class, 'producto_id')
+            ->whereNull('producto_caracteristica.deleted_at')
+            // En datos históricos puede haber más de una fila para el mismo
+            // producto/característica. Exponer sólo la última evita duplicar
+            // el valor mientras la migración corrige esas filas.
+            ->whereIn('producto_caracteristica.id', function ($query) {
+                $query->selectRaw('MAX(pc_latest.id)')
+                    ->from('producto_caracteristica as pc_latest')
+                    ->whereNull('pc_latest.deleted_at')
+                    ->whereColumn('pc_latest.producto_id', 'producto_caracteristica.producto_id')
+                    ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
+                    ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
+            });
     }
 
 

@@ -4,7 +4,7 @@
 use App\Models\Imagen;
 use App\Models\Pedido;
 use Carbon\Carbon;
-$logo2 = Imagen::where('sector', 'logo2')->get()->first();
+$logo2 = Imagen::where('sector', 'logo2')->first();
 $user = Auth::guard('admin')->user();
 $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->count();
 

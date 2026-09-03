@@ -208,12 +208,15 @@ class ProductoController extends Controller
     // ðŸ”¹ Datos extra como en edit()
     $imagenesProducto = Imagen::where('producto_id', $request->id)->where('sector', 'producto')->orderBy('orden')->get();
     $categoriaSelected = Categoria::with('caracteristicas')->find($producto->categoria_id);
-   $caracteristicas = Caracteristica::select('caracteristicas.*', 'pc.valor')
-    ->join('producto_caracteristica as pc', 'caracteristicas.id', '=', 'pc.caracteristica_id')
-    ->where('pc.producto_id', $request->id)
-    ->whereNull('pc.deleted_at')
-    ->orderBy('caracteristicas.orden', 'desc') // 👈 agregado
-    ->get();
+     $caracteristicas = $producto->productCaracteristicas
+         ->sortByDesc(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MIN)
+         ->map(function ($pc) {
+             $caracteristica = $pc->caracteristica;
+             $caracteristica->valor = $pc->valor;
+
+             return $caracteristica;
+         })
+         ->values();
 
         
 
@@ -1475,11 +1478,14 @@ public function dash_productos(Request $request)
         $categorias = Categoria::with('caracteristicas')->orderBy('orden')->get();
         $categoriaSelected = Categoria::with('caracteristicas')->find($producto->categoria_id);
         $partesRelacionadas = $producto->partesRelacionadas()->with('portadaImagen')->get();
-        $caracteristicas = Caracteristica::select('caracteristicas.*', 'pc.valor')
-    ->join('producto_caracteristica as pc', 'caracteristicas.id', '=', 'pc.caracteristica_id')
-    ->where('pc.producto_id', $request->id)
-    ->whereNull('pc.deleted_at')
-    ->get();
+        $caracteristicas = $producto->productCaracteristicas
+            ->map(function ($pc) {
+                $caracteristica = $pc->caracteristica;
+                $caracteristica->valor = $pc->valor;
+
+                return $caracteristica;
+            })
+            ->values();
 
 
 
@@ -1712,17 +1718,56 @@ public function dash_productos(Request $request)
     }
     public function dash_buscar_producto(Request $request)
     {
-        $busqueda = $request->valor;
-        $productos = Producto::whereRaw('LOWER(nombre) LIKE ?', ['%' . strtolower($busqueda) . '%'])
-            ->orWhereRaw('LOWER(codigo) LIKE ?', ['%' . strtolower($busqueda) . '%'])
-            ->orWhereRaw('LOWER(descripcion) LIKE ?', ['%' . strtolower($busqueda) . '%'])
-            ->orWhereHas('categoria', function ($query) use ($busqueda) {
-                $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . strtolower($busqueda) . '%']);
-            })
+        $busqueda = (string) $request->input('valor', '');
+        $categoriaId = $request->input('categoria_id');
+        $textoNormalizado = strtolower($busqueda);
+
+        $crearConsulta = function () use ($textoNormalizado) {
+            return Producto::with('categoria')
+                ->where(function ($query) use ($textoNormalizado) {
+                    $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%'])
+                        ->orWhereRaw('LOWER(codigo) LIKE ?', ['%' . $textoNormalizado . '%'])
+                        ->orWhereRaw('LOWER(descripcion) LIKE ?', ['%' . $textoNormalizado . '%'])
+                        ->orWhereHas('categoria', function ($query) use ($textoNormalizado) {
+                            $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%']);
+                        });
+                });
+        };
+
+        $query = $crearConsulta();
+        $sinResultadosCategoria = false;
+
+        // La categoría seleccionada debe restringir también las búsquedas AJAX.
+        if ($categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos') {
+            $query->where('categoria_id', $categoriaId);
+        }
+
+        $productos = $query
             ->orderBy('orden')
             ->paginate(20);
 
-        return view('backend/dash-productos-listado', compact('productos'));
+        // Si no hay coincidencias dentro de la categoría, mostrar alternativas
+        // fuera de ella sin mezclar esos resultados con el filtro seleccionado.
+        if (
+            $productos->isEmpty()
+            && trim($busqueda) !== ''
+            && $categoriaId !== null
+            && $categoriaId !== ''
+            && $categoriaId !== 'todos'
+        ) {
+            $sinResultadosCategoria = true;
+            $productos = $crearConsulta()
+                ->where('categoria_id', '!=', $categoriaId)
+                ->orderBy('orden')
+                ->paginate(20);
+        }
+
+        return response()->json([
+            'html' => view('backend/dash-productos-listado', compact('productos'))->render(),
+            'pagination' => $productos->links()->toHtml(),
+            'sinResultadosCategoria' => $sinResultadosCategoria,
+            'hayAlternativas' => $sinResultadosCategoria && $productos->isNotEmpty(),
+        ]);
     }
 
     public function actualizar_clientes(Request $request)
