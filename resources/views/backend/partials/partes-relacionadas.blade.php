@@ -235,13 +235,16 @@
         nodos.forEach(function (n) {
             var inp = n.querySelector('.prt-orden');
             if (!inp) return;
-            inp.disabled = deshabilitar;
+            // readOnly y no disabled: un input deshabilitado no se envía y el
+            // servidor tendría que inventar el orden para cada fila.
+            inp.readOnly = deshabilitar;
             inp.classList.toggle('prt-orden--off', deshabilitar);
         });
     }
 
     // Genera un código alfanumérico de 2 letras para el índice (aa, ab, …, az, ba, …).
     function codigoAlfa(i) {
+        i = Math.max(0, Math.min(i, 675)); // 26*26-1: más allá no entra en los 2 caracteres
         var a = Math.floor(i / 26);
         var b = i % 26;
         return String.fromCharCode(97 + a) + String.fromCharCode(97 + b);

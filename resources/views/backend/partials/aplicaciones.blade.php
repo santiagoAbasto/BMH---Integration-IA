@@ -32,7 +32,10 @@
             <h2 class="app-title">Aplicaciones</h2>
             <p class="app-subtitle">Modelos de otros fabricantes en los que aplica este producto.</p>
         </div>
-        <span class="app-count-badge"><span data-app-count>{{ $aplicaciones->count() }}</span> cargadas</span>
+        <div class="app-header-acciones">
+            <span class="app-count-badge"><span data-app-count>{{ $aplicaciones->count() }}</span> cargadas</span>
+            <button type="button" class="app-btn-borrar-todas" data-app-borrar-todas hidden>Borrar todas</button>
+        </div>
     </div>
 
     {{-- Fila de alta rápida: sin name, se agregan como fila nueva --}}
@@ -48,8 +51,8 @@
         @forelse ($aplicaciones as $aplicacion)
             <div class="app-item" role="listitem">
                 <input type="text" class="app-in app-orden" name="aplic_orden[]" value="{{ $aplicacion->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
-                <input type="text" class="app-in app-in-nombre" name="aplic_nombre[]" value="{{ $aplicacion->nombre }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
-                <input type="text" class="app-in app-in-valor" name="aplic_valor[]" value="{{ $aplicacion->valor }}" aria-label="Modelo" maxlength="255">
+                <input type="text" class="app-in app-in-nombre" name="aplic_nombre[]" value="{{ mb_strtoupper((string) $aplicacion->nombre) }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
+                <input type="text" class="app-in app-in-valor" name="aplic_valor[]" value="{{ mb_strtoupper((string) $aplicacion->valor) }}" aria-label="Modelo" maxlength="255">
                 <div class="app-actions">
                     <button type="button" class="app-btn app-btn-danger" data-remove title="Quitar" aria-label="Quitar aplicación">&times;</button>
                 </div>
@@ -71,6 +74,13 @@
     .app-subtitle { font-size:13px; color:#6c757d; margin:2px 0 0; }
     .app-count-badge { flex-shrink:0; background:#e7f1ff; color:#0b5ed7; font-size:12px; font-weight:600;
         border-radius:999px; padding:4px 10px; }
+    .app-header-acciones { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .app-btn-borrar-todas { border:1px solid #ffc9cd; background:#fff; color:#dc3545; font-size:12px;
+        font-weight:600; font-family:inherit; border-radius:999px; padding:4px 12px; cursor:pointer;
+        transition:background .15s, border-color .15s; }
+    .app-btn-borrar-todas:hover { background:#fff5f5; border-color:#f5a3aa; }
+    .app-btn-borrar-todas:active { transform:translateY(1px); }
+    .app-btn-borrar-todas[hidden] { display:none; }
 
     {{-- Alta rápida: dos inputs independientes + botón --}}
     .app-adder { display:flex; align-items:stretch; gap:8px; }
@@ -153,9 +163,33 @@
     var btnAgregar = root.querySelector('[data-app-agregar]');
     var lista = root.querySelector('[data-app-lista]');
     var countEl = root.querySelector('[data-app-count]');
+    var btnBorrarTodas = root.querySelector('[data-app-borrar-todas]');
     if (!adder || !lista || !countEl) return;
 
     var MAX_FILAS_LOTE = 300;
+
+    // Origen y modelo se guardan y se muestran siempre en mayúsculas.
+    var SELECTOR_MAYUS = '.app-add-nombre, .app-add-valor, .app-in-nombre, .app-in-valor';
+
+    function mayus(texto) {
+        return (texto == null ? '' : String(texto)).toUpperCase();
+    }
+
+    // Pasa el input a mayúsculas conservando la posición del cursor: el largo
+    // no cambia, pero asignar .value lo mandaría al final.
+    function forzarMayus(input) {
+        var arriba = mayus(input.value);
+        if (arriba === input.value) return;
+        var ini = input.selectionStart;
+        var fin = input.selectionEnd;
+        input.value = arriba;
+        try { input.setSelectionRange(ini, fin); } catch (e) {}
+    }
+
+    root.addEventListener('input', function (ev) {
+        var t = ev.target;
+        if (t instanceof HTMLInputElement && t.matches(SELECTOR_MAYUS)) forzarMayus(t);
+    });
 
     function escapar(texto) {
         var div = document.createElement('div');
@@ -174,12 +208,34 @@
         if (v) v.remove();
     }
 
+    function mostrarVacio() {
+        if (lista.querySelector('[data-app-vacio]')) return;
+        var v = document.createElement('div');
+        v.className = 'app-vacio';
+        v.setAttribute('data-app-vacio', '');
+        v.textContent = 'Todavía no cargaste aplicaciones. Agregá una arriba o pegá una lista completa.';
+        lista.appendChild(v);
+    }
+
+    // Vacía la lista entera. Sigue siendo un cambio del formulario: recién se
+    // aplica sobre la base al guardar el producto.
+    function borrarTodas() {
+        var total = filas().length;
+        if (total === 0) return;
+        var queEs = total === 1 ? 'la aplicación' : ('las ' + total + ' aplicaciones');
+        if (!window.confirm('¿Borrar ' + queEs + ' de este producto? El cambio se aplica al guardar.')) return;
+        filas().forEach(function (f) { f.remove(); });
+        mostrarVacio();
+        actualizarEstado();
+    }
+
     function actualizarEstado() {
         var items = filas();
         countEl.textContent = items.filter(function (it) {
             return it.querySelector('.app-in-nombre').value.trim() !== '' ||
                 it.querySelector('.app-in-valor').value.trim() !== '';
         }).length;
+        if (btnBorrarTodas) btnBorrarTodas.hidden = items.length === 0;
         marcarDuplicados();
         ordenarSegunModo();
     }
@@ -218,7 +274,9 @@
         nodos.forEach(function (n) {
             var inp = n.querySelector('.app-orden');
             if (!inp) return;
-            inp.disabled = deshabilitar;
+            // readOnly y no disabled: un input deshabilitado no se envía y el
+            // servidor tendría que inventar el orden para cada fila.
+            inp.readOnly = deshabilitar;
             inp.classList.toggle('app-orden--off', deshabilitar);
         });
     }
@@ -240,6 +298,7 @@
 
     // Genera un código alfanumérico de 2 letras para el índice (aa, ab, …, az, ba, …).
     function codigoAlfa(i) {
+        i = Math.max(0, Math.min(i, 675)); // 26*26-1: más allá no entra en los 2 caracteres
         var a = Math.floor(i / 26);
         var b = i % 26;
         return String.fromCharCode(97 + a) + String.fromCharCode(97 + b);
@@ -257,8 +316,8 @@
             '<div class="app-actions">' +
                 '<button type="button" class="app-btn app-btn-danger" data-remove title="Quitar" aria-label="Quitar aplicación">&times;</button>' +
             '</div>';
-        fila.querySelector('.app-in-nombre').value = nombre || '';
-        fila.querySelector('.app-in-valor').value = valor || '';
+        fila.querySelector('.app-in-nombre').value = mayus(nombre);
+        fila.querySelector('.app-in-valor').value = mayus(valor);
         fila.querySelector('.app-orden').value = codigoAlfa(filas().length);
         lista.appendChild(fila);
         actualizarEstado();
@@ -278,6 +337,7 @@
 
     {{-- Alta rápida --}}
     btnAgregar.addEventListener('click', agregarDesdeAlta);
+    if (btnBorrarTodas) btnBorrarTodas.addEventListener('click', borrarTodas);
     [addNombre, addValor].forEach(function (input) {
         input.addEventListener('keydown', function (ev) {
             if (ev.key === 'Enter') { ev.preventDefault(); agregarDesdeAlta(); }
@@ -351,12 +411,12 @@
         var esValor = target.classList.contains('app-in-valor');
         var primero = pares.shift();
         if (esValor) {
-            target.value = primero.valor;
+            target.value = mayus(primero.valor);
             var inNombre = item.querySelector('.app-in-nombre');
-            if (primero.nombre && inNombre.value.trim() === '') inNombre.value = primero.nombre;
+            if (primero.nombre && inNombre.value.trim() === '') inNombre.value = mayus(primero.nombre);
         } else {
-            target.value = primero.nombre;
-            item.querySelector('.app-in-valor').value = primero.valor;
+            target.value = mayus(primero.nombre);
+            item.querySelector('.app-in-valor').value = mayus(primero.valor);
         }
         pares.forEach(function (p) { agregarFila(p.nombre, p.valor, false); });
         actualizarEstado();

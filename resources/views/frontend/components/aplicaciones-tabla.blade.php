@@ -30,8 +30,8 @@
                 <tbody>
                     @foreach ($aplicColumna as $aplicacion)
                         <tr>
-                            <td>{{ $aplicacion->nombre ?: '—' }}</td>
-                            <td class="pbmh-celda-cod">{{ $aplicacion->valor }}</td>
+                            <td>{{ $aplicacion->nombre ? mb_strtoupper($aplicacion->nombre) : '—' }}</td>
+                            <td class="pbmh-celda-cod">{{ mb_strtoupper((string) $aplicacion->valor) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

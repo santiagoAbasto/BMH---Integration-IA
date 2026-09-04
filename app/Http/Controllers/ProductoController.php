@@ -2490,6 +2490,32 @@ public function dash_productos(Request $request)
     }
 
     /**
+     * Normaliza el `orden` de una fila de equivalencias / aplicaciones / partes.
+     * La columna es VARCHAR(2), así que el resultado son como mucho dos
+     * caracteres alfanuméricos.
+     *
+     * El input `*_orden[]` no viaja cuando el criterio de orden no es "manual"
+     * (el front lo deja de solo lectura) o cuando la fila es nueva y quedó sin
+     * código. En ese caso se deriva de la posición con el mismo esquema que usa
+     * el front (aa, ab, …, zz): usar la posición cruda desbordaba la columna a
+     * partir de la fila 100 y reventaba el guardado con un 1406.
+     */
+    private static function normalizarOrden(mixed $raw, int $i): string
+    {
+        $limpio = substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $raw), 0, 2);
+
+        return $limpio !== '' ? $limpio : self::codigoOrden($i);
+    }
+
+    /** Posición → código de dos letras (aa, ab, …, zz). */
+    private static function codigoOrden(int $i): string
+    {
+        $i = max(0, min($i, 675)); // 26 * 26 - 1
+
+        return chr(97 + intdiv($i, 26)) . chr(97 + $i % 26);
+    }
+
+    /**
      * Reemplaza la lista de partes relacionadas por la enviada en el form
      * (`partes[]`), asignando `orden` según el orden de llegada. Ignora ids
      * inexistentes y el propio producto. Si el form no incluyó la sección
@@ -2512,9 +2538,7 @@ public function dash_productos(Request $request)
                 $rawOrden = $ordenes[$i] ?? null;
                 return [
                     'id' => (int) $value,
-                'orden' => ($rawOrden !== null && $rawOrden !== '')
-                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
-                    : (string) $i,
+                    'orden' => self::normalizarOrden($rawOrden, $i),
                 ];
             })
             ->filter(fn (array $f): bool => $f['id'] > 0 && $f['id'] !== (int) $producto->id);
@@ -2561,9 +2585,7 @@ public function dash_productos(Request $request)
                 return [
                     'nombre' => trim((string) ($nombres[$i] ?? '')),
                     'valor' => trim((string) $valor),
-                'orden' => ($rawOrden !== null && $rawOrden !== '')
-                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
-                    : (string) $i,
+                    'orden' => self::normalizarOrden($rawOrden, $i),
                 ];
             })
             // Conservar filas con solo el origen o solo el código. Una fila
@@ -2609,11 +2631,10 @@ public function dash_productos(Request $request)
             ->map(function ($valor, $i) use ($nombres, $ordenes): array {
                 $rawOrden = $ordenes[$i] ?? null;
                 return [
-                    'nombre' => trim((string) ($nombres[$i] ?? '')),
-                    'valor' => trim((string) $valor),
-                'orden' => ($rawOrden !== null && $rawOrden !== '')
-                    ? substr(preg_replace('/[^A-Za-z0-9]/', '', (string) $rawOrden), 0, 2)
-                    : (string) $i,
+                    // Origen y modelo van siempre en mayúsculas.
+                    'nombre' => mb_strtoupper(trim((string) ($nombres[$i] ?? ''))),
+                    'valor' => mb_strtoupper(trim((string) $valor)),
+                    'orden' => self::normalizarOrden($rawOrden, $i),
                 ];
             })
             // Conservar filas con solo el origen o solo el valor. Una fila

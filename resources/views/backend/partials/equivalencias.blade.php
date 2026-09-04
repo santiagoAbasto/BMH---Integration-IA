@@ -29,7 +29,10 @@
             <h2 class="eqv-title">Equivalencias</h2>
             <p class="eqv-subtitle">Códigos equivalentes en otros fabricantes u originales.</p>
         </div>
-        <span class="eqv-count-badge"><span data-eqv-count>{{ $equivalencias->count() }}</span> cargadas</span>
+        <div class="eqv-header-acciones">
+            <span class="eqv-count-badge"><span data-eqv-count>{{ $equivalencias->count() }}</span> cargadas</span>
+            <button type="button" class="eqv-btn-borrar-todas" data-eqv-borrar-todas hidden>Borrar todas</button>
+        </div>
     </div>
 
     {{-- Fila de alta rápida: sin name, se agregan como fila nueva --}}
@@ -68,6 +71,13 @@
     .eqv-subtitle { font-size:13px; color:#6c757d; margin:2px 0 0; }
     .eqv-count-badge { flex-shrink:0; background:#e7f1ff; color:#0b5ed7; font-size:12px; font-weight:600;
         border-radius:999px; padding:4px 10px; }
+    .eqv-header-acciones { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .eqv-btn-borrar-todas { border:1px solid #ffc9cd; background:#fff; color:#dc3545; font-size:12px;
+        font-weight:600; font-family:inherit; border-radius:999px; padding:4px 12px; cursor:pointer;
+        transition:background .15s, border-color .15s; }
+    .eqv-btn-borrar-todas:hover { background:#fff5f5; border-color:#f5a3aa; }
+    .eqv-btn-borrar-todas:active { transform:translateY(1px); }
+    .eqv-btn-borrar-todas[hidden] { display:none; }
 
     {{-- Alta rápida: dos inputs independientes + botón --}}
     .eqv-adder { display:flex; align-items:stretch; gap:8px; }
@@ -150,6 +160,7 @@
     var btnAgregar = root.querySelector('[data-eqv-agregar]');
     var lista = root.querySelector('[data-eqv-lista]');
     var countEl = root.querySelector('[data-eqv-count]');
+    var btnBorrarTodas = root.querySelector('[data-eqv-borrar-todas]');
     if (!adder || !lista || !countEl) return;
 
     var MAX_FILAS_LOTE = 300;
@@ -171,11 +182,33 @@
         if (v) v.remove();
     }
 
+    function mostrarVacio() {
+        if (lista.querySelector('[data-eqv-vacio]')) return;
+        var v = document.createElement('div');
+        v.className = 'eqv-vacio';
+        v.setAttribute('data-eqv-vacio', '');
+        v.textContent = 'Todavía no cargaste equivalencias. Agregá una arriba o pegá una lista completa.';
+        lista.appendChild(v);
+    }
+
+    // Vacía la lista entera. Sigue siendo un cambio del formulario: recién se
+    // aplica sobre la base al guardar el producto.
+    function borrarTodas() {
+        var total = filas().length;
+        if (total === 0) return;
+        var queEs = total === 1 ? 'la equivalencia' : ('las ' + total + ' equivalencias');
+        if (!window.confirm('¿Borrar ' + queEs + ' de este producto? El cambio se aplica al guardar.')) return;
+        filas().forEach(function (f) { f.remove(); });
+        mostrarVacio();
+        actualizarEstado();
+    }
+
     function actualizarEstado() {
         var items = filas();
         countEl.textContent = items.filter(function (it) {
             return it.querySelector('.eqv-in-valor').value.trim() !== '';
         }).length;
+        if (btnBorrarTodas) btnBorrarTodas.hidden = items.length === 0;
         marcarDuplicados();
         ordenarSegunModo();
     }
@@ -214,7 +247,9 @@
         nodos.forEach(function (n) {
             var inp = n.querySelector('.eqv-orden');
             if (!inp) return;
-            inp.disabled = deshabilitar;
+            // readOnly y no disabled: un input deshabilitado no se envía y el
+            // servidor tendría que inventar el orden para cada fila.
+            inp.readOnly = deshabilitar;
             inp.classList.toggle('eqv-orden--off', deshabilitar);
         });
     }
@@ -236,6 +271,7 @@
 
     // Genera un código alfanumérico de 2 letras para el índice (aa, ab, …, az, ba, …).
     function codigoAlfa(i) {
+        i = Math.max(0, Math.min(i, 675)); // 26*26-1: más allá no entra en los 2 caracteres
         var a = Math.floor(i / 26);
         var b = i % 26;
         return String.fromCharCode(97 + a) + String.fromCharCode(97 + b);
@@ -274,6 +310,7 @@
 
     {{-- Alta rápida --}}
     btnAgregar.addEventListener('click', agregarDesdeAlta);
+    if (btnBorrarTodas) btnBorrarTodas.addEventListener('click', borrarTodas);
     [addNombre, addValor].forEach(function (input) {
         input.addEventListener('keydown', function (ev) {
             if (ev.key === 'Enter') { ev.preventDefault(); agregarDesdeAlta(); }
