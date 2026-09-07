@@ -33,6 +33,15 @@ class PedidoController extends Controller
         return view('backend/dash-pedido', compact('pedido', 'provincias'));
     }
 
+    public function pedido_pdf(Request $request){
+        $pedido = Pedido::find($request->id);
+        if (!$pedido) abort(404);
+        $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/provincias?orden=nombre');
+        $datos = json_decode($contenido, true);
+        $provincias = $datos['provincias'];
+        return view('backend/dash-pedido-pdf', compact('pedido', 'provincias'));
+    }
+
     public function dash_buscar_pedido(Request $request){
         $busqueda = $request->valor;
         $pedidos = Pedido::where('id', 'like', '%'.$busqueda.'%')

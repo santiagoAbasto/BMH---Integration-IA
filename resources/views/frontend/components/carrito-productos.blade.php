@@ -377,9 +377,9 @@ background: #EBEBEB !important; height: 60px !important;">
                     </td>
 
                     <td style="padding-top: 25px; text-align: start !important">
-                        <a class="textoProductoLink" href="{{ route('producto', ['id' => $producto->id]) }}">
+                        <span class="textoProductoLink">
                             {{ ucfirst($producto->nombre) }}
-                        </a>
+                        </span>
                     </td>
 
                     <td style="padding-top: 25px; text-align: end !important">

@@ -14,6 +14,12 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Cache por request de los márgenes por categoría (ver
+     * margenReventaParaCategoria). No es una columna de BD.
+     */
+    protected $margenCache = null;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -71,5 +77,32 @@ class User extends Authenticatable
             $pendiente += $numero;
         }
         return number_format($pendiente, 2, ',' , '.');
+    }
+
+    /**
+     * Márgenes de reventa específicos por categoría.
+     */
+    public function margenesReventa()
+    {
+        return $this->hasMany(MargenReventa::class, 'user_id');
+    }
+
+    /**
+     * Margen de reventa efectivo para una categoría:
+     * el específico de la categoría tiene prioridad sobre el general
+     * (users.reventa). Se cachea por request para no consultar en cada
+     * producto de un listado.
+     */
+    public function margenReventaParaCategoria($categoriaId): float
+    {
+        if ($this->margenCache === null) {
+            $this->margenCache = $this->margenesReventa()->get()->keyBy('categoria_id');
+        }
+
+        if (isset($this->margenCache[$categoriaId])) {
+            return (float) $this->margenCache[$categoriaId]->porcentaje;
+        }
+
+        return (float) $this->reventa;
     }
 }

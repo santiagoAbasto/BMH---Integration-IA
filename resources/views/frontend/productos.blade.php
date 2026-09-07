@@ -354,13 +354,7 @@ line-height: 233%;
                 <div class='col-lg-9'>
                     
                     <div id='listado' class='row'>
-                      @if(!Auth::guard('web')->check())
-
-                        @include('frontend/productos-listado')
-                        @else
                         @include('frontend/productos-carrito-bmh')
-
-                        @endif
                     </div>
                     {{-- @include('frontend/components/loadMore') --}}
                 </div>
@@ -374,7 +368,11 @@ line-height: 233%;
 <script>
 
   
-document.getElementById('limpiarFiltros').addEventListener('click', function () {
+// El botón "Limpiar" sólo se renderiza en la Zona de Clientes (el bloque de
+// filtros está protegido por el chequeo de sesión). Como visitante anónimo el
+// id no existe en el DOM.
+var _limpiarFiltros = document.getElementById('limpiarFiltros');
+if (_limpiarFiltros) _limpiarFiltros.addEventListener('click', function () {
     const form = document.querySelector('.filtroBuscadores form');
     localStorage.removeItem("atributosCategoria");
 
@@ -442,7 +440,7 @@ var marcas = @json($marcas); // Obtener las marcas desde PHP
 var marcaSelect = document.getElementById('marca');
 var modeloSelect = document.getElementById('modelo');
 
-marcaSelect.addEventListener('change', function () {
+if (marcaSelect && modeloSelect) marcaSelect.addEventListener('change', function () {
 modeloSelect.disabled = false;
 
 
@@ -453,7 +451,7 @@ modeloSelect.innerHTML = '<option value="">Selecciona un modelo</option>';
 
 if (marcaSeleccionada && marcas[marcaSeleccionada]) {
     var modelos = marcas[marcaSeleccionada];
-    for (var modelo in modelos) {
+    for (var modelo of modelos) {
         var option = document.createElement('option');
         option.value = modelo;
         option.textContent = modelo;

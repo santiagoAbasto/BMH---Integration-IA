@@ -48,11 +48,20 @@ class CategoriaController extends Controller
 
   public function dash_categorias(Request $request)
 {
-    $categorias = Categoria::orderBy('orden')->get();
-    $caracteristicas = Caracteristica::get();
+    $categorias = Categoria::query()
+        ->with('caracteristicas:id,nombre')
+        ->orderBy('orden')
+        ->get();
+    $caracteristicas = Caracteristica::query()
+        ->select(['id', 'nombre'])
+        ->get();
 
     // Filtro de productos
-    $query = Producto::orderBy('orden');
+    // La vista solo necesita estos tres campos para el selector. Evita cargar
+    // las columnas de texto largo de miles de productos en cada request.
+    $query = Producto::query()
+        ->select(['id', 'codigo', 'nombre'])
+        ->orderBy('orden');
 
     if ($request->filled('categoria_id') && $request->categoria_id != 'todos') {
         $query->where('categoria_id', $request->categoria_id);
@@ -96,7 +105,7 @@ class CategoriaController extends Controller
 
 
         if ($request->has('caracteristicas')) {
-            foreach ($request->caracteristicas as $caracteristica_id) {
+            foreach (array_unique($request->input('caracteristicas', [])) as $caracteristica_id) {
                 DB::table('categoria_caracteristica')->insert([
                     'categoria_id' => $categoria->id,
                     'caracteristica_id' => $caracteristica_id,
@@ -145,7 +154,7 @@ class CategoriaController extends Controller
         DB::table('categoria_caracteristica')->where('categoria_id', $categoria->id)->delete();
 
         if ($request->has('caracteristicas')) {
-            foreach ($request->caracteristicas as $caracteristica_id) {
+            foreach (array_unique($request->input('caracteristicas', [])) as $caracteristica_id) {
                 DB::table('categoria_caracteristica')->insert([
                     'categoria_id' => $categoria->id,
                     'caracteristica_id' => $caracteristica_id,

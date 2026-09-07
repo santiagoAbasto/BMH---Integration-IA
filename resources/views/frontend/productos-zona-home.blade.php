@@ -4,15 +4,7 @@
 <style>
 
 
-  #anuncio .modal-header{
-    border: none
-  }
-  #anuncio .modal-body{
-    max-width: 100%;
-  }
-  #anuncio img{
-    max-width: 100%;
-  }
+  /* estilos del anuncio ahora en styles2.css */
 
 
 
@@ -122,20 +114,7 @@ line-height: normal;
 
 </div>
 
-@if($anuncio->mostrar )
-<div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" style='overflow:hidden;'>
-        {!!$anuncio->contenido!!}
-      </div>
-    </div>
-  </div>
-</div>
-@endif
+
 
 
 @endsection

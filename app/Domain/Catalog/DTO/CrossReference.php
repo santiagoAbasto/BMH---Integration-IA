@@ -19,6 +19,7 @@ final readonly class CrossReference implements \JsonSerializable
 {
     public const KIND_EQUIVALENCE = 'equivalence';
     public const KIND_PART        = 'related_part';
+    public const KIND_APPLICATION = 'application';
 
     public function __construct(
         public string $kind,

@@ -5,6 +5,8 @@ use App\Models\User;
 use App\Models\Admin;
 use App\Models\Pedido;
 use App\Models\Comprador;
+use App\Models\Categoria;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Http\Request;
 
@@ -53,7 +55,10 @@ class UserController extends Controller
 
         $zonaclientes = true;
 
-        return view('frontend/cliente-datos', compact('usuario', 'provincias', 'nombres', 'referencia', 'localidades', 'zonaclientes'));
+        $categorias = Categoria::orderBy('orden')->orderBy('nombre')->get();
+        $margenes = $usuario->margenesReventa()->get()->keyBy('categoria_id');
+
+        return view('frontend/cliente-datos', compact('usuario', 'provincias', 'nombres', 'referencia', 'localidades', 'zonaclientes', 'categorias', 'margenes'));
     }
     
     
@@ -69,6 +74,71 @@ class UserController extends Controller
 
     }
 
+    /**
+     * Guarda el margen de reventa del cliente: el general (users.reventa) y las
+     * excepciones por categoría.
+     *  - Input vacío  => usa el general (herencia, sin fila específica).
+     *  - Input en 0   => se le asigna el valor del general de forma explícita
+     *                    (queda grabado con ese valor y se muestra en el input).
+     *  - Otro número  => esa excepción específica.
+     */
+    public function margenesReventa(Request $request){
+        $usuario = Auth::guard('web')->user();
+        abort_if($usuario === null, 403);
+
+        // Margen general
+        $usuario->reventa = $request->input('incrementoReventa', 0);
+        $usuario->save();
+        $general = round(floatval($usuario->reventa), 2);
+
+        // Márgenes por categoría
+        $categorias = (array) $request->input('margen_categoria', []);
+        $existentes = $usuario->margenesReventa()->get()->keyBy('categoria_id');
+        $ahora = now();
+        $aInsertar = [];
+
+        foreach ($categorias as $catId => $valor) {
+            $valor = trim((string) $valor);
+            $esVacio = $valor === '' || ! is_numeric($valor);
+            $porcentaje = $esVacio ? null : round(floatval($valor), 2);
+
+            // Vacío => usar el general (herencia, sin fila específica).
+            if ($esVacio) {
+                if (isset($existentes[$catId])) {
+                    $existentes[$catId]->delete();
+                }
+                continue;
+            }
+
+            // 0 => se le asigna el valor del general de forma explícita.
+            if ($porcentaje == 0) {
+                $porcentaje = $general;
+            }
+
+            if (isset($existentes[$catId])) {
+                $fila = $existentes[$catId];
+                if ((float) $fila->porcentaje !== $porcentaje) {
+                    $fila->porcentaje = $porcentaje;
+                    $fila->save();
+                }
+            } else {
+                $aInsertar[] = [
+                    'user_id' => $usuario->id,
+                    'categoria_id' => $catId,
+                    'porcentaje' => $porcentaje,
+                    'created_at' => $ahora,
+                    'updated_at' => $ahora,
+                ];
+            }
+        }
+
+        if (! empty($aInsertar)) {
+            DB::table('margenes_reventa')->insert($aInsertar);
+        }
+
+        return redirect()->route('cliente.datos')->with('success', 'Márgenes de reventa actualizados');
+    }
+
     public function updateDate(Request $request){
         /*
          * SEGURIDAD: igual que arriba. Antes era
@@ -81,7 +151,6 @@ class UserController extends Controller
 
         abort_if($usuario === null, 403);
 
-        $usuario->reventa = $request->incrementoReventa;
         $usuario->direccion = $request->direccionEntrega;
         $usuario->localidad = $request->localidadEntregar;
         $usuario->celular = $request->telefono;

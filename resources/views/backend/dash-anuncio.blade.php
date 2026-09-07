@@ -23,6 +23,7 @@
         </div> --}}
         <div class='d-flex justify-content-between' style='align-items:center;'>
             <label class='my-3' for="contenido">Contenido</label>
+            <small class="text-muted">Medida sugerida para la imagen: 700x500 px.</small>
             <div>
                 <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" {{$anuncio->mostrar ? 'checked' : ''}}>

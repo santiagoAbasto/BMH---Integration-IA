@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Image;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Impuesto;
@@ -11,6 +14,22 @@ use App\Models\Impuesto;
 class Producto extends Model
 {
     use HasFactory;
+
+    public const ORDEN_MANUAL = 'manual';
+    public const ORDEN_ALFA_ASC = 'alfa_asc';
+    public const ORDEN_ALFA_DESC = 'alfa_desc';
+
+    /** Modos válidos para el criterio de orden de equivalencias/aplicaciones/partes. */
+    public const MODOS_ORDEN = [
+        self::ORDEN_MANUAL,
+        self::ORDEN_ALFA_ASC,
+        self::ORDEN_ALFA_DESC,
+    ];
+
+    public static function normalizarModoOrden($valor): string
+    {
+        return in_array($valor, self::MODOS_ORDEN, true) ? (string) $valor : self::ORDEN_MANUAL;
+    }
 
     protected $fillable = [
         'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 
@@ -36,13 +55,68 @@ class Producto extends Model
     {
         return ucfirst($value);
     }
-    public function getCategoriaAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
     public function portada(){
         return Imagen::where('sector','producto')->where('tipo', 'portada')->where('producto_id', $this->id)->get()->first();
+    }
+
+    public function portadaImagen(): HasOne
+    {
+        return $this->hasOne(Imagen::class, 'producto_id')
+            ->where('sector', 'producto')
+            ->where('tipo', 'portada');
+    }
+
+    public function imagenesGaleria()
+    {
+        return $this->hasMany(Imagen::class, 'producto_id')
+            ->where('sector', 'producto')
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")
+            ->orderBy('orden')
+            ->orderBy('id');
+    }
+
+    /**
+     * URLs validadas de la galería (portada + resto) listas para usar en la card.
+     * Usa la relación ya cargada si existe para evitar N+1.
+     * @return string[]
+     */
+    public function galeriaUrls(): array
+    {
+        $imagenes = $this->relationLoaded('imagenesGaleria')
+            ? $this->imagenesGaleria
+            : $this->imagenesGaleria()->get();
+
+        $urls = [];
+        foreach ($imagenes as $img) {
+            if (empty($img->path)) continue;
+            $abs = public_path('imagenes/' . $img->path);
+            if (is_file($abs)) {
+                $urls[] = asset('imagenes/' . $img->path);
+            }
+        }
+        $urls = array_values(array_unique($urls));
+        if (empty($urls)) {
+            $placeholder = asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
+            // Incluir placeholder como única imagen si no hay válidas
+            $urls = [$placeholder];
+        }
+        return $urls;
+    }
+
+    /**
+     * URL de la portada sólo si el archivo existe en disco. La base tiene
+     * referencias a imágenes que no están en el filesystem (ver
+     * docs/data-quality-report.md §6): preferimos el placeholder a un 404.
+     */
+    public function portadaUrl(): ?string
+    {
+        $path = $this->portadaImagen?->path;
+
+        if ($path !== null && $path !== '' && is_file(public_path('imagenes/' . $path))) {
+            return asset('imagenes/' . $path);
+        }
+
+        return null;
     }
 
     public function usos(){
@@ -69,7 +143,19 @@ class Producto extends Model
     // }
     public function productCaracteristicas()
     {
-        return $this->hasMany(ProductCaracteristica::class, 'producto_id');
+        return $this->hasMany(ProductCaracteristica::class, 'producto_id')
+            ->whereNull('producto_caracteristica.deleted_at')
+            // En datos históricos puede haber más de una fila para el mismo
+            // producto/característica. Exponer sólo la última evita duplicar
+            // el valor mientras la migración corrige esas filas.
+            ->whereIn('producto_caracteristica.id', function ($query) {
+                $query->selectRaw('MAX(pc_latest.id)')
+                    ->from('producto_caracteristica as pc_latest')
+                    ->whereNull('pc_latest.deleted_at')
+                    ->whereColumn('pc_latest.producto_id', 'producto_caracteristica.producto_id')
+                    ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
+                    ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
+            });
     }
 
 
@@ -164,16 +250,63 @@ class Producto extends Model
         }
 
 
-        $precio_reventa = $precio_neto * (1 + (Auth::guard('web')->user()->reventa / 100));
+        $user = Auth::guard('web')->user();
+        $margen = $user ? $user->margenReventaParaCategoria($this->categoria_id) : 0;
+        $precio_reventa = $precio_neto * (1 + ($margen / 100));
 
       
 
         return number_format($precio_reventa, 2, ',', '.');
     }
 
+    /**
+     * Equivalencias del producto, ordenadas según el criterio elegido:
+     * manual (campo orden) o alfabético (asc/desc) por nombre.
+     */
     public function equivalencias()
     {
-        return $this->hasMany(Equivalencia::class);
+        $rel = $this->hasMany(Equivalencia::class);
+
+        return match ($this->orden_equivalencias ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('nombre', 'desc'),
+            default               => $rel->orderBy('orden', 'asc'),
+        };
+    }
+
+    /**
+     * Aplicaciones del producto, ordenadas igual que equivalencias.
+     */
+    public function aplicaciones()
+    {
+        $rel = $this->hasMany(Aplicacion::class);
+
+        return match ($this->orden_aplicaciones ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('nombre', 'desc'),
+            default               => $rel->orderBy('orden', 'asc'),
+        };
+    }
+
+    /**
+     * Partes relacionadas: otros productos del catálogo asociados a este.
+     * El orden se define por el criterio elegido: manual (pivot `orden`) o
+     * alfabético (asc/desc) por el nombre del producto relacionado.
+     */
+    public function partesRelacionadas(): BelongsToMany
+    {
+        $rel = $this->belongsToMany(
+            Producto::class,
+            'partes_relacionadas',
+            'producto_id',
+            'parte_id',
+        )->withPivot('orden');
+
+        return match ($this->orden_partes ?? self::ORDEN_MANUAL) {
+            self::ORDEN_ALFA_ASC  => $rel->orderBy('productos.nombre', 'asc'),
+            self::ORDEN_ALFA_DESC => $rel->orderBy('productos.nombre', 'desc'),
+            default               => $rel->orderBy('partes_relacionadas.orden', 'asc'),
+        };
     }
     
     public function precio_neto(){

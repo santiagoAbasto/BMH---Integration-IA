@@ -36,7 +36,10 @@ class Categoria extends Model
 
     public function caracteristicas()
 {
-    return $this->belongsToMany(Caracteristica::class, 'categoria_caracteristica');
+    return $this->belongsToMany(Caracteristica::class, 'categoria_caracteristica')
+        ->whereNull('categoria_caracteristica.deleted_at')
+        ->select('caracteristicas.*')
+        ->distinct();
 }
 
 

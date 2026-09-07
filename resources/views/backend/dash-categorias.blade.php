@@ -14,10 +14,6 @@
         </div>
     @endif
 
-    <?php
-    use App\Models\Categoria;
-    ?>
-
     <div class="flex">
         {{-- 1. En el header de la tarjeta, junto al botón CREAR categoría --}}
         <div class="card-header d-flex align-items-center gap-2">
@@ -706,7 +702,6 @@
     </script>
 @endsection
 @push('scripts')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             $('#producto_select').select2({

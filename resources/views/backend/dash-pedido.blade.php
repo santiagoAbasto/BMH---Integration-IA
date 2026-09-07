@@ -18,6 +18,10 @@
 
   <h1 class='mb-4'>Pedido (orden #{{$pedido->id}})</h1>
 
+  <a href="{{ route('pedido.pdf', ['id' => $pedido->id]) }}" target="_blank"
+     style="display:inline-block;margin-bottom:16px;background:#C10B17;color:#fff;text-decoration:none;
+            padding:9px 16px;border-radius:8px;font-size:14px;font-weight:600;">Generar PDF</a>
+
   @if(session('success'))
       <div class="alert alert-success">
           {{ session('success') }}

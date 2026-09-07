@@ -32,10 +32,10 @@ $cart = Cart::content();
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/styles2.css?v=70">
+  <link rel="stylesheet" href="css/styles2.css?v=76">
   
   {{-- FONTAWESOME --}}
-  <script src="https://kit.fontawesome.com/b9cbc4747f.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
    
      {{-- AOS --}}
@@ -90,11 +90,17 @@ $cart = Cart::content();
       border-radius: 999px; background: #ABD430; vertical-align: middle;
       box-shadow: 0 0 0 0 rgba(171, 212, 48, .7); animation: bmhDot 2.6s infinite;
     }
-    @keyframes bmhDot {
-      0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(171,212,48,.7); }
-      35% { box-shadow: 0 0 0 6px rgba(171,212,48,0); }
+     header.scrolled .nav-link:hover { color: rgba(255,255,255,.7) !important; }
+
+    /* La barra inferior (link activo y hover) también debe ser blanca en
+       estado scrolled. Se usa box-shadow para no desplazar el layout. */
+    header.scrolled .nav-link.selectUrl {
+         border-bottom-color: transparent !important;
+         box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
+     }
+    header.scrolled .nav-link:hover {
+        box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
     }
-    @media (prefers-reduced-motion: reduce) { .bmh-advisor-dot { animation: none; } }
   </style>
   {{-- Degrada las imágenes faltantes a un placeholder --}}
   @include('components.image-fallback')
@@ -252,13 +258,6 @@ $cart = Cart::content();
                     <a class="nav-link under active cartNav historial-nav" href="{{route('cliente.historial', ['id' => Auth::guard('web')->user()->id ])}}">Historial</a>
                   </li>
                   @endif
-                  {{-- Asesor IA: NO es una URL nueva. `data-bmh-advisor` abre el
-                       panel flotante en la misma pantalla. --}}
-                  <li class="nav-item">
-                    <a class="nav-link under cartNav active bmh-advisor-nav" href="#" data-bmh-advisor>
-                      <span class="bmh-advisor-dot"></span>Asesor IA
-                    </a>
-                  </li>
                   <li class="nav-item">
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'lista' ? 'selectUrl' : '' }}" href="{{route('lista')}}">Lista de precios</a>
                   </li>
@@ -283,7 +282,7 @@ $cart = Cart::content();
                 @endif 
                 
                 <li class="nav-item" style='align-content:center;'>
-                  @if(isset($zonaclientes) && Auth::guard('web')->check())
+                  @if(Auth::guard('web')->check())
                   <form method="POST" action="{{ route('logout', ['ventana' => 'home']) }}">
                     @csrf
 
@@ -292,13 +291,9 @@ $cart = Cart::content();
                         onclick="event.preventDefault();this.closest('form').submit();">
                         <span style='margin-right:5px;'>Cerrar sesión</span>
                     </button>
-                </form>
+                  </form>
                   @else
-
-                    @if(Auth::guard('web')->check())<a href="{{route('productos.clientes')}}" style='margin-right:0;'>@endif
-                      <button class='green-btn-inverse zona-cliente-btn {{ Route::is('home') ? '' : 'boton-home isHome' }}'  {{Auth::guard('web')->check() ? '' : 'onclick=toggleCarrito()'}}>Zona Clientes</button>
-                    @if(Auth::guard('web')->check())</a>@endif
-                  
+                    <button class='green-btn-inverse zona-cliente-btn {{ Route::is('home') ? '' : 'boton-home isHome' }}' onclick=toggleCarrito()>Zona Clientes</button>
                   @endif
                 </li>
 
@@ -372,11 +367,18 @@ $cart = Cart::content();
             </li>
 
             <li class="mb-3">
-                     @if(Auth::guard('web')->check() && !isset($zonaclientes))<a href="{{route('productos.clientes')}}" style=''>@endif
-        <div class='mobile user-mobile' onclick="{{Auth::guard('web')->check() && !isset($zonaclientes) ? '' : 'toggleCarrito()'}}">
-          <button class='green-btn-inverse zona-cliente-btn boton-home'>Zona Clientes</button>
-        </div>
-        
+              @if(Auth::guard('web')->check())
+              <form method="POST" action="{{ route('logout', ['ventana' => 'home']) }}">
+                @csrf
+                <button class='green-btn-inverse zona-cliente-btn boton-home' onclick="event.preventDefault();this.closest('form').submit();">
+                  <span style='margin-right:5px;'>Cerrar sesión</span>
+                </button>
+              </form>
+              @else
+              <div class='mobile user-mobile' onclick="toggleCarrito()">
+                <button class='green-btn-inverse zona-cliente-btn boton-home'>Zona Clientes</button>
+              </div>
+              @endif
             </li>
             @endif
           </ul>
@@ -425,6 +427,25 @@ $cart = Cart::content();
     </form>
     @yield('content')
   </main>
+
+  @php
+    $anuncio = \App\Models\Anuncio::find(1);
+  @endphp
+  @if($anuncio && $anuncio->mostrar && (session('anuncio_pendiente') || request()->query('anuncio')))
+    <div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="anuncioLabel" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered anuncio-dialog">
+        <div class="modal-content anuncio-card">
+          <button type="button" class="anuncio-close" data-bs-dismiss="modal" aria-label="Cerrar">&times;</button>
+          <div class="anuncio-media">
+            <div class="anuncio-content">
+              {!! $anuncio->contenido !!}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    @php session()->forget('anuncio_pendiente'); @endphp
+  @endif
 
   <footer>
     <div class='container d-flex flex-column' style='margin-bottom:56px;'>
@@ -612,19 +633,50 @@ $cart = Cart::content();
   
   
   
-  @yield('script')
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+  <script>
+  // Shim: Bootstrap 5 quitó $.fn.modal (jQuery). El layout legacy aún usa $('#aviso').modal('show')
+  // Este shim lo polyfillea con la API nativa de Bootstrap 5 para no romper el sitio.
+  (function() {
+    if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.modal === 'undefined') {
+      window.jQuery.fn.modal = function(action) {
+        return this.each(function() {
+          try {
+            var instance = bootstrap.Modal.getOrCreateInstance(this);
+            if (action === 'show') instance.show();
+            else if (action === 'hide') instance.hide();
+            else if (action === 'toggle') instance.toggle();
+            else if (!action) instance.show();
+          } catch(e) { console.warn('modal shim', e); }
+        });
+      };
+      // También para eventos jQuery type `shown.bs.modal` ya funciona nativo, no hace falta más.
+    }
+  })();
+  </script>
   <script src="js/carrito.js?v=4"></script>
+  @yield('script')
   {{-- TAILWIND --}}
   {{-- <script src="https://cdn.tailwindcss.com"></script>  --}}
+
+  {{-- Las notificaciones (toastr / iziToast) viven abajo a la derecha, en la
+       misma esquina que el botón flotante del Asesor IA (z-index
+       2147483000). Sin esto quedaban por detrás. Se sube su z-index por
+       encima del asesor para que nunca se solapen. --}}
+  <style>
+      #toast-container,
+      .iziToast-wrapper { z-index: 2147483100 !important; }
+  </style>
+
   <script>
   
       $(document).ready(function() {
             bmhAbrirModal('aviso');
         })
 
-document.getElementById("toggle-password").addEventListener("click", function() {
+var _togglePwd = document.getElementById("toggle-password");
+if (_togglePwd) _togglePwd.addEventListener("click", function() {
         var passwordField = document.getElementById("password");
         var icon = this.querySelector("svg");
 
@@ -658,27 +710,29 @@ document.getElementById("toggle-password").addEventListener("click", function() 
 
 
 $(window).scroll(function() {
-            if ($(this).scrollTop() > 50) {
-                $('header').addClass('scrolled');
-                $('.infoHeader').addClass('esconder');
-                $('.nav-link').addClass('itemScroll');
-                $('.nav-link').removeClass('itemNavb');
-                $('.isHome').removeClass('boton-home');
-
-                
-                
+            if (window.innerWidth >= 992) {
+                if ($(this).scrollTop() > 50) {
+                    $('header').addClass('scrolled');
+                    $('.infoHeader').addClass('esconder');
+                    $('.nav-link').addClass('itemScroll');
+                    $('.nav-link').removeClass('itemNavb');
+                    $('.isHome').removeClass('boton-home');
+                } else {
+                    $('header').removeClass('scrolled');
+                    $('.infoHeader').removeClass('esconder');
+                    $('.nav-link').removeClass('itemScroll');
+                    $('.nav-link').addClass('itemNavb');
+                    $('.isHome').addClass('boton-home');
+                }
             } else {
+                // Mobile: el header no cambia de color al hacer scroll.
                 $('header').removeClass('scrolled');
                 $('.infoHeader').removeClass('esconder');
                 $('.nav-link').removeClass('itemScroll');
                 $('.nav-link').addClass('itemNavb');
                 $('.isHome').addClass('boton-home');
-
-                }
-
             }
-
-        );
+        });
 
 
     window.addEventListener('load', function() {
@@ -744,6 +798,11 @@ $(window).scroll(function() {
       "hideEasing": "linear",
       "showMethod": "fadeIn",
       "hideMethod": "fadeOut"
+    }
+
+    // Notificaciones por encima del Asesor IA (z-index 2147483000).
+    if (window.iziToast) {
+        iziToast.settings({ zindex: 2147483100 });
     }
 
     $(document).ready(function() {
@@ -840,51 +899,51 @@ $(window).scroll(function() {
     const marca = document.querySelector("select[name='marca']");
     const equivalenciaFiltro = document.querySelector("input[name='equivalenciaFiltro']");
 
-    // Cargar la última búsqueda al cargar la página
-    if (localStorage.getItem("ultimaBusqueda")) {
+    // Cargar la última búsqueda al cargar la página (con guards para páginas sin buscador)
+    if (buscador && localStorage.getItem("ultimaBusqueda")) {
         buscador.value = localStorage.getItem("ultimaBusqueda");
     }
-    if (localStorage.getItem("codigoBMH")) {
+    if (codigoBMH && localStorage.getItem("codigoBMH")) {
         codigoBMH.value = localStorage.getItem("codigoBMH");
     }
-    if (localStorage.getItem("categoriaFiltro")) {
+    if (categoriaFiltro && localStorage.getItem("categoriaFiltro")) {
         categoriaFiltro.value = localStorage.getItem("categoriaFiltro");
     }
-    if (localStorage.getItem("marca")) {
+    if (marca && localStorage.getItem("marca")) {
         marca.value = localStorage.getItem("marca");
     }
-    if (localStorage.getItem("equivalenciaFiltro")) {
+    if (equivalenciaFiltro && localStorage.getItem("equivalenciaFiltro")) {
         equivalenciaFiltro.value = localStorage.getItem("equivalenciaFiltro");
     }
 
     // Cargar el estado de los checkboxes
-    if (localStorage.getItem("checkboxNuevo") === "true") {
+    if (checkboxNuevo && localStorage.getItem("checkboxNuevo") === "true") {
         checkboxNuevo.checked = true;
     }
-    if (localStorage.getItem("checkboxReconstruido") === "true") {
+    if (checkboxReconstruido && localStorage.getItem("checkboxReconstruido") === "true") {
         checkboxReconstruido.checked = true;
     }
 
-    buscador.addEventListener("input", function () {
+    if (buscador) buscador.addEventListener("input", function () {
         localStorage.setItem("ultimaBusqueda", buscador.value);
     });
-    codigoBMH.addEventListener("input", function () {
+    if (codigoBMH) codigoBMH.addEventListener("input", function () {
         localStorage.setItem("codigoBMH", codigoBMH.value);
     });
-    categoriaFiltro.addEventListener("change", function () {
+    if (categoriaFiltro) categoriaFiltro.addEventListener("change", function () {
         localStorage.setItem("categoriaFiltro", categoriaFiltro.value);
     });
-    marca.addEventListener("change", function () {
+    if (marca) marca.addEventListener("change", function () {
         localStorage.setItem("marca", marca.value);
     });
-    equivalenciaFiltro.addEventListener("input", function () {
+    if (equivalenciaFiltro) equivalenciaFiltro.addEventListener("input", function () {
         localStorage.setItem("equivalenciaFiltro", equivalenciaFiltro.value);
     });
 
-    checkboxNuevo.addEventListener("change", function () {
+    if (checkboxNuevo) checkboxNuevo.addEventListener("change", function () {
         localStorage.setItem("checkboxNuevo", checkboxNuevo.checked);
     });
-    checkboxReconstruido.addEventListener("change", function () {
+    if (checkboxReconstruido) checkboxReconstruido.addEventListener("change", function () {
         localStorage.setItem("checkboxReconstruido", checkboxReconstruido.checked);
     });
 });
@@ -1019,7 +1078,8 @@ $(window).scroll(function() {
 }
 
 // Ejecutar al cambiar select de categoría
-document.getElementById('selectCategoria').addEventListener('change', function () {
+var _selectCat = document.getElementById('selectCategoria');
+if (_selectCat) _selectCat.addEventListener('change', function () {
     const categoriaId = this.value;
     if (categoriaId) {
         cargarAtributosCategoria(categoriaId);
@@ -1038,18 +1098,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         document.addEventListener('DOMContentLoaded', function() {
-        // Si hay datos guardados en localStorage, completamos el formulario
-        if (localStorage.getItem('username') && localStorage.getItem('password')) {
-            document.getElementById('input_type').value = localStorage.getItem('username');
-            document.getElementById('password').value = localStorage.getItem('password');
-            document.getElementById('remember_me').checked = true; // Marca el checkbox
+        // Si hay datos guardados en localStorage, completamos el formulario (con guards)
+        var _inpType = document.getElementById('input_type');
+        var _pwd = document.getElementById('password');
+        var _remember = document.getElementById('remember_me');
+        if (_inpType && _pwd && localStorage.getItem('username') && localStorage.getItem('password')) {
+            _inpType.value = localStorage.getItem('username');
+            _pwd.value = localStorage.getItem('password');
+            if (_remember) _remember.checked = true;
         }
 
-        // Al enviar el formulario, si se marca el checkbox de "Recordarme", guardamos los datos en localStorage
-        document.querySelector('form').addEventListener('submit', function(e) {
-            if (document.getElementById('remember_me').checked) {
-                localStorage.setItem('username', document.getElementById('input_type').value);
-                localStorage.setItem('password', document.getElementById('password').value);
+        var _form = document.querySelector('form');
+        if (_form && _inpType && _pwd && _remember) _form.addEventListener('submit', function(e) {
+            if (_remember.checked) {
+                localStorage.setItem('username', _inpType.value);
+                localStorage.setItem('password', _pwd.value);
             } else {
                 localStorage.removeItem('username');
                 localStorage.removeItem('password');

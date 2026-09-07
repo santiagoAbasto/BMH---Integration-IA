@@ -39,10 +39,20 @@ final class CatalogSemanticLayer
         array $images = [],
         bool $duplicateCode = false,
         int $categoryProductCount = 0,
+        array $relatedPartsTable = [],
+        array $equivalencesTable = [],
+        array $applicationsTable = [],
     ): ProductView {
         $attributes   = $this->mapLegacySlots($product, $categoryLabels);
-        $equivalences = $this->extractEquivalences($product, $categoryLabels, $characteristics);
-        $relatedParts = $this->extractRelatedParts($characteristics);
+        $equivalences = $this->dedupeReferences(array_merge(
+            $this->extractEquivalences($product, $categoryLabels, $characteristics),
+            $this->mapEquivalencesFromTable($equivalencesTable),
+        ));
+        $relatedParts = $this->dedupeReferences(array_merge(
+            $this->extractRelatedParts($characteristics),
+            $this->mapRelatedPartsFromTable($relatedPartsTable),
+        ));
+        $applications = $this->mapApplicationsFromTable($applicationsTable);
 
         $category = $categoryLabels === null ? null : new CategoryView(
             id: (int) $categoryLabels->id,
@@ -63,6 +73,7 @@ final class CatalogSemanticLayer
             attributes: $attributes,
             equivalences: $equivalences,
             relatedParts: $relatedParts,
+            applications: $applications,
             images: $images,
             listPrice: isset($product->precio) ? (float) $product->precio : null,
             hasDuplicateCode: $duplicateCode,
@@ -225,6 +236,95 @@ final class CatalogSemanticLayer
         }
 
         return $this->dedupeReferences($references);
+    }
+
+    /**
+     * Piezas relacionadas desde la tabla nueva `partes_relacionadas`.
+     *
+     * Convive con las que salen del EAV legacy: ambas se unen en `relatedParts`
+     * y se deduplican. Acá cada fila trae el código y nombre del producto-parte.
+     *
+     * @param  list<array{code:string, name:string}> $rows
+     * @return list<CrossReference>
+     */
+    private function mapRelatedPartsFromTable(array $rows): array
+    {
+        $references = [];
+
+        foreach ($rows as $entry) {
+            $code = $this->clean((string) ($entry['code'] ?? ''));
+
+            if ($code === '' || CrossReference::isPlaceholder($code)) {
+                continue;
+            }
+
+            $references[] = new CrossReference(
+                kind: CrossReference::KIND_PART,
+                label: $this->clean((string) ($entry['name'] ?? '')),
+                code: $code,
+                provenance: Provenance::database('partes_relacionadas'),
+            );
+        }
+
+        return $references;
+    }
+
+    /**
+     * Equivalencias desde la tabla nueva `equivalencias` (clave-valor
+     * ordenada: nombre de fabricante + código). Se suman a las legacy.
+     *
+     * @param  list<array{label:?string, code:string}> $rows
+     * @return list<CrossReference>
+     */
+    private function mapEquivalencesFromTable(array $rows): array
+    {
+        $references = [];
+
+        foreach ($rows as $entry) {
+            $code = $this->clean((string) ($entry['code'] ?? ''));
+
+            if ($code === '' || CrossReference::isPlaceholder($code)) {
+                continue;
+            }
+
+            $references[] = new CrossReference(
+                kind: CrossReference::KIND_EQUIVALENCE,
+                label: $this->clean((string) ($entry['label'] ?? '')),
+                code: $code,
+                provenance: Provenance::database('equivalencias'),
+            );
+        }
+
+        return $references;
+    }
+
+    /**
+     * Aplicaciones desde la tabla nueva `aplicaciones` (modelo de otro
+     * fabricante en el que aplica el producto).
+     *
+     * @param  list<array{label:?string, code:string}> $rows
+     * @return list<CrossReference>
+     */
+    private function mapApplicationsFromTable(array $rows): array
+    {
+        $references = [];
+
+        foreach ($rows as $entry) {
+            $code = $this->clean((string) ($entry['code'] ?? ''));
+
+            if ($code === '' || CrossReference::isPlaceholder($code)) {
+                continue;
+            }
+
+            $references[] = new CrossReference(
+                kind: CrossReference::KIND_APPLICATION,
+                label: $this->clean((string) ($entry['label'] ?? '')),
+                code: $code,
+                provenance: Provenance::database('aplicaciones'),
+            );
+        }
+
+        return $references;
     }
 
     /**
