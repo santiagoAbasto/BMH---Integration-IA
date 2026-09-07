@@ -145,6 +145,12 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
 
                 let streamed = '';
 
+                // Si el servidor se muere a mitad del stream —se le acabó el
+                // tiempo de ejecución, se cayó el proceso— el stream termina sin
+                // `done` y el globito se queda girando para siempre. Hay que
+                // saber si llegó a cerrarse bien.
+                let cerrado = false;
+
                 await apiStream(
                     `/api/assistant/conversations/${id}/stream`,
                     { message: text, attachment_ids: attachments.map((a) => a.id) },
@@ -162,8 +168,13 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                                 // cards se pintan mientras se escribe la respuesta.
                                 const payload = data as Pick<
                                     TurnResult,
-                                    'candidates' | 'candidate_count' | 'price' | 'context' | 'next_question' | 'handoff'
-                                >;
+                                    | 'candidates'
+                                    | 'candidate_count'
+                                    | 'price'
+                                    | 'context'
+                                    | 'next_question'
+                                    | 'handoff'
+                                > & { vision?: TurnResult['vision']; vision_notes?: string[] };
 
                                 setContext(payload.context);
                                 setStatus({
@@ -184,6 +195,8 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                                                   price: payload.price,
                                                   nextQuestion: payload.next_question,
                                                   handoff: payload.handoff,
+                                                  vision: payload.vision,
+                                                  visionNotes: payload.vision_notes,
                                               }
                                             : message,
                                     ),
@@ -205,6 +218,7 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                             }
 
                             if (event === 'done') {
+                                cerrado = true;
                                 const payload = data as { message: TurnResult['message']; debug?: TurnResult['debug'] };
 
                                 setMessages((current) =>
@@ -226,6 +240,7 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                             }
 
                             if (event === 'error') {
+                                cerrado = true;
                                 const payload = data as { message: string };
                                 setError(payload.message);
                                 setMessages((current) => current.filter((m) => m.id !== placeholderId));
@@ -234,6 +249,15 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                         },
                     },
                 );
+
+                if (!cerrado) {
+                    const corte =
+                        'Se cortó la conexión mientras preparaba la respuesta. Probá de nuevo.';
+
+                    setError(corte);
+                    setStatus({ kind: 'error', label: corte });
+                    setMessages((current) => current.filter((m) => m.id !== placeholderId));
+                }
             } catch (caught) {
                 if (controller.signal.aborted) {
                     return;

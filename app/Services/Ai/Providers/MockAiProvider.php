@@ -177,6 +177,20 @@ final class MockAiProvider implements AiProviderInterface
         ];
     }
 
+    /**
+     * Sin modelo real no se puede comparar imágenes. Devolver vacío es la
+     * respuesta honesta: el VisionMatchService lo interpreta como "no se pudo
+     * comparar" y deja el orden que ya traía la búsqueda estructurada.
+     */
+    public function compareImages(
+        string $customerImagePath,
+        array $catalogImagePaths,
+        string $systemPrompt,
+        array $schema,
+    ): array {
+        return [];
+    }
+
     public function embed(string $text): array
     {
         // Embedding determinístico y estable para poder testear el pipeline

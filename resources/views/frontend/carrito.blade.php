@@ -536,7 +536,7 @@ color: #0098DA !important;
         }
 
         $(document).ready(function() {
-            $('#aviso').modal('show');
+            bmhAbrirModal('aviso');
         })
 
         function notificar(texto) {

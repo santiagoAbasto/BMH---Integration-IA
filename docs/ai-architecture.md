@@ -190,12 +190,162 @@ Un código legible por OCR vale mucho más que un parecido de forma: entra con
 confianza mínima 0.6 y dispara búsqueda por código, que tiene autoridad máxima
 en el ranking.
 
-### Comparación visual (preparado, no activado)
+### El embudo (`VisionMatchService`)
 
-La arquitectura soporta el enfoque en embudo: 5.054 → búsqueda estructurada → 20
-→ filtros técnicos → 5 → recién ahí comparación multimodal contra las imágenes de
-los candidatos. Reduce costo, latencia y alucinaciones. No se activó porque con
-`MockAiProvider` no aporta y con un proveedor real conviene medir primero.
+Tres etapas, en orden de autoridad decreciente:
+
+1. **Códigos leídos** → exacto, normalizado, equivalencia, parcial. Si un código
+   existe, gana y no se compara nada más.
+2. **Rubro + atributos observados** → filtro estructurado contra la base.
+3. **Comparación multimodal** → la foto del cliente contra las de los 4 primeros
+   candidatos, en una sola llamada.
+
+La similitud visual entra como una señal más del ranking (peso 3) contra 100 de
+un código exacto: **una foto nunca le gana a un código**.
+
+### Qué se descarta antes de filtrar
+
+El modelo observa bien pero no sabe qué existe en el catálogo. Todo lo que
+observa se verifica contra la base antes de convertirse en filtro, porque un
+filtro que no matchea nada no devuelve “menos resultados”: devuelve **cero**, y
+arrastra consigo a los filtros que sí servían.
+
+| Observación | Se descarta si… | Caso real |
+|---|---|---|
+| Marca | no figura en `productos.marca` | leyó el “B.M.H” escrito en la mesada de trabajo, no en la pieza |
+| Atributo | el **rubro** no define esa columna | `terminals` en MOTORES DE ARRANQUE, que no tiene esa columna |
+| Atributo | el valor es prosa, no un valor | `"2 principales visibles"` → se reduce a `"2"`; `"terminal tipo ficha"` se tira |
+| Rubro | ningún rubro real se le parece lo bastante | se elige el **mejor**, no todos los que comparten una palabra: “motores de arranque” resolvía a MOTORES + PORTAESCOBILLAS + ESCOBILLAS |
+
+### La familia va adelante del código
+
+Los códigos de BMH llevan la familia como prefijo: **REG**17705 es el regulador,
+**POL**17705 la polea, **PLA**… la plaqueta. En la pieza, en cambio, suele venir
+grabado sólo el número.
+
+Sin conocer la convención, leer "17705" daba una coincidencia *parcial* contra
+tres artículos de tres rubros distintos, todos con confianza baja: el cliente
+veía una polea al lado del regulador que pidió y dejaba de confiar en el resto
+del listado.
+
+Sabiendo el rubro —lo dice la visión, o las palabras del cliente— el número se
+completa y pasa a ser el código exacto. `CatalogFamilyResolver` concentra las dos
+reglas y las usan los dos caminos, el de foto y el de texto:
+
+| Lo que llega | Rubro | Resultado |
+|---|---|---|
+| foto con "17705" + regulador | REGULADOR DE VOLTAJE | REG17705, confianza muy alta, un solo candidato |
+| "necesito el regulador 17705" | se deduce del texto | ídem |
+| "17705" a secas | ninguno | los tres, confianza baja y se pregunta — es genuinamente ambiguo |
+
+Los prefijos no están escritos a mano: salen de agrupar los códigos reales por
+rubro (`codePrefixes()`), y se exige un mínimo de usos para no tomar un error de
+carga por convención.
+
+### Un código leído no es un hecho
+
+El hecho es que ese código *existe* en el catálogo; que sea **el de esta pieza**
+es otra cosa. Y un dígito mal leído no devuelve "nada": devuelve **otra pieza**, y
+con confianza máxima por ser coincidencia exacta. Dos casos reales sobre la misma
+foto de un regulador que dice `17705`:
+
+| Se leyó | Devolvió | Cómo se detecta |
+|---|---|---|
+| `1175` | un inducido de arranque Dodge | otra familia: la foto mostraba un regulador |
+| `1775` | REG40019, regulador Delco 12V **2 pines** | misma familia, pero la foto mostraba **5 pines** |
+
+El segundo es el peligroso: el rubro coincide, así que mirar la familia no
+alcanza. Por eso un acierto de código se contrasta contra **todo** lo demás que
+la foto mostró, y si contradice —familia u observación— se descarta y se busca
+por lo que sí se ve, avisándole al cliente qué pasó.
+
+La regla es asimétrica, como en el resto de la búsqueda: si el producto tiene el
+dato cargado y no coincide, contradice; si no lo tiene cargado, no dice nada.
+Y sólo se duda del código cuando la foto es clara (`confidence ≥ 0.7`): si el
+modelo no sabe qué pieza es, el código vuelve a ser lo mejor que hay.
+
+### Contar es exacto; medir, no
+
+La búsqueda toleraba ±1 en todo valor numérico. Para un diámetro está bien —la
+base guarda `88.8` y `89` para la misma pieza— pero para un **conteo** es fatal:
+buscando 5 pines devolvía también los de 4, y el de 4 llegaba a salir primero.
+La tolerancia ahora depende del tipo: `count` exige igualdad exacta, `dimension`
+mantiene ±1 mm, `electrical` ±0.01.
+
+### Lo que la base no reconoce, no filtra — venga de donde venga
+
+Un filtro que no matchea nada no devuelve "menos resultados": devuelve **cero**,
+y entonces salta el respaldo que muestra el rubro entero, perdiendo también los
+filtros que sí servían. Un dato malo contamina a los buenos.
+
+Por eso cada valor observado se verifica contra el rubro antes de filtrar, y se
+verifica el conjunto **entero** —no sólo lo que vino de la foto—. La memoria de
+la conversación guarda lo observado tal cual se dijo, y por ahí volvía a entrar
+lo ya descartado: `voltage: "28V"` es la tensión de regulación grabada en la
+pieza, no un valor del catálogo, donde los reguladores son de 12V o 24V.
+
+### El número más parecido del rubro
+
+El OCR sobre dígitos estampados en bajorrelieve se come caracteres: en una pieza
+que dice `17705` leyó `1775`. Dentro del rubro correcto esa diferencia de un
+carácter no es ambigua, así que se busca por distancia de edición entre los
+códigos del rubro y se ofrece como **pregunta**, no como certeza:
+
+> Leí "1775" en la pieza, pero ese número no da con lo que muestra la foto.
+> El más parecido que tenemos es REG17705. ¿Puede ser ese?
+
+Las dos condiciones —rubro identificado y distancia ≤ 1— son lo que evita volver
+al problema que esto viene a resolver: sin ellas aparecerían parecidos de
+cualquier familia.
+
+### Observar no es confirmar
+
+Un dato mal contado es tan peligroso como un código mal leído, y peor en un
+sentido: en vez de traer la pieza equivocada, **borra la correcta**. Con la ficha
+vista de canto el modelo contó 3 pines donde hay 5, y como los conteos exigen
+igualdad exacta, el regulador de 5 quedaba fuera del listado.
+
+Por eso los atributos llevan procedencia:
+
+| Origen | Qué puede hacer |
+|---|---|
+| el cliente lo dijo o lo confirmó | **descartar** productos que no coincidan |
+| salió de mirar una foto | sólo **ordenar**: puntúa alto, pero no elimina a nadie |
+
+Esto acota el daño, no lo elimina: con un conteo equivocado nada empuja a la
+pieza correcta hacia arriba, así que puede quedar sepultada entre decenas de
+piezas parecidas. El arreglo de fondo es que el modelo **no cuente lo que no
+puede ver** —el prompt lo dice con todas las letras, con los casos típicos: ficha
+de canto, conector en sombra, dientes superpuestos— porque no contar deja la
+pieza en el puesto 6, y contar mal la deja afuera.
+
+### Varias fotos, una sola lectura
+
+El cliente manda tres fotos porque ninguna sola muestra todo. Se fusionan: cada
+dato lo aporta la foto que lo vio mejor y, ante contradicción, gana la de mayor
+confianza. La foto que se compara contra el catálogo es la más confiable, no la
+primera.
+
+Contar es lo que más rinde, porque es de lo poco que se puede sacar de una foto
+sin inventar nada, y el catálogo lo tiene cargado:
+
+| Qué contar | Dónde vive | Cuánto achica |
+|---|---|---|
+| dientes del piñón | MOTORES DE ARRANQUE, 246 de 260 | 260 → 84 (9 dientes) |
+| pines de la ficha | REGULADOR DE VOLTAJE, 277 de 408 | 408 → 20 (5 pines) |
+
+El prompt pide explícitamente contar ambos, y también nombrar la familia
+constructiva (BOSCH, VALEO, MITSUBISHI…), que el catálogo guarda como TIPO.
+
+Los conteos se comparan por número, no con `LIKE`: buscar 9 con `LIKE '%9%'`
+traía también los de 19, y buscar 1 traía medio rubro.
+
+### Peso de las imágenes
+
+Las fotos del catálogo llegan a 4,5 MB. Se reducen a 512 px antes de mandarlas
+(`ImagePayload`), que es lo que consume el modo `detail: low` del modelo: mandar
+el original era pagar por píxeles que la API descarta. Sin esto, una comparación
+subía ~24 MB y el turno superaba el `max_execution_time`.
 
 ---
 

@@ -702,6 +702,15 @@ final class AssistantConversationTest extends TestCase
                 throw new \RuntimeException('timeout');
             }
 
+            public function compareImages(
+                string $customerImagePath,
+                array $catalogImagePaths,
+                string $systemPrompt,
+                array $schema,
+            ): array {
+                return [];
+            }
+
             public function embed(string $text): array
             {
                 return [];
@@ -758,6 +767,15 @@ final class AssistantConversationTest extends TestCase
             public function structuredOutput(string $prompt, array $schema, array $options = []): array
             {
                 return ['intent' => ['no', 'es', 'un', 'string'], 'extracted_attributes' => 'basura'];
+            }
+
+            public function compareImages(
+                string $customerImagePath,
+                array $catalogImagePaths,
+                string $systemPrompt,
+                array $schema,
+            ): array {
+                return [];
             }
 
             public function embed(string $text): array
@@ -950,6 +968,15 @@ final class AssistantConversationTest extends TestCase
             public function structuredOutput(string $prompt, array $schema, array $options = []): array
             {
                 return $this->interpretation;
+            }
+
+            public function compareImages(
+                string $customerImagePath,
+                array $catalogImagePaths,
+                string $systemPrompt,
+                array $schema,
+            ): array {
+                return [];
             }
 
             public function embed(string $text): array

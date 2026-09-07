@@ -36,6 +36,24 @@ interface AiProviderInterface
     public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis;
 
     /**
+     * Compara la foto del cliente contra varias fotos de catálogo.
+     *
+     * Se usa como último paso del embudo visual, con pocos candidatos ya
+     * filtrados por la base. Cada imagen de catálogo va numerada por su índice
+     * en `$catalogImagePaths`, y eso es lo que devuelve `best_match`.
+     *
+     * @param  list<string>        $catalogImagePaths rutas absolutas
+     * @param  array<string,mixed> $schema
+     * @return array<string,mixed>
+     */
+    public function compareImages(
+        string $customerImagePath,
+        array $catalogImagePaths,
+        string $systemPrompt,
+        array $schema,
+    ): array;
+
+    /**
      * Extracción estructurada validada contra un JSON Schema.
      *
      * @param  array<string,mixed> $schema

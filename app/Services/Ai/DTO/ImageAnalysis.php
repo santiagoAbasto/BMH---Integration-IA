@@ -35,6 +35,8 @@ final readonly class ImageAnalysis implements \JsonSerializable
         public ?string $description = null,
         public bool $imageUsable = true,
         public ?string $unusableReason = null,
+        /** Qué tan segura fue la LECTURA del texto, aparte del reconocimiento. */
+        public float $textConfidence = 0.0,
         public ?AiUsage $usage = null,
     ) {
     }
@@ -47,6 +49,18 @@ final readonly class ImageAnalysis implements \JsonSerializable
             imageUsable: false,
             unusableReason: $reason,
         );
+    }
+
+    /**
+     * ¿La lectura de código es lo bastante sólida para buscar por código?
+     *
+     * Un código legible es un match DURO contra `productos.codigo`, así que el
+     * umbral es bajo a propósito: si existe en el catálogo, la base lo confirma;
+     * si no existe, no devuelve nada y no se pierde nada por haber probado.
+     */
+    public function hasReliableCode(): bool
+    {
+        return $this->visibleCodes !== [] && $this->textConfidence >= 0.3;
     }
 
     public function provenance(): Provenance
@@ -66,6 +80,7 @@ final readonly class ImageAnalysis implements \JsonSerializable
             'confidence'     => round($this->confidence, 3),
             'visible_codes'  => $this->visibleCodes,
             'detected_text'  => $this->detectedText,
+            'text_confidence'=> round($this->textConfidence, 3),
             'attributes'     => $this->attributes,
             'category_hints' => $this->categoryHints,
             'brand_guess'    => $this->brandGuess,

@@ -102,8 +102,21 @@ export default {
             },
 
             animation: {
-                'bubble-in': 'bubble-in 180ms cubic-bezier(0.2, 0, 0, 1) both',
-                'card-in': 'card-in 220ms cubic-bezier(0.2, 0, 0, 1) both',
+                /*
+                 * `backwards`, no `both`.
+                 *
+                 * Con `both` el elemento se queda para siempre con el `transform`
+                 * del último fotograma aplicado, y un elemento transformado pasa a
+                 * ser el marco de referencia de sus hijos `position: fixed`: el
+                 * visor de fotos ampliadas quedaba encerrado dentro de la card en
+                 * vez de ocupar la pantalla.
+                 *
+                 * El fotograma final es el estado natural (opacidad 1, sin
+                 * desplazamiento), así que no hay nada que retener; sólo hace
+                 * falta `backwards` para que no parpadee antes de arrancar.
+                 */
+                'bubble-in': 'bubble-in 180ms cubic-bezier(0.2, 0, 0, 1) backwards',
+                'card-in': 'card-in 220ms cubic-bezier(0.2, 0, 0, 1) backwards',
             },
 
             transitionTimingFunction: {

@@ -163,6 +163,10 @@ final class AssistantController extends Controller
 
         $attachments = $this->resolveAttachments($conversation, $request->validated('attachment_ids', []));
 
+        // Mismo motivo que en `stream()`: un turno con foto lleva varias llamadas
+        // al modelo y no entra en los 30 segundos que fija el php.ini heredado.
+        set_time_limit(0);
+
         $result = $this->orchestrator->handle(
             $conversation,
             $customer,
@@ -185,6 +189,17 @@ final class AssistantController extends Controller
         $conversation = $this->conversation($conversationId);
         $attachments  = $this->resolveAttachments($conversation, $request->validated('attachment_ids', []));
         $text         = (string) $request->validated('message', '');
+
+        /*
+         * Un turno con foto puede tardar más que una request normal: análisis de
+         * imagen + comparación contra el catálogo son varias llamadas al modelo.
+         *
+         * El `public/php.ini` que vino del hosting fija max_execution_time=30 y
+         * `artisan serve` lo levanta, así que sin esto PHP mata el proceso a la
+         * mitad del stream y el widget se queda girando para siempre.
+         */
+        set_time_limit(0);
+        ignore_user_abort(true);
 
         return response()->stream(function () use ($conversation, $customer, $text, $attachments): void {
             $emit = static function (string $event, array $data): void {
@@ -216,6 +231,10 @@ final class AssistantController extends Controller
                 'context'         => $result['context'],
                 'next_question'   => $result['next_question'],
                 'handoff'         => $result['handoff'],
+                // Lo que se leyó en la foto: se muestra al cliente para que vea
+                // que el sistema realmente la miró.
+                'vision'          => $result['vision'] ?? [],
+                'vision_notes'    => $result['vision_notes'] ?? [],
             ]);
 
             foreach ($this->chunks((string) $result['message']['content']) as $chunk) {

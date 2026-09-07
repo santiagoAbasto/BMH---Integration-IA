@@ -104,6 +104,7 @@ export interface VisionAnalysis {
     confidence: number;
     visible_codes: string[];
     detected_text: string[];
+    text_confidence: number;
     attributes: Record<string, string>;
     category_hints: string[];
     brand_guess: string | null;
@@ -139,6 +140,8 @@ export interface TurnResult {
     conflicts: { key: string; confirmed: string; observed: string }[];
     context: ContextPanelData;
     vision: VisionAnalysis[];
+    /** Qué hizo el embudo visual, en palabras: código leído, rubro, comparación. */
+    vision_notes: string[];
     debug?: DebugInfo;
 }
 
@@ -160,6 +163,7 @@ export interface ChatMessage {
     handoff?: { id: number; reason: string } | null;
     conflicts?: { key: string; confirmed: string; observed: string }[];
     vision?: VisionAnalysis[];
+    visionNotes?: string[];
     attachments?: ChatAttachment[];
     debug?: DebugInfo;
     feedbackGiven?: boolean;

@@ -27,6 +27,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
 {
+    private const CACHE_BRANDS   = 'bmh:catalog:brands';
+    private const CACHE_PREFIXES = 'bmh:catalog:code-prefixes';
+    private const CACHE_CODES    = 'bmh:catalog:codes-by-category';
+
+    /** Usos mínimos para tomar un prefijo como convención del rubro. */
+    private const MIN_PREFIX_USES = 5;
+
     private const CACHE_CATEGORIES = 'bmh:legacy:categories';
     private const CACHE_DUPLICATES = 'bmh:legacy:duplicate-codes';
 
@@ -227,6 +234,30 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
             $column = LegacyAttributeMap::column($slot);
             $type   = LegacyAttributeMap::type($slot);
 
+            if ($type === LegacyAttributeMap::TYPE_COUNT) {
+                /*
+                 * Los conteos se comparan por número, no con LIKE: buscar 9
+                 * dientes con `LIKE '%9%'` traía también los de 19, y buscar 1
+                 * traía medio catálogo.
+                 *
+                 * Se acepta el valor suelto ("9") y las formas mixtas que hay
+                 * cargadas ("9/10").
+                 */
+                $numero = $this->parseNumeric($value);
+
+                if ($numero !== null) {
+                    $entero = (string) (int) round($numero);
+
+                    $builder->where(function ($q) use ($column, $entero): void {
+                        $q->whereRaw("TRIM(`{$column}`) = ?", [$entero])
+                            ->orWhereRaw("`{$column}` REGEXP ?", ['(^|[^0-9])' . $entero . '([^0-9]|$)']);
+                    });
+
+                    $appliedAny = true;
+                    continue;
+                }
+            }
+
             if (in_array($type, [LegacyAttributeMap::TYPE_DIMENSION, LegacyAttributeMap::TYPE_ELECTRICAL], true)) {
                 // Dimensiones: comparación numérica tolerante. La base guarda
                 // "88.8", "88,8", "88.8 mm" indistintamente.
@@ -282,6 +313,24 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         });
     }
 
+    public function brands(): array
+    {
+        return Cache::remember(self::CACHE_BRANDS, 3600, function (): array {
+            $marcas = $this->db()->table('productos')
+                ->select('marca')
+                ->whereNotNull('marca')
+                ->where('marca', '!=', '')
+                ->distinct()
+                ->pluck('marca')
+                ->all();
+
+            return array_values(array_filter(array_map(
+                static fn (string $m): string => mb_strtoupper(trim($m)),
+                $marcas,
+            ), static fn (string $m): bool => $m !== '' && $m !== '-'));
+        });
+    }
+
     public function category(int $id): ?CategoryView
     {
         foreach ($this->categories() as $category) {
@@ -291,6 +340,59 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         }
 
         return null;
+    }
+
+    public function codesIn(int $categoryId): array
+    {
+        $porRubro = Cache::remember(self::CACHE_CODES, 3600, function (): array {
+            $mapa = [];
+
+            foreach ($this->db()->table('productos')->select('categoria_id', 'codigo')->get() as $fila) {
+                $codigo = trim((string) $fila->codigo);
+
+                if ($codigo !== '') {
+                    $mapa[(int) $fila->categoria_id][] = $codigo;
+                }
+            }
+
+            return $mapa;
+        });
+
+        return $porRubro[$categoryId] ?? [];
+    }
+
+    public function codePrefixes(int $categoryId): array
+    {
+        $porRubro = Cache::remember(self::CACHE_PREFIXES, 3600, function (): array {
+            $filas = $this->db()->table('productos')
+                ->selectRaw("categoria_id, REGEXP_SUBSTR(codigo, '^[A-Za-z]+') AS prefijo, COUNT(*) AS total")
+                ->whereRaw("codigo REGEXP '^[A-Za-z]+[0-9]'")
+                ->groupBy('categoria_id', 'prefijo')
+                ->get();
+
+            $mapa = [];
+
+            foreach ($filas as $fila) {
+                $prefijo = mb_strtoupper(trim((string) $fila->prefijo));
+
+                // Un prefijo que aparece dos veces es un typo de carga, no una
+                // familia: se pide un mínimo para tomarlo por convención.
+                if ($prefijo === '' || (int) $fila->total < self::MIN_PREFIX_USES) {
+                    continue;
+                }
+
+                $mapa[(int) $fila->categoria_id][$prefijo] = (int) $fila->total;
+            }
+
+            foreach ($mapa as $id => $prefijos) {
+                arsort($prefijos);
+                $mapa[$id] = array_keys($prefijos);
+            }
+
+            return $mapa;
+        });
+
+        return $porRubro[$categoryId] ?? [];
     }
 
     public function duplicateCodes(): array

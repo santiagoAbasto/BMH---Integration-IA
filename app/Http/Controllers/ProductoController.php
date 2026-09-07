@@ -37,20 +37,22 @@ class ProductoController extends Controller
     $busqueda = $request->search;
 
     if ($categoria_id == 0) {
-        $productos = Producto::with(['productCaracteristicas.caracteristica']) // ðŸ”¹ CaracterÃ­sticas
+        $productos = Producto::with(['categoria', 'productCaracteristicas.caracteristica']) // ðŸ”¹ CaracterÃ­sticas
             ->where('nombre', 'LIKE', '%' . $busqueda . '%')
             ->orWhereHas('categoria', function ($query) use ($busqueda) {
                 $query->where('nombre', 'LIKE', '%' . $busqueda . '%');
             })
             ->orderBy('nombre', 'asc')
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
     } else {
-        $productos = Producto::with(['productCaracteristicas.caracteristica']) // ðŸ”¹ CaracterÃ­sticas
+        $productos = Producto::with(['categoria', 'productCaracteristicas.caracteristica']) // ðŸ”¹ CaracterÃ­sticas
             ->whereHas('categoria', function ($query) use ($categoria_id) {
                 $query->where('id', $categoria_id);
             })
             ->orderBy('nombre', 'asc')
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
     }
 
     $categorias = Categoria::orderBy('nombre', 'asc')->get();
@@ -58,12 +60,20 @@ class ProductoController extends Controller
 
     $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
 
-    $productosAll = Producto::orderBy('nombre', 'asc')->get();
-    $marcas = $productosAll->groupBy('marca')
-        ->sortKeys()
-        ->map(function ($productosPorMarca) {
-            return $productosPorMarca->groupBy('modelo')->sortKeys();
-        });
+    $marcas = Producto::query()
+        ->select(['marca', 'modelo'])
+        ->whereNotNull('marca')
+        ->where('marca', '!=', '')
+        ->distinct()
+        ->orderBy('marca')
+        ->orderBy('modelo')
+        ->get()
+        ->groupBy('marca')
+        ->map(fn ($productosPorMarca) => $productosPorMarca
+            ->pluck('modelo')
+            ->filter()
+            ->unique()
+            ->mapWithKeys(fn ($modelo) => [$modelo => true]));
 
     $ruta = 'categorias';
     $zonaclientes = Auth::guard('web')->check();
@@ -71,7 +81,7 @@ class ProductoController extends Controller
     // ...queda igual tu obtención de $productos
 
 // Ordenar las características por caracteristicas.orden
-$productos->each(function ($p) {
+$productos->getCollection()->each(function ($p) {
     if ($p->relationLoaded('productCaracteristicas')) {
         $p->setRelation(
             'productCaracteristicas',
@@ -86,7 +96,6 @@ $productos->each(function ($p) {
     return view('frontend/productos', compact(
         'zonaclientes',
         'productos',
-        'productosAll',
         'marcas',
         'categoriasAll',
         'categorias',

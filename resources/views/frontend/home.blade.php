@@ -622,9 +622,9 @@ document.getElementById('limpiarFiltros').addEventListener('click', function () 
             modalContent.css('width', contentWidth + 'px');
         });
 
-        $('#anuncio').modal('show');
+        bmhAbrirModal('anuncio');
 
-        $('#registro').modal('show');
+        bmhAbrirModal('registro');
 
         // POPOVER initialization
         const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')

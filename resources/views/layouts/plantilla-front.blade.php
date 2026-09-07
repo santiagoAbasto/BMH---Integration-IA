@@ -73,9 +73,18 @@ $cart = Cart::content();
   
   @yield('styles')
   <style>
-    /* Asesor IA en el menú. Fuera del shadow root, así que va acotado. */
-    .bmh-advisor-nav { color: #0098DA !important; font-weight: 600; }
-    .bmh-advisor-nav:hover { color: #007CB2 !important; }
+    /*
+     * Asesor IA en el menú. Fuera del shadow root, así que va acotado.
+     *
+     * NO fuerza color: hereda el del resto de los .nav-link. Antes usaba
+     * #0098DA, que es exactamente el fondo que toma el header al scrollear
+     * (.scrolled), así que el texto desaparecía. Heredando, el item sigue al
+     * header en cualquier estado —transparente sobre el hero, azul al
+     * scrollear— y lo que lo distingue es el punto verde, que contrasta con
+     * los dos fondos.
+     */
+    .bmh-advisor-nav { font-weight: 700; }
+    .bmh-advisor-nav:hover { opacity: .82; }
     .bmh-advisor-dot {
       display: inline-block; width: 7px; height: 7px; margin-right: 6px;
       border-radius: 999px; background: #ABD430; vertical-align: middle;
@@ -87,6 +96,47 @@ $cart = Cart::content();
     }
     @media (prefers-reduced-motion: reduce) { .bmh-advisor-dot { animation: none; } }
   </style>
+  {{-- Degrada las imágenes faltantes a un placeholder --}}
+  @include('components.image-fallback')
+  <script>
+    /*
+     * Bootstrap 5 eliminó la API de jQuery: `$('#x').modal('show')` es sintaxis
+     * de Bootstrap 4 y tira "$(...).modal is not a function". El sitio carga
+     * Bootstrap 5.2.3, así que esas llamadas venían fallando y los avisos no
+     * abrían.
+     *
+     * Va en el <head> porque las vistas lo invocan desde su seccion de
+     * scripts, que se renderiza ANTES del bundle de Bootstrap. Si todavia no
+     * esta cargado, la llamada se difiere hasta `load` en vez de perderse.
+     *
+     * (Ojo: sin la arroba de Blade en este comentario. Con ella, Blade lo
+     * interpreta como directiva y parte el JS al medio.)
+     */
+    function bmhModal(id, accion) {
+      function ejecutar() {
+        var el = document.getElementById(id);
+        if (!el || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+
+        if (accion === 'hide') {
+          var inst = bootstrap.Modal.getInstance(el);
+          if (inst) inst.hide();
+          return;
+        }
+
+        bootstrap.Modal.getOrCreateInstance(el).show();
+      }
+
+      if (typeof bootstrap === 'undefined' || document.readyState === 'loading') {
+        window.addEventListener('load', ejecutar, { once: true });
+      } else {
+        ejecutar();
+      }
+    }
+
+    function bmhAbrirModal(id)  { bmhModal(id, 'show'); }
+    function bmhCerrarModal(id) { bmhModal(id, 'hide'); }
+  </script>
+
 </head>
 
 <body>
@@ -541,20 +591,21 @@ $cart = Cart::content();
         · Zona Clientes → Asesor IA (ya está autenticado, así que el asesor puede
           cotizarle con su condición comercial).
 
-        `shouldRender()` es true sólo para clientes/vendedores autenticados, así
-        que alcanza con negarlo para elegir cuál se muestra.
+        La zona la define la PÁGINA, no la sesión: `$zonaclientes` es la bandera
+        que el propio sitio ya usa para marcar las vistas de la Zona de Clientes
+        (el menú superior la usa igual). Sin ese chequeo, un cliente logueado que
+        entra a la home o a "Nosotros" —que son públicas— vería el asesor y
+        perdería el botón de WhatsApp.
+
+        `shouldRender()` agrega el requisito de sesión de cliente.
     --}}
-    @php($bmhEnZonaClientes = app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
+    @php($bmhEnZonaClientes = isset($zonaclientes) && app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
 
     @if ($bmhEnZonaClientes)
       {{-- Asesor Técnico BMH (IA) --}}
       @include('components.bmh-advisor')
-    @elseif (isset($contacto->whatsapp))
-      <div class="whatsapp-container">
-        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $contacto->whatsapp) }}" class="whatsapp-btn" target="_blank" rel="noopener">
-          <img class='img-fluid' src="{{ asset('imagenes/wp-logo.png') }}" alt="WhatsApp">
-        </a>
-      </div>
+    @else
+      @include('components.whatsapp-float')
     @endif
 
   </footer>
@@ -570,7 +621,7 @@ $cart = Cart::content();
   <script>
   
       $(document).ready(function() {
-            $('#aviso').modal('show');
+            bmhAbrirModal('aviso');
         })
 
 document.getElementById("toggle-password").addEventListener("click", function() {
@@ -640,7 +691,7 @@ $(window).scroll(function() {
         modalContent.css('width', contentWidth + 'px');
     });
 
-    $('#anuncio').modal('show');
+    bmhAbrirModal('anuncio');
       
 
       

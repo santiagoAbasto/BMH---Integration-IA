@@ -56,6 +56,7 @@ final class ConversationOrchestrator
         private readonly AttachmentService $attachments,
         private readonly ToolRegistry $tools,
         private readonly QueryRouter $router,
+        private readonly \App\Domain\Search\VisionMatchService $visionMatch,
     ) {
     }
 
@@ -81,10 +82,20 @@ final class ConversationOrchestrator
         // --- 1. Visión: inferencia, nunca identificación ------------------
         $analyses  = [];
         $conflicts = [];
+        $visionImagePath = null;
+        $mejorConfianza  = -1.0;
 
         if ($attachments !== [] && config('bmh.features.vision')) {
             foreach ($attachments as $attachment) {
                 $analysis = $this->analyzeAttachment($provider, $attachment, $text);
+
+                // Para comparar contra el catálogo se usa la foto que mejor se
+                // vio, no la primera que llegó: si la primera salió movida y la
+                // tercera está nítida, comparar la movida es tirar la consulta.
+                if ($analysis->imageUsable && $analysis->confidence > $mejorConfianza) {
+                    $mejorConfianza  = $analysis->confidence;
+                    $visionImagePath = $this->attachments->analysisPath($attachment);
+                }
 
                 $analyses[] = $analysis;
                 $usage      = $usage->plus($analysis->usage);
@@ -117,7 +128,22 @@ final class ConversationOrchestrator
             );
         }
 
-        if (! $query->isEmpty()) {
+        $visionNotes = [];
+
+        /*
+         * Con foto, el embudo lo maneja VisionMatchService: código leído →
+         * rubro + atributos observados → comparación de imágenes. Sin foto, la
+         * búsqueda de siempre.
+         */
+        $usableAnalysis = $this->firstUsableAnalysis($analyses);
+
+        if ($usableAnalysis !== null) {
+            $match = $this->visionMatch->match($usableAnalysis, $query, $provider, $visionImagePath);
+
+            $candidates  = $match['candidates'];
+            $strategy    = $match['strategy'];
+            $visionNotes = $match['notes'];
+        } elseif (! $query->isEmpty()) {
             $candidates = $this->search->search($query, $attachments !== []);
         }
 
@@ -159,6 +185,24 @@ final class ConversationOrchestrator
 
         if ($priceQuote !== null) {
             $toolPayloads['get_customer_price'] = $priceQuote->forAiTool();
+        }
+
+        if ($usableAnalysis !== null) {
+            $toolPayloads['analyze_image'] = [
+                'part_type'      => $usableAnalysis->partType,
+                'detected_text'  => $usableAnalysis->detectedText,
+                'visible_codes'  => $usableAnalysis->visibleCodes,
+                'brand_guess'    => $usableAnalysis->brandGuess,
+                'description'    => $usableAnalysis->description,
+                'notes'          => $visionNotes,
+                'note'           => 'Esto es lo que se OBSERVÓ en la foto, no una identificación. Los candidatos los confirmó la base.',
+            ];
+        } elseif ($analyses !== []) {
+            $toolPayloads['analyze_image'] = [
+                'usable' => false,
+                'reason' => $analyses[0]->unusableReason,
+                'note'   => 'La foto no alcanza. Pedile al cliente la foto que haga falta, con estas palabras.',
+            ];
         }
 
         $reply = $this->compose($provider, $conversation, $customer, $text, $toolPayloads, $conflicts);
@@ -204,6 +248,7 @@ final class ConversationOrchestrator
             startedAt: $startedAt,
             conflicts: $conflicts,
             analyses: $analyses,
+            visionNotes: $visionNotes,
         );
     }
 
@@ -678,6 +723,7 @@ final class ConversationOrchestrator
         array $conflicts,
         array $analyses,
         ?array $handoff = null,
+        array $visionNotes = [],
     ): array {
         $debug = (bool) config('bmh.features.debug');
 
@@ -705,6 +751,7 @@ final class ConversationOrchestrator
             'conflicts'       => $conflicts,
             'context'         => $this->contextPanel($conversation, $candidates, $nextQuestion),
             'vision'          => array_map(static fn (ImageAnalysis $a): array => $a->jsonSerialize(), $analyses),
+            'vision_notes'    => $visionNotes,
         ];
 
         if ($debug) {
@@ -741,6 +788,88 @@ final class ConversationOrchestrator
             $candidate->product->id,
             $customer,
             $candidate->product->category?->id,
+        );
+    }
+
+    /**
+     * Junta lo que se vio en TODAS las fotos en una sola lectura.
+     *
+     * El cliente manda varias fotos justamente porque ninguna sola muestra
+     * todo: una trae el cuerpo, otra el piñón con los dientes contables, otra
+     * la bornera. Quedarse con la primera tiraba las otras dos.
+     *
+     * Cada dato se toma de la foto que lo vio mejor; si dos fotos se contradicen
+     * en un atributo, no se inventa un promedio: gana la de mayor confianza.
+     *
+     * @param  list<ImageAnalysis> $analyses
+     */
+    private function firstUsableAnalysis(array $analyses): ?ImageAnalysis
+    {
+        $utiles = array_values(array_filter(
+            $analyses,
+            static fn (ImageAnalysis $a): bool => $a->imageUsable,
+        ));
+
+        if ($utiles === []) {
+            return null;
+        }
+
+        if (count($utiles) === 1) {
+            return $utiles[0];
+        }
+
+        // De mayor a menor confianza: el primero en escribir cada dato gana.
+        usort($utiles, static fn (ImageAnalysis $a, ImageAnalysis $b): int => $b->confidence <=> $a->confidence);
+
+        $mejor = $utiles[0];
+
+        $texto      = [];
+        $codigos    = [];
+        $atributos  = [];
+        $rubros     = [];
+        $marca      = null;
+        $confTexto  = 0.0;
+
+        foreach ($utiles as $a) {
+            foreach ($a->detectedText as $t) {
+                $texto[$t] = true;
+            }
+
+            foreach ($a->visibleCodes as $c) {
+                $codigos[$c] = true;
+            }
+
+            foreach ($a->categoryHints as $r) {
+                $rubros[$r] = true;
+            }
+
+            // `+=` conserva la clave ya escrita: la foto más confiable manda.
+            $atributos += $a->attributes;
+
+            $marca ??= $a->brandGuess;
+
+            $confTexto = max($confTexto, $a->textConfidence);
+        }
+
+        /*
+         * `array_keys` sobre claves numéricas devuelve enteros: un código como
+         * "1775" salía del set como int y reventaba el buscador, que espera
+         * strings. Se los devuelve a texto.
+         */
+        $comoTexto = static fn (array $set): array => array_map(strval(...), array_keys($set));
+
+        return new ImageAnalysis(
+            partType: $mejor->partType,
+            confidence: $mejor->confidence,
+            detectedText: $comoTexto($texto),
+            visibleCodes: $comoTexto($codigos),
+            attributes: $atributos,
+            categoryHints: $comoTexto($rubros),
+            brandGuess: $marca,
+            description: $mejor->description,
+            imageUsable: true,
+            unusableReason: null,
+            textConfidence: $confTexto,
         );
     }
 

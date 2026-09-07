@@ -248,3 +248,40 @@ adjuntos)` y devuelve un payload. Para WhatsApp haría falta:
    degradar a texto + imagen).
 
 Nada del dominio, la búsqueda, el pricing ni las tools cambia.
+
+---
+
+## Entorno local: dos trampas verificadas
+
+### iCloud sincroniza el proyecto
+
+`brctl status` sobre esta máquina devuelve:
+
+```
+Needs Apply Changes:
+-------------------
+Under /Desktop/BMH/vendor
+```
+
+El proyecto vive en `~/Desktop`, y **Escritorio y Documentos** está activado en
+iCloud Drive. iCloud sube y descarga `vendor/` y `node_modules/` —decenas de
+miles de archivos chicos— y puede evictar archivos para liberar espacio.
+
+Explica los síntomas que aparecieron dos veces: `vendor` con los directorios
+presentes pero sin `autoload.php`, `node_modules` corrupto tras un reinicio, y
+lecturas de un JPEG de 134 KB que tardan 60 segundos.
+
+Ninguna cantidad de `composer install` lo arregla de forma estable. Las salidas
+reales son mover el proyecto fuera de `~/Desktop` y `~/Documents` (por ejemplo
+`~/Projects/BMH`), o apagar la sincronización de Escritorio y Documentos.
+
+### `public/php.ini` viene del hosting
+
+Es un archivo de cPanel que quedó versionado, con `max_execution_time = 30`.
+`artisan serve` lo levanta porque el docroot es `public/`, y mata el proceso a
+los 30 segundos: en pleno stream del asesor, el widget queda girando para
+siempre sin recibir el evento `done`.
+
+Los endpoints que llaman al modelo lo neutralizan con `set_time_limit(0)`
+—`AssistantController::stream()` y `::message()`—, y el front ahora detecta un
+stream que terminó sin `done` en vez de esperar indefinidamente.

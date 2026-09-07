@@ -51,9 +51,27 @@ final class Candidate
             return min(0.89, 0.72 + min(0.17, $this->score / ($exactWeight * 2)));
         }
 
-        // Sin código, el techo es deliberadamente bajo: la similitud por
-        // atributos o por imagen no alcanza para afirmar una pieza.
-        return min(0.74, $this->score / $exactWeight);
+        /*
+         * Sin código, el techo es deliberadamente bajo: ni los atributos ni el
+         * parecido alcanzan para AFIRMAR una pieza.
+         *
+         * Pero una comparación visual explícita —el modelo miró la foto del
+         * cliente junto a la del catálogo y dijo que son la misma— es una señal
+         * cualitativamente distinta de "coincide el rubro". Merece llegar a
+         * "coincidencia parcial", que es justo lo que el asesor debe transmitir:
+         * "creo que es esta, confirmame". Nunca a "muy alta": para eso hace
+         * falta un código.
+         */
+        $base = min(0.74, $this->score / $exactWeight);
+
+        $visionWeight = (float) config('bmh.ranking.weights.vision_similarity', 3.0);
+        $visionSignal = $this->signals['vision_similarity'] ?? 0.0;
+
+        if ($visionWeight > 0.0 && $visionSignal / $visionWeight >= 0.8) {
+            return max($base, (float) config('bmh.confidence.ambiguous', 0.5));
+        }
+
+        return $base;
     }
 
     public function confidenceBand(): string
