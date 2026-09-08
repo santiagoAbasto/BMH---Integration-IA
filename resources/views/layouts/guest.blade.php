@@ -50,12 +50,8 @@
             <div class='form'>
                 <div class='d-flex justify-content-center'>
                     <a href="/">
-                        <?php
-                        use App\Models\Imagen;
-                        $logo = Imagen::where('sector', 'logo')->get();
-                        $logo = $logo [0];
-                        ?>
-                        <div class='logo' style='background-image: url("{{asset('imagenes/'.$logo->path)}}"); '>
+                        @php($logo = \App\Models\Imagen::query()->where('sector', 'logo')->first())
+                        <div class='logo' @if($logo) style='background-image: url("{{ asset('imagenes/'.$logo->path) }}");' @endif>
                             
                         </div>
                         

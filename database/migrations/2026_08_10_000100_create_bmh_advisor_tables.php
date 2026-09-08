@@ -27,6 +27,13 @@ return new class extends Migration
     {
         $schema = Schema::connection($this->connection());
 
+        // La base del asesor vive en una conexión distinta de la aplicación.
+        // Durante RefreshDatabase Laravel reinicia la conexión principal, no
+        // esta base compartida; si ya fue provisionada, no debe recrearla.
+        if ($schema->hasTable('ai_conversations')) {
+            return;
+        }
+
         // Una conversación del asesor con un cliente.
         $schema->create('ai_conversations', function (Blueprint $table): void {
             $table->id();

@@ -4,9 +4,8 @@
 use App\Models\Contacto;
 use App\Models\Imagen;
 use App\Models\Carrito;
-$contacto = Contacto::find(1);
-$logo = Imagen::where('sector', 'logo')->get();
-$logo = $logo [0];
+$contacto = Contacto::find(1) ?? new Contacto();
+$logo = Imagen::where('sector', 'logo')->first();
 $logo2 = Imagen::where('sector', 'logo2')->get()->first();
 // Cart::destroy();
 use CodersFree\Shoppingcart\Facades\Cart;
@@ -19,7 +18,9 @@ $cart = Cart::content();
 
   @yield('metadatos')
   <title>BMH</title>
-  <link rel="icon" href="{{asset('imagenes/'.$logo->path)}}" type="image/x-icon">
+  @if ($logo)
+    <link rel="icon" href="{{ asset('imagenes/' . $logo->path) }}" type="image/x-icon">
+  @endif
 
   {{-- jquery --}}
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -219,11 +220,15 @@ $cart = Cart::content();
     
         @if(Auth::guard('web')->check() && !isset($zonaclientes))
         <a class="navbar-brand" href="{{route('home')}}">
-          <img id='logo1' src="{{asset('imagenes/'.$logo->path)}}" alt="Logo" >
+          @if ($logo)
+            <img id='logo1' src="{{ asset('imagenes/' . $logo->path) }}" alt="Logo" >
+          @endif
         </a>
         @else
         <a class="navbar-brand" href="{{route('productos.home')}}">
-          <img id='logo1' src="{{asset('imagenes/'.$logo->path)}}" alt="Logo" >
+          @if ($logo)
+            <img id='logo1' src="{{ asset('imagenes/' . $logo->path) }}" alt="Logo" >
+          @endif
         </a>
         @endif
         <div class='mobile-flex'>
@@ -264,6 +269,12 @@ $cart = Cart::content();
 
                   <li class="nav-item">
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'cliente.datos' ? 'selectUrl' : '' }}" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
+                  </li>
+
+                  <li class="nav-item">
+                    <a class="nav-link under cartNav active bmh-advisor-nav" href="#" data-bmh-advisor>
+                      <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
+                    </a>
                   </li>
 
                   @if(Auth::guard('web')->user()->rol == 'vendedor')
@@ -326,6 +337,11 @@ $cart = Cart::content();
             </li>
             <li class="nav-item nav-mobile datos-nav px-2">
               <a class="nav-link active" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
+            </li>
+            <li class="nav-item nav-mobile px-2">
+              <a class="nav-link active bmh-advisor-nav" href="#" data-bmh-advisor>
+                <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
+              </a>
             </li>
 
             <li class="mb-3">
@@ -454,7 +470,9 @@ $cart = Cart::content();
                 <div class="row">
                   <div class='col-lg-3' style="padding-left: 0px;">
                       <div class='footer-logo'>
-                        <a href="{{route('home')}}"><img style='max-width:100%;'class=' ' src="{{asset('imagenes/'.$logo2->path)}}" alt=""></a>
+                        @if ($logo2)
+                          <a href="{{ route('home') }}"><img style='max-width:100%;' class=' ' src="{{ asset('imagenes/' . $logo2->path) }}" alt=""></a>
+                        @endif
                         {{-- <div class='d-flex justify-content-center pb-5' style='padding-top:28px;'>
                           @if(isset($contacto->instagram))
                             <div style='padding-right:5px;'>

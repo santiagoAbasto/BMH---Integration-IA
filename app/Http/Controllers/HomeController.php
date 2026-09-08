@@ -56,7 +56,7 @@ class HomeController extends Controller
 
         //$request->session()->forget('modal_abierto');
         $anuncio_abierto = $request->session()->get('modal_abierto', 0); // Obtiene el valor de la sesión o 0 si no existe
-        if($anuncio->mostrar == true){
+        if($anuncio?->mostrar == true){
             $anuncio_abierto++; // Incrementa el valor
             $request->session()->put('modal_abierto', $anuncio_abierto);
         }

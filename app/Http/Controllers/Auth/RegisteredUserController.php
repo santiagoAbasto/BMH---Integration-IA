@@ -65,6 +65,7 @@ class RegisteredUserController extends Controller
                 $request->validate([
                     'name' => ['required', 'string', 'max:255'],
                     'username' => ['required', 'string', 'lowercase', 'max:255', 'unique:'.User::class],
+                    'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
                     'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 ]);
                 break;
@@ -129,13 +130,18 @@ class RegisteredUserController extends Controller
                 break;
 
             default:
-                $user = Admin::create([
+                $user = User::create([
                     'name' => $request->name,
                     'username' => $request->username,
-                    'rol' => $request->rol,
+                    'email' => $request->email,
+                    'rol' => 'cliente',
                     'password' => Hash::make($request->password),
+                    'habilitado' => true,
                 ]);
-                break;
+                event(new Registered($user));
+                Auth::login($user);
+
+                return redirect(RouteServiceProvider::HOME);
         }
 
         

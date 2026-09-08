@@ -1,8 +1,9 @@
 @extends('layouts.plantilla-front')
 
 @section('metadatos')
-    <meta name='keyword' content='{{ App\Models\Metadatos::all()[0]->keyword }}'>
-    <meta name='descripcion' content='{{ App\Models\Metadatos::all()[0]->descripcion }}'>
+    @php($metadatos = App\Models\Metadatos::query()->first())
+    <meta name='keyword' content='{{ $metadatos?->keyword ?? '' }}'>
+    <meta name='descripcion' content='{{ $metadatos?->descripcion ?? '' }}'>
 @endsection
 
 @section('styles')
@@ -397,6 +398,7 @@
         </div>
     </section>
 
+    @if ($nosotros_slider)
     <section style="padding-top: 20px">
         <div class="container">
             <div class="d-flex panelHome" style="height:422px;">
@@ -422,6 +424,7 @@
 
         </div>
     </section>
+    @endif
 
 
     <section class="services" style='padding-top:63px; padding-bottom:40px;'>
