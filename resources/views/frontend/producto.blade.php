@@ -264,51 +264,51 @@
 
         .pbmh-card { background:#fff; border:1px solid #E7E9EC; border-radius:10px; margin-bottom:18px;
             overflow:hidden; font-family:'Roboto',sans-serif; }
-        .pbmh-top { display:flex; gap:22px; padding:22px 24px 18px; }
-        .pbmh-imgbox { flex:0 0 205px; align-self:flex-start; }
-        .pbmh-imgbox img { width:205px; height:150px; object-fit:contain; display:block; }
+        .pbmh-top { display:flex; gap:26px; padding:26px 28px 22px; }
+        .pbmh-imgbox { flex:0 0 250px; align-self:flex-start; }
+        .pbmh-imgbox img { width:250px; height:183px; object-fit:contain; display:block; }
         .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
         .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
         .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
-        .pbmh-codigo { font-size:13px; font-weight:700; color:#1F2430; letter-spacing:.02em; }
-        .pbmh-nombre { font-size:15px; font-weight:700; color:#1F2430; line-height:1.3;
+        .pbmh-codigo { font-size:15px; font-weight:700; color:#1F2430; letter-spacing:.02em; }
+        .pbmh-nombre { font-size:17px; font-weight:700; color:#1F2430; line-height:1.3;
             display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .pbmh-ver { font-size:12px; color:#0098DA; text-decoration:none; white-space:nowrap; }
+        .pbmh-ver { font-size:14px; color:#0098DA; text-decoration:none; white-space:nowrap; }
         .pbmh-ver:hover { text-decoration:underline; color:#007CB2; }
-        .pbmh-cars { margin-top:10px; display:flex; flex-direction:column; gap:2px;
-            max-height:132px; overflow-y:auto; padding-right:6px; }
+        .pbmh-cars { margin-top:12px; display:flex; flex-direction:column; gap:3px;
+            max-height:177px; overflow-y:auto; padding-right:6px; }
         .pbmh-cars::-webkit-scrollbar { width:6px; }
         .pbmh-cars::-webkit-scrollbar-thumb { background:#D9DDE3; border-radius:3px; }
         .pbmh-cars::-webkit-scrollbar-track { background:transparent; }
-        .pbmh-car { display:flex; gap:6px; font-size:11px; line-height:1.5; }
+        .pbmh-car { display:flex; gap:7px; font-size:13px; line-height:1.5; }
         .pbmh-car-label { color:#9AA0A8; letter-spacing:.03em; white-space:nowrap; }
         .pbmh-car-valor { color:#3A3F47; font-weight:500; }
-        .pbmh-precios { margin-top:12px; display:flex; flex-direction:column; gap:4px; max-width:320px; }
-        .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:13px; color:#3A3F47; }
+        .pbmh-precios { margin-top:14px; display:flex; flex-direction:column; gap:5px; max-width:380px; }
+        .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:15px; color:#3A3F47; }
         .pbmh-precio-valor { font-weight:500; color:#1F2430; }
-        .pbmh-actions { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+        .pbmh-actions { margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
         .pbmh-stepper { display:inline-flex; align-items:center; border:1px solid #D9DDE3; border-radius:8px;
             overflow:hidden; background:#fff; }
-        .pbmh-step { width:30px; height:32px; border:none; background:none; font-size:16px; color:#3A3F47;
+        .pbmh-step { width:34px; height:36px; border:none; background:none; font-size:18px; color:#3A3F47;
             cursor:pointer; line-height:1; }
         .pbmh-step:hover { background:#F3F5F7; }
-        .pbmh-qty { min-width:30px; text-align:center; font-size:13px; font-weight:600; color:#1F2430; }
-        .pbmh-cart-btn { display:inline-flex; align-items:center; gap:9px; border:1.5px solid #0098DA;
-            color:#0098DA; background:#fff; border-radius:8px; padding:9px 22px; font-size:12px;
+        .pbmh-qty { min-width:34px; text-align:center; font-size:15px; font-weight:600; color:#1F2430; }
+        .pbmh-cart-btn { display:inline-flex; align-items:center; gap:10px; border:1.5px solid #0098DA;
+            color:#0098DA; background:#fff; border-radius:8px; padding:11px 26px; font-size:14px;
             font-weight:600; letter-spacing:.05em; cursor:pointer; transition:all .15s; }
         .pbmh-cart-btn:hover { background:#0098DA; color:#fff; }
         .pbmh-cart-btn:hover svg path { fill:#fff; }
         .pbmh-consultar { display:inline-flex; align-items:center; justify-content:center; border-radius:10px;
             background:#0098DA; color:#fff; border:1px solid #0098DA; font-family:'Montserrat',sans-serif;
-            font-size:13px; font-weight:600; letter-spacing:.02em; padding:9px 22px; text-decoration:none;
+            font-size:15px; font-weight:600; letter-spacing:.02em; padding:11px 26px; text-decoration:none;
             transition:all .15s; cursor:pointer; white-space:nowrap; }
         .pbmh-consultar:hover { background:#fff; color:#0098DA; }
-        .pbmh-consultar-sm { padding:7px 14px; font-size:11px; }
-        .pbmh-tabs { display:flex; gap:38px; padding:12px 24px; border-top:1px solid #EDEFF2; }
-        .pbmh-tab { border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
-            color:#1F2430; cursor:pointer; display:inline-flex; align-items:center; gap:7px; padding:4px 0; }
+        .pbmh-consultar-sm { padding:9px 17px; font-size:13px; }
+        .pbmh-tabs { display:flex; gap:38px; padding:14px 28px; border-top:1px solid #EDEFF2; }
+        .pbmh-tab { border:none; background:none; font-family:inherit; font-size:15px; font-weight:600;
+            color:#1F2430; cursor:pointer; display:inline-flex; align-items:center; gap:8px; padding:5px 0; }
         .pbmh-tab:hover { color:#0098DA; }
-        .pbmh-caret { font-size:10px; transition:transform .18s; }
+        .pbmh-caret { font-size:12px; transition:transform .18s; }
         .pbmh-tab.activa .pbmh-caret { transform:rotate(180deg); }
         .pbmh-panel { padding:0 24px 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; }
         .pbmh-panel::-webkit-scrollbar { height:3px; }
@@ -317,37 +317,37 @@
         .pbmh-panel::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
         .pbmh-tabla { width:100%; border-collapse:separate; border-spacing:0; }
         .pbmh-tabla thead tr { background:#111315; color:#fff; }
-        .pbmh-tabla th { font-size:12px; font-weight:500; text-align:left; padding:11px 14px; }
+        .pbmh-tabla th { font-size:14px; font-weight:500; text-align:left; padding:13px 16px; }
         .pbmh-tabla thead th:first-child { border-top-left-radius:4px; }
         .pbmh-tabla thead th:last-child { border-top-right-radius:4px; }
-        .pbmh-tabla td { padding:10px 14px; border-bottom:1px solid #F0F2F4; font-size:12px;
+        .pbmh-tabla td { padding:12px 16px; border-bottom:1px solid #F0F2F4; font-size:14px;
             color:#3A3F47; vertical-align:middle; }
         .pbmh-tabla tbody tr:hover { background:#FAFBFC; }
-        .pbmh-col-img { width:64px; }
-        .pbmh-thumb { width:48px; height:44px; object-fit:contain; display:block; }
+        .pbmh-col-img { width:78px; }
+        .pbmh-thumb { width:58px; height:53px; object-fit:contain; display:block; }
         .pbmh-celda-cod { font-weight:600; color:#1F2430; white-space:nowrap; }
-        .pbmh-celda-desc { min-width:180px; }
-        .pbmh-celda-desc a { display:inline-flex; flex-direction:column; gap:2px; color:#9AA0A8; font-size:11px; text-decoration:none; justify-content:center; vertical-align:middle; }
+        .pbmh-celda-desc { min-width:210px; }
+        .pbmh-celda-desc a { display:inline-flex; flex-direction:column; gap:2px; color:#9AA0A8; font-size:13px; text-decoration:none; justify-content:center; vertical-align:middle; }
         .pbmh-celda-desc a:hover { color:#0098DA; }
         .pbmh-num { white-space:nowrap; }
-        .pbmh-stepper-sm .pbmh-qty { min-width:24px; padding:0 2px 0 10px; font-size:13px; text-align:left; }
-        .pbmh-steps { display:flex; flex-direction:column; padding:0 7px 0 2px; }
-        .pbmh-stepper-sm .pbmh-step { width:16px; height:14px; display:flex; align-items:center; justify-content:center;
+        .pbmh-stepper-sm .pbmh-qty { min-width:28px; padding:0 2px 0 11px; font-size:15px; text-align:left; }
+        .pbmh-steps { display:flex; flex-direction:column; padding:0 8px 0 2px; }
+        .pbmh-stepper-sm .pbmh-step { width:18px; height:16px; display:flex; align-items:center; justify-content:center;
             border:none; background:none; padding:0; color:#5A6169; cursor:pointer; }
         .pbmh-stepper-sm .pbmh-step:hover { background:none; color:#0098DA; }
         .pbmh-stepper-sm .pbmh-step svg { display:block; }
         .pbmh-total { font-weight:600; color:#1F2430; }
-        .pbmh-mini-cart { width:38px; height:38px; border-radius:10px; border:1.5px solid #0098DA;
+        .pbmh-mini-cart { width:44px; height:44px; border-radius:10px; border:1.5px solid #0098DA;
             background:#fff; color:#0098DA; cursor:pointer; display:inline-flex; align-items:center;
             justify-content:center; gap:3px; padding:0; transition:all .15s; }
         .pbmh-mini-cart svg { display:block; flex-shrink:0; }
         .pbmh-mini-cart:hover { background:#0098DA; color:#fff; }
-        .pbmh-vacio { font-size:12px; color:#9AA0A8; padding:14px 0 2px; margin:0; }
+        .pbmh-vacio { font-size:14px; color:#9AA0A8; padding:14px 0 2px; margin:0; }
         @media (max-width: 991px) {
             .pbmh-top { flex-direction:column; }
             .pbmh-imgbox { flex:none; }
             .pbmh-tabs { gap:20px; flex-wrap:wrap; }
-            .pbmh-panel .pbmh-tabla { min-width:620px; }
+            .pbmh-panel .pbmh-tabla { min-width:720px; }
         }
         /* Lupa zoom - fotorama del show y preview flotante */
         #pbmh-zoom { position:fixed; display:none; width:460px; height:460px; background:#fff; border:1px solid #E7E9EC;
