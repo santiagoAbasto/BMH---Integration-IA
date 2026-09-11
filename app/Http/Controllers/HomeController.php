@@ -106,25 +106,8 @@ class HomeController extends Controller
     }
 
     public function updateLogo(Request $request){
-        $logo = Imagen::where('sector', 'logo')->get()->first();
-        if ($request->hasFile('imagen')){
-            File::delete(public_path('imagenes/'.$logo->path));
-            $file = $request->file('imagen');
-            $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move('imagenes', $nombreImagen);
-            $logo->path = $nombreImagen;
-            $logo->save();
-        }
-
-        $logo2 = Imagen::where('sector', 'logo2')->get()->first();
-        if ($request->hasFile('imagen2')){
-            File::delete(public_path('imagenes/'.$logo2->path));
-            $file = $request->file('imagen2');
-            $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move('imagenes', $nombreImagen);
-            $logo2->path = $nombreImagen;
-            $logo2->save();
-        }
+        // Los logos se editan ahora en Extras (AparienciaController, vía
+        // App\Services\LogosSitio). Acá sólo queda el contenido de Empresa.
 
         // $imagen = Imagen::where('sector', 'home-slider')->first();
         // $imagen->baner_texto = $request->baner_texto;

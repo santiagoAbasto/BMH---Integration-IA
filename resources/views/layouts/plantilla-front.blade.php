@@ -5,9 +5,9 @@ use App\Models\Contacto;
 use App\Models\Imagen;
 use App\Models\Carrito;
 $contacto = Contacto::find(1);
-$logo = Imagen::where('sector', 'logo')->get();
-$logo = $logo [0];
-$logo2 = Imagen::where('sector', 'logo2')->get()->first();
+// Logos y colores del header/footer: se editan en admin → Extras.
+$logosSitio = app(\App\Services\LogosSitio::class);
+$apariencia = \App\Models\Apariencia::actual();
 // Cart::destroy();
 use CodersFree\Shoppingcart\Facades\Cart;
 $cart = Cart::content();
@@ -19,7 +19,7 @@ $cart = Cart::content();
 
   @yield('metadatos')
   <title>BMH</title>
-  <link rel="icon" href="{{asset('imagenes/'.$logo->path)}}" type="image/x-icon">
+  <link rel="icon" href="{{ $logosSitio->url(\App\Services\LogosSitio::HEADER_TRANSPARENTE) }}" type="image/x-icon">
 
   {{-- jquery --}}
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -72,19 +72,7 @@ $cart = Cart::content();
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   
   @yield('styles')
-  <style>
-    header.scrolled .nav-link:hover { color: rgba(255,255,255,.7) !important; }
-
-    /* La barra inferior (link activo y hover) también debe ser blanca en
-       estado scrolled. Se usa box-shadow para no desplazar el layout. */
-    header.scrolled .nav-link.selectUrl {
-        border-bottom-color: transparent !important;
-        box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
-    }
-    header.scrolled .nav-link:hover {
-        box-shadow: 0 2px 0 rgba(255,255,255,.7) !important;
-    }
-  </style>
+  @include('layouts.partials.apariencia')
 </head>
 
 <body>
@@ -155,17 +143,17 @@ $cart = Cart::content();
     </div>
 </div>
   
-<header class="{{ Route::is('home') ? 'home' : '' }}">
+<header id="site-header" class="{{ Route::is('home') ? 'home' : '' }}">
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container h-100" style='position:relative;align-items:center !important;'>
     
         @if(Auth::guard('web')->check() && !isset($zonaclientes))
         <a class="navbar-brand" href="{{route('home')}}">
-          <img id='logo1' src="{{asset('imagenes/'.$logo->path)}}" alt="Logo" >
+          @include('layouts.partials.logos-header')
         </a>
         @else
         <a class="navbar-brand" href="{{route('productos.home')}}">
-          <img id='logo1' src="{{asset('imagenes/'.$logo->path)}}" alt="Logo" >
+          @include('layouts.partials.logos-header')
         </a>
         @endif
         <div class='mobile-flex'>
@@ -389,14 +377,14 @@ $cart = Cart::content();
     @php session()->forget('anuncio_pendiente'); @endphp
   @endif
 
-  <footer>
+  <footer id="site-footer">
     <div class='container d-flex flex-column' style='margin-bottom:56px;'>
         <div>
             <div class="container">
                 <div class="row">
                   <div class='col-lg-3' style="padding-left: 0px;">
                       <div class='footer-logo'>
-                        <a href="{{route('home')}}"><img style='max-width:100%;'class=' ' src="{{asset('imagenes/'.$logo2->path)}}" alt=""></a>
+                        <a href="{{route('home')}}"><img style='max-width:100%;' src="{{ $logosSitio->url(\App\Services\LogosSitio::FOOTER) }}" alt="BMH"></a>
                         {{-- <div class='d-flex justify-content-center pb-5' style='padding-top:28px;'>
                           @if(isset($contacto->instagram))
                             <div style='padding-right:5px;'>

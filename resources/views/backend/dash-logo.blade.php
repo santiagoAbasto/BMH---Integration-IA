@@ -25,26 +25,11 @@
         @csrf
         @method('put')
 
-        <label class='mt-2 mb-4 form-label' for="" style='font-size:20px;font-weight:500;'>Logos</label><br>
-        <div class='row'>
-          <div class='col-6'>
-            <div class="mb-3">
-              <label for="imagen" class="form-label">Principal <span class='recomendada'>(recomendada 360x90 px)</span></label>
-              <input class="form-control preview" data-form-id="{{'imagen'.$logo->id}}" type="file" id="imagen" name='imagen' accept="image/*">
-            </div>
-            <div class='d-flex justify-content-center' style='max-height:50vh;background-color:#d7d7d7;'>
-                <img id="{{'imagen'.$logo->id}}" src="{{asset('imagenes/'.$logo->path)}}" alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
-            </div>
-          </div>
-          <div class='col-6'>
-            <div class="mb-3">
-              <label for="imagen2" class="form-label">Secundario <span class='recomendada'>(recomendada 330x170 px)</span></label>
-              <input class="form-control preview" data-form-id="{{'imagen'.$logo2->id}}" type="file" id="imagen2" name='imagen2' accept="image/*">
-            </div>
-            <div class='d-flex justify-content-center' style='max-height:50vh;'>
-              <img id="{{'imagen'.$logo2->id}}" src="{{asset('imagenes/'.$logo2->path)}}" alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
-            </div>
-          </div>
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-0">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Los logos ahora se editan en <strong>Extras</strong>:
+            <a href="{{ route('dashboard.extras.header') }}">Header</a> ·
+            <a href="{{ route('dashboard.extras.footer') }}">Footer</a>.</span>
         </div>
 
         

@@ -414,6 +414,20 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
               </h2>
             </div>
 
+            <div class="accordion-item multiple">
+              <h2 class="accordion-header" id="extras">
+                <button class="accordion-button collapsed nav-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExtras" aria-expanded="false" aria-controls="collapseExtras">
+                  <i class="fa-solid fa-palette"></i> Extras
+                </button>
+              </h2>
+              <div id="collapseExtras" class="accordion-collapse collapse {{ isset($apariencia) ? 'show' : '' }}" aria-labelledby="extras">
+                <div class="accordion-body">
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.header')}}">Header</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.footer')}}">Footer</a>
+                </div>
+              </div>
+            </div>
+
             <hr>
 
             <div class="accordion-item">

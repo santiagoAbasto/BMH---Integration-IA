@@ -22,6 +22,7 @@ use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ImpuestoController;
 use App\Http\Controllers\AnuncioController;
 use App\Http\Controllers\CaracteristicaController;
+use App\Http\Controllers\AparienciaController;
 use App\Http\Controllers\DimensionController;
 use App\Http\Controllers\DescargaController;
 use App\Http\Controllers\NovedadController;
@@ -190,6 +191,14 @@ Route::controller(CaracteristicaController::class)->group(function () {
         Route::put('dashboard/caracteristicas-update', 'update')->name('caracteristicas.update');
         Route::delete('dashboard/caracteristicas-delete', 'delete')->name('caracteristicas.delete');
     });
+});
+
+// Extras: logos y colores del header y el footer (reemplaza a los logos de /dashboard/logo).
+Route::controller(AparienciaController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/extras/header', 'header')->name('dashboard.extras.header');
+    Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
+    Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');
+    Route::put('dashboard/extras/footer', 'updateFooter')->name('extras.footer.update');
 });
 
 Route::controller(NovedadController::class)->group(function () {
