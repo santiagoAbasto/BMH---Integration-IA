@@ -21,8 +21,8 @@ return new class extends Migration
      * juego completo de colores y su elección de logo.
      *
      * Los logos no viven acá: siguen en `imagenes` (sectores `logo`,
-     * `logo-header-blanco` y `logo2`) porque el favicon, el login y el sidebar
-     * del admin ya los leen de ahí.
+     * `logo-header-blanco` y `logo2`) porque el login y el sidebar del admin
+     * ya los leen de ahí.
      */
     public function up(): void
     {

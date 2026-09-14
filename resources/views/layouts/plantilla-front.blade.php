@@ -19,7 +19,7 @@ $cart = Cart::content();
 
   @yield('metadatos')
   <title>BMH</title>
-  <link rel="icon" href="{{ $logosSitio->url(\App\Services\LogosSitio::HEADER_TRANSPARENTE) }}" type="image/x-icon">
+  @include('layouts.partials.favicon')
 
   {{-- jquery --}}
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>

@@ -64,6 +64,10 @@
   .ext-logo__escenario{height:116px;display:flex;align-items:center;justify-content:center;padding:16px;background:#2B3440 center/cover no-repeat}
   .ext-logo__escenario--blanco{background:#fff;border-bottom:1px solid var(--ext-borde)}
   .ext-logo__escenario img{max-height:64px;max-width:100%;object-fit:contain}
+  .ext-favicon-card{max-width:520px}
+  .ext-favicon{max-width:300px}
+  .ext-favicon__escenario{height:180px;background:#F4F7FA;background-image:linear-gradient(45deg,#E3E8EE 25%,transparent 25%),linear-gradient(-45deg,#E3E8EE 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#E3E8EE 75%),linear-gradient(-45deg,transparent 75%,#E3E8EE 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+  .ext-favicon__escenario img{width:128px;height:128px;max-height:none;object-fit:contain}
   .ext-logo__cuerpo{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px}
   .ext-logo__titulo{font-weight:600;font-size:.9rem;margin:0}
   .ext-logo__uso{font-size:.77rem;color:var(--ext-suave);margin:0}

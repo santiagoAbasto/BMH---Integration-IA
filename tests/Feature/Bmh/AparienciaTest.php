@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
- * Extras del admin: logos y colores del header y el footer.
+ * Extras del admin: favicon, logos y colores del header y el footer.
  *
  * Hermético como CaracteristicaDashboardTest: SQLite en memoria con el mínimo
  * esquema que necesita el layout del backend, más la migración real de
@@ -79,7 +79,7 @@ final class AparienciaTest extends TestCase
         File::put($this->directorio.'/actual.png', base64_decode(self::PNG));
         $this->app->instance(LogosSitio::class, new LogosSitio($this->directorio));
 
-        // `logo` (header transparente, favicon y login) y `logo2` (footer y admin)
+        // `logo` (header transparente y login) y `logo2` (footer y admin)
         // comparten archivo, como pasa hoy en producción.
         DB::table('imagenes')->insert([
             ['sector' => 'logo', 'path' => 'actual.png'],
@@ -233,6 +233,17 @@ final class AparienciaTest extends TestCase
             ->assertSee('name="footer_derechos_fondo"', false)
             ->assertSee('name="footer_derechos_texto"', false)
             ->assertSee('bmh@example.com');
+    }
+
+    public function test_el_editor_del_favicon_se_muestra(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->get('/dashboard/extras/favicon')
+            ->assertOk()
+            ->assertSee('Proporción recomendada: <strong>1:1</strong>', false)
+            ->assertSee('512 x 512 px')
+            ->assertSee('name="favicon"', false)
+            ->assertSee('>Favicon</a>', false);
     }
 
     public function test_un_visitante_no_puede_editar(): void
@@ -425,6 +436,45 @@ final class AparienciaTest extends TestCase
         $this->assertNotSame('actual.png', Imagen::query()->where('sector', 'logo2')->value('path'));
         $this->assertSame('actual.png', Imagen::query()->where('sector', 'logo')->value('path'));
         $this->assertFileExists($this->directorio.'/actual.png');
+    }
+
+    public function test_subir_el_favicon_lo_guarda_por_separado_y_lo_publica_globalmente(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->put('/dashboard/extras/favicon', ['favicon' => $this->png('favicon.png')])
+            ->assertRedirect('/dashboard/extras/favicon')
+            ->assertSessionHasNoErrors();
+
+        $path = Imagen::query()->where('sector', 'favicon')->value('path');
+
+        $this->assertNotNull($path);
+        $this->assertFileExists($this->directorio.'/'.$path);
+        $this->assertSame('actual.png', Imagen::query()->where('sector', 'logo')->value('path'));
+
+        $favicon = $this->app->make(LogosSitio::class)->url(LogosSitio::FAVICON);
+        $this->assertStringEndsWith('/imagenes/'.$path, $favicon);
+        $this->assertStringContainsString($favicon, view('layouts.partials.favicon')->render());
+    }
+
+    public function test_sin_favicon_propio_se_sigue_usando_el_logo(): void
+    {
+        // Era el favicon del sitio antes de que existiera el editor, y el
+        // favicon.ico de producción está vacío.
+        $logos = $this->app->make(LogosSitio::class);
+
+        $this->assertFalse($logos->tienePropio(LogosSitio::FAVICON));
+        $this->assertSame($logos->url(LogosSitio::HEADER_TRANSPARENTE), $logos->url(LogosSitio::FAVICON));
+    }
+
+    public function test_rechaza_un_favicon_que_no_es_imagen(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->put('/dashboard/extras/favicon', [
+                'favicon' => UploadedFile::fake()->create('catalogo.pdf', 20, 'application/pdf'),
+            ])
+            ->assertSessionHasErrors('favicon');
+
+        $this->assertNull(Imagen::query()->where('sector', 'favicon')->value('path'));
     }
 
     public function test_rechaza_un_logo_que_no_es_imagen(): void

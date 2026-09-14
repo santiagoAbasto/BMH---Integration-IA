@@ -12,7 +12,7 @@
   // el editor y el front no puedan quedar con mapeos distintos.
   var VARS = @json(\App\Models\Apariencia::mapaVariables());
   var HEX = /^#[0-9A-F]{6}$/i;
-  var TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+  var TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
 
   function avisar(mensaje) {
     if (window.iziToast) iziToast.warning({ title: 'Revisá esto', message: mensaje });
@@ -130,7 +130,7 @@
       }
       if (TIPOS.indexOf(archivo.type) === -1 || archivo.size > 2 * 1024 * 1024) {
         avisar(TIPOS.indexOf(archivo.type) === -1
-          ? 'El logo tiene que ser una imagen PNG, JPG, WEBP o SVG.'
+          ? 'El archivo tiene que ser una imagen PNG, JPG, WEBP, SVG o ICO.'
           : 'El logo pesa más de 2 MB. Probá exportarlo más liviano.');
         input.value = '';
         input.dispatchEvent(new Event('change'));

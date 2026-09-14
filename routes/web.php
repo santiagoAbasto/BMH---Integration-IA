@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\HomeSliderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImagenController;
 use App\Http\Controllers\NosotrosController;
@@ -193,8 +194,10 @@ Route::controller(CaracteristicaController::class)->group(function () {
     });
 });
 
-// Extras: logos y colores del header y el footer (reemplaza a los logos de /dashboard/logo).
+// Extras: favicon, logos y colores del header y el footer.
 Route::controller(AparienciaController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/extras/favicon', 'favicon')->name('dashboard.extras.favicon');
+    Route::put('dashboard/extras/favicon', 'updateFavicon')->name('extras.favicon.update');
     Route::get('dashboard/extras/header', 'header')->name('dashboard.extras.header');
     Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
     Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');
@@ -400,6 +403,11 @@ Route::controller(DashboardController::class)->middleware(['admin'])->group(func
 Route::controller(ImagenController::class)->middleware('admin')->group(function () {
     Route::post('dashboard/home-slider', 'store')->name('imagen.store');
     Route::delete('dashboard/home-slider', 'delete')->name('imagen.delete');
+});
+
+Route::controller(HomeSliderController::class)->middleware('admin')->group(function () {
+    Route::post('dashboard/home-slider/media', 'store')->name('home-slider.store');
+    Route::put('dashboard/home-slider/{imagen}/media', 'update')->name('home-slider.update');
 });
 
 Route::middleware('auth')->group(function () {

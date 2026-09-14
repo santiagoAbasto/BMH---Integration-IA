@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ActualizarFaviconRequest;
 use App\Http\Requests\ActualizarFooterRequest;
 use App\Http\Requests\ActualizarHeaderRequest;
 use App\Models\Apariencia;
@@ -55,6 +56,21 @@ class AparienciaController extends Controller
             'logoFooter' => $logos->url(LogosSitio::FOOTER),
             'contacto' => Contacto::query()->find(1),
         ]);
+    }
+
+    public function favicon(LogosSitio $logos): View
+    {
+        return view('backend.extras.favicon', [
+            'apariencia' => Apariencia::actual(),
+            'faviconUrl' => $logos->url(LogosSitio::FAVICON),
+        ]);
+    }
+
+    public function updateFavicon(ActualizarFaviconRequest $request, LogosSitio $logos): RedirectResponse
+    {
+        $logos->reemplazar(LogosSitio::FAVICON, $request->file('favicon'));
+
+        return redirect()->route('dashboard.extras.favicon')->with('success', 'Favicon actualizado');
     }
 
     public function updateFooter(ActualizarFooterRequest $request, LogosSitio $logos): RedirectResponse

@@ -52,6 +52,9 @@ class ImagenController extends Controller
     public function delete(Request $request){
         $imagen = Imagen::find($request->id);
         File::delete(public_path('imagenes/'.$imagen->path));
+        if ($imagen->path_mobile) {
+            File::delete(public_path('imagenes/'.$imagen->path_mobile));
+        }
         $imagen->delete();
 
         if($imagen->tipo == 'portada'){

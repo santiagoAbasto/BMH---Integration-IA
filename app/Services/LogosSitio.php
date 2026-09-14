@@ -9,17 +9,18 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 
 /**
- * Los tres logos del sitio, guardados como filas de `imagenes` por sector.
+ * Los logos y el favicon del sitio, guardados como filas de `imagenes` por sector.
  *
  * Se mantuvieron los sectores históricos porque otras partes ya los leen:
- * `logo` es también el favicon del front y el logo del login, y `logo2` el del
- * sidebar del admin.
+ * `logo` es también el logo del login, y `logo2` el del sidebar del admin.
  *
  *  - header_transparente → sector `logo`   (Home, sobre el hero)
  *  - header_blanco       → sector `logo-header-blanco` (Nosotros y el resto).
  *                          Si nunca se subió, cae en el transparente, que es
  *                          lo que el sitio mostraba antes en todas las páginas.
  *  - footer              → sector `logo2`
+ *  - favicon             → sector `favicon`. Si nunca se subió, cae en el
+ *                          transparente, que era el favicon del sitio.
  */
 final class LogosSitio
 {
@@ -29,14 +30,20 @@ final class LogosSitio
 
     public const FOOTER = 'footer';
 
+    public const FAVICON = 'favicon';
+
     private const SECTORES = [
         self::HEADER_TRANSPARENTE => 'logo',
         self::HEADER_BLANCO => 'logo-header-blanco',
         self::FOOTER => 'logo2',
+        self::FAVICON => 'favicon',
     ];
 
     private const RESPALDO = [
         self::HEADER_BLANCO => self::HEADER_TRANSPARENTE,
+        // Hasta ahora el favicon era el logo: mientras no se suba uno propio se
+        // sigue usando, porque public_html/favicon.ico está vacío en producción.
+        self::FAVICON => self::HEADER_TRANSPARENTE,
     ];
 
     /** @var array<string, string>|null sector => path, cargado una sola vez */
@@ -53,7 +60,11 @@ final class LogosSitio
     {
         $path = $this->path($clave);
 
-        return $path === null ? '' : asset('imagenes/'.$path);
+        if ($path !== null) {
+            return asset('imagenes/'.$path);
+        }
+
+        return $clave === self::FAVICON ? asset('favicon.ico') : '';
     }
 
     /** ¿Tiene archivo propio, o está usando el de respaldo? */

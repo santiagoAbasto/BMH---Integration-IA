@@ -7,6 +7,18 @@
 
 @section('styles')
     <style>
+        .poster--imagen {
+            background-image: var(--poster-desktop);
+            background-position: center;
+            background-size: cover;
+        }
+
+        @media (max-width: 767px) {
+            .poster--imagen.has-mobile {
+                background-image: var(--poster-mobile);
+            }
+        }
+
         .checkbox-container {
             position: relative;
             display: flex;
@@ -158,8 +170,8 @@
                 @for ($i = 0; $i < count($home_slider); $i++)
                     <div class="carousel-item {{ $i == 0 ? 'active' : '' }}">
                         @if ($home_slider[$i]->tipo == 'imagen')
-                            <div class='poster d-flex justify-content-center'
-                                style='background-image: url("imagenes/{{ $home_slider[$i]->path }}"); background-size: cover; background-position: center;'>
+                            <div class="poster poster--imagen d-flex justify-content-center {{ $home_slider[$i]->path_mobile ? 'has-mobile' : '' }}"
+                                style="--poster-desktop:url('{{ asset('imagenes/'.$home_slider[$i]->path) }}');@if ($home_slider[$i]->path_mobile) --poster-mobile:url('{{ asset('imagenes/'.$home_slider[$i]->path_mobile) }}');@endif">
                                 @if ($home_slider[$i]->posicion != null)
                                     @include('frontend.components.hotspot', ['imagen' => $home_slider[$i]])
                                 @endif
