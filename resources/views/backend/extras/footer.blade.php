@@ -56,11 +56,20 @@
 
         <section class="ext-card">
           <h2>Colores</h2>
-          <p class="ext-ayuda">La franja oscura de abajo, con el copyright, queda como está.</p>
+          <p class="ext-ayuda">El bloque principal, con el logo, las secciones y los datos de contacto.</p>
           <div class="ext-campos">
-            @include('backend.extras._campo-color', ['campo' => 'footer_fondo', 'etiqueta' => 'Fondo', 'parte' => 'f-fondo'])
-            @include('backend.extras._campo-color', ['campo' => 'footer_texto', 'etiqueta' => 'Textos, links e íconos', 'parte' => 'f-texto', 'contraste' => 'footer_fondo'])
+            @include('backend.extras._campo-color', ['campo' => 'footer_fondo', 'etiqueta' => 'Fondo', 'parte' => 'f-fondo', 'contraste' => null, 'hover' => false])
+            @include('backend.extras._campo-color', ['campo' => 'footer_texto', 'etiqueta' => 'Textos, links e íconos', 'parte' => 'f-texto', 'contraste' => 'footer_fondo', 'hover' => false])
             @include('backend.extras._campo-color', ['campo' => 'footer_texto_hover', 'etiqueta' => 'Links al pasar el mouse', 'parte' => 'f-hover', 'hover' => true, 'contraste' => 'footer_fondo'])
+          </div>
+        </section>
+
+        <section class="ext-card">
+          <h2>Franja del copyright</h2>
+          <p class="ext-ayuda">La franja de abajo del todo, con «© Copyright BMH» y «By Osole».</p>
+          <div class="ext-campos">
+            @include('backend.extras._campo-color', ['campo' => 'footer_derechos_fondo', 'etiqueta' => 'Fondo', 'parte' => 'f-derechos', 'contraste' => null, 'hover' => false])
+            @include('backend.extras._campo-color', ['campo' => 'footer_derechos_texto', 'etiqueta' => 'Texto', 'parte' => 'f-derechos', 'contraste' => 'footer_derechos_fondo', 'hover' => false])
           </div>
         </section>
       </div>
@@ -70,7 +79,7 @@
           <div class="ext-preview__barra">
             <p class="ext-preview__titulo">Vista previa</p>
           </div>
-          <div id="ext-vista">
+          <div id="ext-vista" class="ext-vista">
             <p class="ext-estado">Igual en todas las páginas</p>
             <div class="ext-marco">
               <div class="ext-marco__chrome"><i></i><i></i><i></i><span class="ext-marco__url">bmh.com.ar</span></div>
@@ -102,7 +111,7 @@
                       </ul>
                     </div>
                   </div>
-                  <div class="mkf-derechos"><span>© Copyright 2024 <b>BMH</b> Todos los derechos reservados</span><span>By <b>Osole</b></span></div>
+                  <div class="mkf-derechos" data-parte="f-derechos"><span>© Copyright 2024 <b>BMH</b> Todos los derechos reservados</span><span>By <b>Osole</b></span></div>
                 </div>
               </div></div>
             </div>

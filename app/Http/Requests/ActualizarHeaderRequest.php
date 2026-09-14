@@ -19,10 +19,12 @@ class ActualizarHeaderRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $reglas = array_fill_keys(Apariencia::CAMPOS_HEADER, ['required', 'regex:/^#[0-9A-F]{6}$/']);
+        $reglas = array_fill_keys(Apariencia::camposHeader(), ['required', 'regex:/^#[0-9A-F]{6}$/']);
 
-        $reglas['header_scroll_logo'] = ['required', Rule::in(Apariencia::LOGOS)];
-        $reglas['header_mobile_logo'] = ['required', Rule::in(Apariencia::LOGOS)];
+        foreach (Apariencia::camposLogo() as $campo) {
+            $reglas[$campo] = ['required', Rule::in(Apariencia::LOGOS)];
+        }
+
         $reglas['logo_transparente'] = ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'];
         $reglas['logo_blanco'] = ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'];
 
@@ -35,27 +37,33 @@ class ActualizarHeaderRequest extends FormRequest
         return [
             'regex' => 'El color «:attribute» no es válido: tiene que tener el formato #RRGGBB.',
             'required' => 'Falta el color «:attribute».',
+            'in' => 'El logo elegido para «:attribute» no existe.',
             'mimes' => 'El :attribute tiene que ser PNG, JPG, WEBP o SVG.',
             'max' => 'El :attribute no puede pesar más de 2 MB.',
         ];
     }
 
-    /** @return array<string, string> */
+    /**
+     * Nombre legible de cada campo: «Home al hacer scroll · Fondo», para que
+     * el aviso de error diga de qué estado se trata.
+     *
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
-        return [
-            'header_scroll_fondo' => 'Scroll · fondo',
-            'header_scroll_links' => 'Scroll · links',
-            'header_scroll_boton_texto' => 'Scroll · texto del botón',
-            'header_scroll_boton_borde' => 'Scroll · borde del botón',
-            'header_scroll_boton_hover_fondo' => 'Scroll · fondo del botón al pasar el mouse',
-            'header_scroll_boton_hover_texto' => 'Scroll · texto del botón al pasar el mouse',
-            'header_mobile_fondo' => 'Mobile · fondo',
-            'header_mobile_links' => 'Mobile · links',
-            'header_mobile_boton_texto' => 'Mobile · texto del botón',
-            'header_mobile_boton_borde' => 'Mobile · borde del botón',
-            'header_mobile_boton_hover_fondo' => 'Mobile · fondo del botón al tocarlo',
-            'header_mobile_boton_hover_texto' => 'Mobile · texto del botón al tocarlo',
+        $nombres = [];
+
+        foreach (Apariencia::SETS as $set => $config) {
+            $estado = Apariencia::MODOS[$config['modo']].' · '.$config['titulo'];
+
+            foreach (Apariencia::coloresDe($set) as $color) {
+                $nombres[Apariencia::campo($set, $color)] = $estado.' · '.Apariencia::etiqueta($set, $color);
+            }
+
+            $nombres[Apariencia::campo($set, 'logo')] = $estado.' · logo a mostrar';
+        }
+
+        return $nombres + [
             'logo_transparente' => 'logo para fondo transparente',
             'logo_blanco' => 'logo para fondo blanco',
         ];
@@ -65,7 +73,8 @@ class ActualizarHeaderRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $normalizados = [];
-        foreach (Apariencia::CAMPOS_HEADER as $campo) {
+
+        foreach (Apariencia::camposHeader() as $campo) {
             if (is_string($this->input($campo))) {
                 $normalizados[$campo] = strtoupper(trim($this->input($campo)));
             }
@@ -77,6 +86,6 @@ class ActualizarHeaderRequest extends FormRequest
     /** @return array<string, string> */
     public function valores(): array
     {
-        return $this->safe()->only([...Apariencia::CAMPOS_HEADER, 'header_scroll_logo', 'header_mobile_logo']);
+        return $this->safe()->only([...Apariencia::camposHeader(), ...Apariencia::camposLogo()]);
     }
 }

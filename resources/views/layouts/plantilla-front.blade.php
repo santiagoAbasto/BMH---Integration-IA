@@ -508,8 +508,9 @@ $cart = Cart::content();
         
     </div>
 
-    <div class='container-fluid' style='background-color:#241F21;height: 81px;'>
-      <div class='container d-flex justify-content-between derechos p-0' style='background-color:#241F21;'>
+    {{-- Colores de la franja: admin → Extras → Footer (layouts/partials/apariencia). --}}
+    <div class='container-fluid footer-derechos' style='height: 81px;'>
+      <div class='container d-flex justify-content-between derechos p-0'>
         <div class='d-flex p-0 w-100 justify-content-between' style='margin-top:35px;'>
           <p class="text-center" style='font-weight:300;'>&copy; Copyright 2024 <span style='font-weight:700;'>BMH</span> Todos los derechos reservados</p>
           <style>

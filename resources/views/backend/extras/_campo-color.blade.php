@@ -10,7 +10,7 @@
 --}}
 @php
     $valor = strtoupper((string) old($campo, $apariencia->{$campo}));
-    $original = \App\Models\Apariencia::DEFAULTS[$campo];
+    $original = \App\Models\Apariencia::defaults()[$campo];
 @endphp
 <div class="ext-color {{ $errors->has($campo) ? 'is-invalido' : '' }}"
      data-campo="{{ $campo }}"

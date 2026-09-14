@@ -1,15 +1,24 @@
 {{--
     Una versión del logo por estado del header; layouts/partials/apariencia
-    muestra una sola: reposo (según la página), al hacer scroll, o mobile.
+    muestra una sola: reposo (según la página), al hacer scroll, o celular.
+
+    Cada estado elige su logo en el admin, porque también elige su color de
+    fondo: si el header de las páginas internas se pinta oscuro, ahí conviene
+    el logo para fondo transparente y no el de fondo blanco.
 --}}
 @php
+    use App\Models\Apariencia;
+    use App\Services\LogosSitio;
+
     $urlsLogo = [
-        \App\Models\Apariencia::LOGO_TRANSPARENTE => $logosSitio->url(\App\Services\LogosSitio::HEADER_TRANSPARENTE),
-        \App\Models\Apariencia::LOGO_BLANCO => $logosSitio->url(\App\Services\LogosSitio::HEADER_BLANCO),
+        Apariencia::LOGO_TRANSPARENTE => $logosSitio->url(LogosSitio::HEADER_TRANSPARENTE),
+        Apariencia::LOGO_BLANCO => $logosSitio->url(LogosSitio::HEADER_BLANCO),
     ];
-    $logoReposo = $urlsLogo[Route::is('home') ? \App\Models\Apariencia::LOGO_TRANSPARENTE : \App\Models\Apariencia::LOGO_BLANCO];
-    $logoScroll = $urlsLogo[$apariencia->header_scroll_logo] ?? $logoReposo;
-    $logoMobile = $urlsLogo[$apariencia->header_mobile_logo] ?? $logoReposo;
+
+    $enHome = Route::is('home');
+    $logoReposo = $urlsLogo[$apariencia->logoDe($enHome ? 'transparente_reposo' : 'blanco_reposo')];
+    $logoScroll = $urlsLogo[$apariencia->logoDe($enHome ? 'transparente_scroll' : 'blanco_scroll')];
+    $logoMobile = $urlsLogo[$apariencia->logoDe('celular')];
 @endphp
 <img id="logo1" class="logo-header logo-reposo" src="{{ $logoReposo }}" alt="BMH">
 <img class="logo-header logo-scroll" src="{{ $logoScroll }}" alt="" aria-hidden="true">

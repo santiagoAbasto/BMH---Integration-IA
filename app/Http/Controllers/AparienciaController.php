@@ -72,7 +72,7 @@ class AparienciaController extends Controller
     private function guardar(array $valores): void
     {
         // Sin pasar por Apariencia::actual(): esa puede venir del caché.
-        $apariencia = Apariencia::query()->first() ?? new Apariencia(Apariencia::DEFAULTS);
+        $apariencia = Apariencia::query()->first() ?? new Apariencia(Apariencia::defaults());
         $apariencia->fill($valores)->save();
     }
 }

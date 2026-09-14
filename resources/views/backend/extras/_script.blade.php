@@ -6,18 +6,11 @@
   var raiz = document.querySelector('[data-ext]');
   if (!raiz) return;
   var form = document.getElementById('ext-form');
-  var vista = document.getElementById('ext-vista');
+  var vistas = raiz.querySelectorAll('.ext-vista');
 
-  // Mismo nombre de variable que usa el front (layouts/partials/apariencia).
-  var VARS = {
-    header_scroll_fondo: '--ap-hs-fondo', header_scroll_links: '--ap-hs-links',
-    header_scroll_boton_texto: '--ap-hs-btn-texto', header_scroll_boton_borde: '--ap-hs-btn-borde',
-    header_scroll_boton_hover_fondo: '--ap-hs-btn-hover-fondo', header_scroll_boton_hover_texto: '--ap-hs-btn-hover-texto',
-    header_mobile_fondo: '--ap-hm-fondo', header_mobile_links: '--ap-hm-links',
-    header_mobile_boton_texto: '--ap-hm-btn-texto', header_mobile_boton_borde: '--ap-hm-btn-borde',
-    header_mobile_boton_hover_fondo: '--ap-hm-btn-hover-fondo', header_mobile_boton_hover_texto: '--ap-hm-btn-hover-texto',
-    footer_fondo: '--ap-f-fondo', footer_texto: '--ap-f-texto', footer_texto_hover: '--ap-f-texto-hover'
-  };
+  // Qué variable CSS pinta cada campo. Sale de App\Models\Apariencia para que
+  // el editor y el front no puedan quedar con mapeos distintos.
+  var VARS = @json(\App\Models\Apariencia::mapaVariables());
   var HEX = /^#[0-9A-F]{6}$/i;
   var TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
@@ -169,34 +162,26 @@
     });
   });
 
-  form.querySelectorAll('input[type="radio"]').forEach(function (r) {
+  // Los radios que eligen logo; los de modo se manejan aparte.
+  form.querySelectorAll('input[type="radio"]:not([data-modo])').forEach(function (r) {
     r.addEventListener('change', function () { pintarLogos(); marcarCambios(); });
   });
 
-  // ------------------------------------------------------- pestañas y zoom
-  var pestanas = raiz.querySelectorAll('[data-tab]');
+  // ------------------------------------------------- selector de modo y zoom
+  // Un solo control cambia a la vez los campos y la vista previa: los dos
+  // paneles del mismo modo llevan el mismo data-modo-panel.
+  var modos = raiz.querySelectorAll('input[data-modo]');
 
-  function pestanaActual() {
-    for (var i = 0; i < pestanas.length; i++) {
-      if (pestanas[i].getAttribute('aria-selected') === 'true') return pestanas[i].dataset.tab;
-    }
-    return null;
-  }
-  function mostrar(nombre) {
-    pestanas.forEach(function (t) { t.setAttribute('aria-selected', t.dataset.tab === nombre ? 'true' : 'false'); });
-    raiz.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== nombre; });
+  function mostrarModo(nombre) {
+    raiz.querySelectorAll('[data-modo-panel]').forEach(function (p) {
+      p.hidden = p.dataset.modoPanel !== nombre;
+    });
+    // Recién ahora los marcos visibles tienen ancho para calcular la escala.
     ajustarZoom();
   }
-  pestanas.forEach(function (t) { t.addEventListener('click', function () { mostrar(t.dataset.tab); }); });
-
-  // Editar algo del celular muestra el celular; algo del scroll, la compu.
-  function llevarA(control) {
-    var tarjeta = control.closest('[data-vista-tab]');
-    if (!tarjeta || !pestanas.length) return;
-    var destino = tarjeta.dataset.vistaTab, actual = pestanaActual();
-    if (destino === 'escritorio') { if (actual === 'celular') mostrar('home'); }
-    else if (destino !== actual) mostrar(destino);
-  }
+  modos.forEach(function (r) {
+    r.addEventListener('change', function () { if (r.checked) mostrarModo(r.value); });
+  });
 
   // La maqueta mide 1280px de verdad y se escala al ancho disponible.
   function ajustarZoom() {
@@ -213,11 +198,15 @@
 
   // ------------------------------------------------ resaltar lo que cambia
   function objetivos(parte) {
-    if (!vista || !parte) return [];
+    if (!parte) return [];
     var selector = parte.indexOf('logo-') === 0
       ? 'img[data-logo-actual="' + parte.slice(5) + '"]'
       : '[data-parte~="' + parte + '"]';
-    return vista.querySelectorAll(selector);
+    var encontrados = [];
+    vistas.forEach(function (vista) {
+      vista.querySelectorAll(selector).forEach(function (n) { encontrados.push(n); });
+    });
+    return encontrados;
   }
   function resaltar(control, encendido) {
     var hover = control.dataset.hover === '1';
@@ -227,7 +216,7 @@
     });
   }
   raiz.querySelectorAll('.ext-color, .ext-fila[data-parte], .ext-logo[data-parte]').forEach(function (control) {
-    function encender() { llevarA(control); resaltar(control, true); }
+    function encender() { resaltar(control, true); }
     function apagar() { if (!control.contains(document.activeElement)) resaltar(control, false); }
     control.addEventListener('focusin', encender);
     control.addEventListener('mouseenter', encender);
@@ -243,7 +232,8 @@
   function foto() {
     var partes = [];
     new FormData(form).forEach(function (v, k) {
-      if (k === '_token' || k === '_method') return;
+      // `ext-modo` sólo dice qué pestaña se está mirando: no se guarda.
+      if (k === '_token' || k === '_method' || k === 'ext-modo') return;
       partes.push(k + '=' + (v instanceof File ? (v.name ? v.name + ':' + v.size : '') : v));
     });
     return partes.join('&');
@@ -263,6 +253,12 @@
     var invalido = Object.keys(campos).filter(function (k) { return valor(k) === null; })[0];
     if (invalido) {
       e.preventDefault();
+      // El campo puede estar en un modo que no se está viendo.
+      var panel = campos[invalido].el.closest('[data-modo-panel]');
+      if (panel) {
+        var radio = raiz.querySelector('input[data-modo][value="' + panel.dataset.modoPanel + '"]');
+        if (radio) { radio.checked = true; mostrarModo(radio.value); }
+      }
       campos[invalido].hex.focus();
       avisar('El color «' + campos[invalido].etiqueta + '» no tiene el formato #RRGGBB.');
       return;

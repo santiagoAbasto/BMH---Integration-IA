@@ -42,6 +42,8 @@ class ActualizarFooterRequest extends FormRequest
             'footer_fondo' => 'fondo',
             'footer_texto' => 'textos, links e íconos',
             'footer_texto_hover' => 'links al pasar el mouse',
+            'footer_derechos_fondo' => 'fondo de la franja del copyright',
+            'footer_derechos_texto' => 'texto de la franja del copyright',
             'logo' => 'logo del footer',
         ];
     }
