@@ -64,7 +64,7 @@
         @forelse ($partesRelacionadas as $parte)
             <div class="prt-item" data-id="{{ $parte->id }}" data-nombre="{{ $parte->nombre }}">
                 <input type="text" class="prt-orden" name="parte_orden[]" value="{{ $parte->pivot->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
-                <img class="prt-thumb" src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}" alt="">
+                <img class="prt-thumb" src="{{ $parte->portadaUrl() }}" alt="">
                 <div class="prt-info">
                     <span class="prt-code">{{ $parte->codigo }}</span>
                     <span class="prt-name">{{ $parte->nombre }}</span>
@@ -252,7 +252,7 @@
 
     function agregarParte(p) {
         if (lista.querySelector('.prt-item[data-id="' + p.id + '"]')) return;
-        var placeholder = 'imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg';
+        var placeholder = '{{ App\Models\Producto::imagenPredeterminadaUrl() }}';
         var fila = document.createElement('div');
         fila.className = 'prt-item';
         fila.dataset.id = p.id;
@@ -299,7 +299,7 @@
         if (!items.length) {
             resultados.innerHTML = '<li class="prt-sin-resultados">Sin resultados para &ldquo;' + escapar(q) + '&rdquo;</li>';
         } else {
-            var placeholder = 'imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg';
+            var placeholder = '{{ App\Models\Producto::imagenPredeterminadaUrl() }}';
             items.forEach(function (p) {
                 var li = document.createElement('li');
                 li.className = 'prt-opcion';

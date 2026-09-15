@@ -82,12 +82,18 @@ class Producto extends Model
      */
     public function galeriaUrls(): array
     {
+        $portadaUrl = $this->portadaUrl();
+        if ($portadaUrl === self::imagenPredeterminadaUrl()) {
+            return [$portadaUrl];
+        }
+
         $imagenes = $this->relationLoaded('imagenesGaleria')
             ? $this->imagenesGaleria
             : $this->imagenesGaleria()->get();
 
-        $urls = [];
+        $urls = [$portadaUrl];
         foreach ($imagenes as $img) {
+            if ($img->tipo === 'portada') continue;
             if (empty($img->path)) continue;
             $abs = public_path('imagenes/' . $img->path);
             if (is_file($abs)) {
@@ -95,20 +101,20 @@ class Producto extends Model
             }
         }
         $urls = array_values(array_unique($urls));
-        if (empty($urls)) {
-            $placeholder = asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
-            // Incluir placeholder como única imagen si no hay válidas
-            $urls = [$placeholder];
-        }
         return $urls;
+    }
+
+    public static function imagenPredeterminadaUrl(): string
+    {
+        return route('producto.placeholder');
     }
 
     /**
      * URL de la portada sólo si el archivo existe en disco. La base tiene
      * referencias a imágenes que no están en el filesystem (ver
-     * docs/data-quality-report.md §6): preferimos el placeholder a un 404.
+     * docs/data-quality-report.md §6): devolvemos el placeholder en vez de un 404.
      */
-    public function portadaUrl(): ?string
+    public function portadaUrl(): string
     {
         $path = $this->portadaImagen?->path;
 
@@ -116,7 +122,7 @@ class Producto extends Model
             return asset('imagenes/' . $path);
         }
 
-        return null;
+        return self::imagenPredeterminadaUrl();
     }
 
     public function usos(){

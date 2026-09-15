@@ -202,7 +202,7 @@ background: #EBEBEB !important; height: 60px !important;">
                             <div class='producto-img'
                                 onclick="abrirModalProducto(
                 '{{ $producto->nombre }}', 
-                '{{ asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}', 
+                '{{ App\Models\Producto::imagenPredeterminadaUrl() }}',
                 '{{ $producto->descripcion }}',
                                                     '{{ $producto->codigo }}',
 
@@ -367,7 +367,7 @@ background: #EBEBEB !important; height: 60px !important;">
                     $producto->categoria()->first()->columna_78,
                 ]) }}
             )"
-                                style="background-image:url({{ asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }});background-size:contain;background-position:center;background-repeat:no-repeat;">
+                                style="background-image:url({{ App\Models\Producto::imagenPredeterminadaUrl() }});background-size:contain;background-position:center;background-repeat:no-repeat;">
                             </div>
                         @endif
                     </td>

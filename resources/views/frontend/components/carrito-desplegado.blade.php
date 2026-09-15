@@ -32,7 +32,7 @@
         <?php $producto = App\Models\Producto::find($item->id) ?>
         <tr>
             <td>
-                <div style='width:96px;height:85px;border:1px solid #dfdfdf;border-radius:10px;background-image:url("imagenes/{{$producto->portada()->path}}");background-size:contain;background-position:center;background-repeat:no-repeat;'>
+                <div style='width:96px;height:85px;border:1px solid #dfdfdf;border-radius:10px;background-image:url("{{ $producto->portadaUrl() }}");background-size:contain;background-position:center;background-repeat:no-repeat;'>
 
                 </div>
             </td>

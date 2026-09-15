@@ -46,6 +46,17 @@
         .acciones {
             max-width: 50px;
         }
+
+        .imagen-producto.portada-producto {
+            border: 2px solid #254F70;
+            background: #f3f8fb;
+        }
+
+        .portada-nota {
+            border-top: 1px solid #c8d8e3;
+            color: #254F70;
+            font-size: 13px;
+        }
     </style>
 @endsection
 
@@ -268,8 +279,11 @@
             <div class="row">
 
                 @foreach ($imagenes as $imagen)
-                    <div class='col-3 imagen-producto {{ $imagen->tipo == 'portada' ? 'seleccionada' : '' }}'
+                    <div class='col-3 imagen-producto {{ $imagen->tipo == 'portada' ? 'seleccionada portada-producto' : '' }}'
                         style='padding:10px;overflow:hidden;'>
+                        @if ($imagen->tipo == 'portada')
+                            <span class="badge bg-primary mb-2">Imagen principal</span>
+                        @endif
                         <div class='d-flex justify-content-center'>
                             <img src="{{ asset('imagenes/' . $imagen->path) }}" class="img-fluid"
                                 style="max-height: 180px;">
@@ -291,7 +305,7 @@
                                     data-bs-toggle="modal" data-bs-target="{{ '#editar' . $imagen->id }}">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </div>
-                                @if (count($imagenes) > 1)
+                                @if ($imagen->tipo != 'portada' && count($imagenes) > 1)
                                     <form action="{{ route('imagen.delete', ['id' => $imagen->id]) }}" method="POST">
                                         @csrf
                                         @method('DELETE')
@@ -302,6 +316,17 @@
                                 @endif
                             </div>
                         </div>
+
+                        @if ($imagen->tipo == 'portada')
+                            <div class="portada-nota mt-2 pt-2">
+                                <p class="mb-2">Si la eliminás, la card del producto mostrará la imagen predeterminada de BMH.</p>
+                                <form action="{{ route('producto.portada.delete', ['id_imagen' => $imagen->id, 'id_producto' => $producto->id]) }}" method="POST" onsubmit="return confirm('¿Eliminar la imagen principal? La card mostrará la imagen predeterminada de BMH.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar imagen principal</button>
+                                </form>
+                            </div>
+                        @endif
 
                     </div>
 

@@ -22,7 +22,7 @@
     $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
     $galeriaUrls = method_exists($producto, 'galeriaUrls') ? $producto->galeriaUrls() : [];
     if (empty($galeriaUrls)) {
-        $galeriaUrls = $portadaUrl ? [$portadaUrl] : [asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg')];
+        $galeriaUrls = [$portadaUrl];
     }
     $mostrarThumbs = count($galeriaUrls) > 1;
 @endphp
@@ -193,7 +193,7 @@
                         <td class="pbmh-col-img">
                             <a href="{{ route('producto', ['id' => $parte->id]) }}" aria-label="Ver {{ $parte->nombre }}">
                                 <img class="pbmh-thumb"
-                                    src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}"
+                                    src="{{ $parte->portadaUrl() }}"
                                     alt="" loading="lazy">
                             </a>
                         </td>
@@ -412,7 +412,7 @@
             return img.currentSrc || img.src || '';
         }
         function isPlaceholder(src) {
-            return src.includes('WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
+            return src.includes('/productos/imagen-predeterminada.svg');
         }
         function syncZoomImage(box, img, force) {
             if (!img || window.innerWidth < 992) return false;

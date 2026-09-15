@@ -25,6 +25,7 @@ use App\Models\Medida;
 use App\Models\Repuesto;
 use App\Models\User;
 use App\Services\CatalogFilterOptions;
+use App\Services\LogosSitio;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -1241,6 +1242,25 @@ public function filtroRodamiento(Request $request)
         return view('frontend/productos-zona-home',  compact('zonaclientes', 'ventana'));
     }
 
+    public function imagen_predeterminada(LogosSitio $logos)
+    {
+        $logoDataUri = e($logos->dataUri(LogosSitio::HEADER_BLANCO));
+        $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title description">
+  <title id="title">Producto sin imagen</title>
+  <desc id="description">Logo de BMH para productos sin imagen.</desc>
+  <rect width="600" height="600" fill="#f5f6f7"/>
+  <image href="{$logoDataUri}" x="100" y="220" width="400" height="160" preserveAspectRatio="xMidYMid meet"/>
+</svg>
+SVG;
+
+        return response($svg, 200, [
+            'Content-Type' => 'image/svg+xml',
+            // El logo se puede cambiar desde el dashboard; no usar una versión anterior.
+            'Cache-Control' => 'no-store, max-age=0',
+        ]);
+    }
+
 
 
 
@@ -1663,15 +1683,32 @@ public function dash_productos(Request $request)
         if ($anterior) {
             $anterior->tipo = 'imagen';
             $anterior->save();
-        } else {
-
-            $imagen = Imagen::find($request->id_imagen);
-            $imagen->tipo = 'portada';
-            $imagen->orden = 'aa';
-            $imagen->save();
         }
 
+        $imagen = Imagen::where('id', $request->id_imagen)
+            ->where('producto_id', $request->id_producto)
+            ->where('sector', 'producto')
+            ->firstOrFail();
+        $imagen->tipo = 'portada';
+        $imagen->orden = 'aa';
+        $imagen->save();
+
         return redirect()->back();
+    }
+
+    public function portada_delete(Request $request)
+    {
+        $imagen = Imagen::query()
+            ->where('id', $request->id_imagen)
+            ->where('producto_id', $request->id_producto)
+            ->where('sector', 'producto')
+            ->where('tipo', 'portada')
+            ->firstOrFail();
+
+        File::delete(public_path('imagenes/' . $imagen->path));
+        $imagen->delete();
+
+        return redirect()->back()->with('success', 'Imagen principal eliminada. El producto mostrará la imagen predeterminada de BMH.');
     }
 
     public function actualizarPreciosExcel(Request $request)

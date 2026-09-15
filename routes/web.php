@@ -122,6 +122,7 @@ Route::controller(RepuestosController::class)->group(function () {
 Route::controller(ProductoController::class)->group(function () {
     
     Route::get('productos', 'index')->name('productos');
+    Route::get('productos/imagen-predeterminada.svg', 'imagen_predeterminada')->name('producto.placeholder');
 Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::get('productos-filtrar', 'filtrar_productos')->name('productos.filtrar');
     Route::get('ofertas', 'ofertas')->name('ofertas');
@@ -151,6 +152,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::delete('dashboard/producto/delete', 'delete')->name('producto.delete');
         Route::put('dashboard/producto-imagen-update', 'imagen_update')->name('producto.imagen.update');
         Route::put('dashboard/producto-portada-update', 'portada_update')->name('producto.portada');
+        Route::delete('dashboard/producto-portada', 'portada_delete')->name('producto.portada.delete');
         Route::post('dashboard/buscar-producto', 'dash_buscar_producto')->name('dashboard.buscar.producto');
         Route::get('dashboard/productos/buscar-partes', 'buscarPartes')->name('producto.buscar.partes');
         Route::post('dashboard/buscar-producto-oferta', 'dash_buscar_producto_oferta')->name('dashboard.buscar.producto.oferta');

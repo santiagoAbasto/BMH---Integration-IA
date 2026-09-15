@@ -67,6 +67,24 @@ final class LogosSitio
         return $clave === self::FAVICON ? asset('favicon.ico') : '';
     }
 
+    /** Devuelve el archivo del logo embebido para usarlo dentro de un SVG. */
+    public function dataUri(string $clave): string
+    {
+        $path = $this->path($clave);
+        if ($path === null) {
+            return '';
+        }
+
+        $archivo = $this->directorio.DIRECTORY_SEPARATOR.$path;
+        if (! is_file($archivo)) {
+            return '';
+        }
+
+        $mime = File::mimeType($archivo) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode(File::get($archivo));
+    }
+
     /** ¿Tiene archivo propio, o está usando el de respaldo? */
     public function tienePropio(string $clave): bool
     {

@@ -601,16 +601,12 @@
                             <div class="fotorama" data-thumbfit='cover' data-thumbmargin="16" data-nav="thumbs"
                                 data-thumbwidth="80px" data-thumbheight="78px" data-height='431px' data-width="100%"
                                 data-fit='cover' data-ratio='800/600'>
-                                @if ($producto->portada() && $producto->portada()->path)
-                                    <img class='producto-img'
-                                        src="{{ asset('imagenes/' . $producto->portada()->path) }}">
+                                <img class='producto-img' src="{{ $producto->portadaUrl() }}">
 
+                                @if ($producto->portadaImagen)
                                     @foreach ($imagenes as $imagen)
                                         <img class='producto-img' src="{{ asset('imagenes/' . $imagen->path) }}">
                                     @endforeach
-                                @else
-                                    <img class='producto-img'
-                                        src="{{ asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}">
                                 @endif
                             </div>
                         </div>
@@ -948,7 +944,7 @@
                                             <tr data-precio="{{ number_format($parteDescDet, 2, '.', '') }}">
                                                 <td class="pbmh-col-img">
                                                     <a href="{{ route('producto', ['id' => $parte->id]) }}" aria-label="Ver {{ $parte->nombre }}">
-                                                        <img class="pbmh-thumb" src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}" alt="" loading="lazy">
+                                                        <img class="pbmh-thumb" src="{{ $parte->portadaUrl() }}" alt="" loading="lazy">
                                                     </a>
                                                 </td>
                                                 <td class="pbmh-celda-cod">
