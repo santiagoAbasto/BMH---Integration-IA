@@ -411,8 +411,21 @@
         function imageSrc(img) {
             return img.currentSrc || img.src || '';
         }
+        // La imagen por defecto (propia o la de BMH) no se amplía con la lupa.
+        // Se compara sólo el path: el sitio puede abrirse con otro host que APP_URL.
+        @php
+            $pathsImagenPorDefecto = array_values(array_unique([
+                parse_url(\App\Models\Producto::imagenPredeterminadaUrl(), PHP_URL_PATH),
+                parse_url(\App\Models\Producto::imagenPredeterminadaBmhUrl(), PHP_URL_PATH),
+            ]));
+        @endphp
+        var placeholders = {{ \Illuminate\Support\Js::from($pathsImagenPorDefecto) }};
         function isPlaceholder(src) {
-            return src.includes('/productos/imagen-predeterminada.svg');
+            try {
+                return placeholders.indexOf(new URL(src, window.location.href).pathname) !== -1;
+            } catch (e) {
+                return false;
+            }
         }
         function syncZoomImage(box, img, force) {
             if (!img || window.innerWidth < 992) return false;

@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\HomeSliderController;
+use App\Http\Controllers\ImagenPorDefectoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImagenController;
 use App\Http\Controllers\NosotrosController;
@@ -204,6 +205,13 @@ Route::controller(AparienciaController::class)->middleware('admin')->group(funct
     Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
     Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');
     Route::put('dashboard/extras/footer', 'updateFooter')->name('extras.footer.update');
+});
+
+// Extras: imagen que muestran los productos sin portada.
+Route::controller(ImagenPorDefectoController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/extras/imagen-por-defecto', 'edit')->name('dashboard.extras.imagen-por-defecto');
+    Route::put('dashboard/extras/imagen-por-defecto', 'update')->name('extras.imagen-por-defecto.update');
+    Route::delete('dashboard/extras/imagen-por-defecto', 'destroy')->name('extras.imagen-por-defecto.destroy');
 });
 
 Route::controller(NovedadController::class)->group(function () {

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Image;
+use App\Services\LogosSitio;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Impuesto;
 
@@ -104,7 +105,18 @@ class Producto extends Model
         return $urls;
     }
 
+    /**
+     * La imagen que muestra un producto sin portada: la que se cargó en
+     * admin → Extras → Imagen por defecto, o si no hay, la de BMH.
+     */
     public static function imagenPredeterminadaUrl(): string
+    {
+        return app(LogosSitio::class)->urlSiExiste(LogosSitio::PRODUCTO_DEFECTO)
+            ?? self::imagenPredeterminadaBmhUrl();
+    }
+
+    /** El SVG con el logo del sitio que se usa cuando no se cargó una propia. */
+    public static function imagenPredeterminadaBmhUrl(): string
     {
         return route('producto.placeholder');
     }

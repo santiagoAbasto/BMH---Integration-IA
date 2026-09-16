@@ -1242,11 +1242,11 @@ public function filtroRodamiento(Request $request)
         return view('frontend/productos-zona-home',  compact('zonaclientes', 'ventana'));
     }
 
-    public function imagen_predeterminada(LogosSitio $logos)
+    public function imagen_predeterminada(Request $request, LogosSitio $logos)
     {
         $logoDataUri = e($logos->dataUri(LogosSitio::HEADER_BLANCO));
         $svg = <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600" role="img" aria-labelledby="title description">
   <title id="title">Producto sin imagen</title>
   <desc id="description">Logo de BMH para productos sin imagen.</desc>
   <rect width="600" height="600" fill="#f5f6f7"/>
@@ -1254,11 +1254,17 @@ public function filtroRodamiento(Request $request)
 </svg>
 SVG;
 
-        return response($svg, 200, [
-            'Content-Type' => 'image/svg+xml',
-            // El logo se puede cambiar desde el dashboard; no usar una versión anterior.
-            'Cache-Control' => 'no-store, max-age=0',
-        ]);
+        // El SVG lleva el logo embebido, que puede pesar más de 1 MB, y se pide
+        // en cada página con productos sin foto. La URL no cambia cuando cambia
+        // el logo, así que se guarda pero se revalida siempre: si el logo es el
+        // mismo, el navegador recibe un 304 sin cuerpo.
+        $response = response($svg, 200, ['Content-Type' => 'image/svg+xml']);
+        $response->setEtag(md5($svg));
+        $response->setPublic();
+        $response->headers->addCacheControlDirective('no-cache');
+        $response->isNotModified($request);
+
+        return $response;
     }
 
 
