@@ -617,8 +617,29 @@ public function filtroRodamiento(Request $request)
             return $t !== '' && mb_strlen($t) >= 2 && !in_array($t, $stopWords, true);
         })));
 
-        if (!empty($tokens)) {
-            $query->where(function ($q) use ($tokens) {
+        // Los códigos equivalentes hallados arriba entran como un OR dentro del
+        // mismo where del buscador, no como una consulta aparte: así los filtros
+        // que vienen después (categoría, modelo, estado, atributos) también los
+        // alcanzan. Antes se concatenaban después de ejecutar la query y se
+        // colaban productos de cualquier categoría.
+        $codigosEquivNorm = array_values(array_unique(array_map(
+            fn ($c) => mb_strtolower(preg_replace('/\s+/', '', (string) $c)),
+            $equivalenciasCodigos
+        )));
+
+        if (!empty($tokens) || !empty($codigosEquivNorm)) {
+            $query->where(function ($grupo) use ($tokens, $codigosEquivNorm) {
+                if (!empty($codigosEquivNorm)) {
+                    $grupo->orWhere(function ($q) use ($codigosEquivNorm) {
+                        foreach ($codigosEquivNorm as $code) {
+                            $q->orWhereRaw("LOWER(REPLACE(codigo,' ','')) = ?", [$code]);
+                        }
+                    });
+                }
+                if (empty($tokens)) {
+                    return;
+                }
+                $grupo->orWhere(function ($q) use ($tokens) {
                 foreach ($tokens as $token) {
                     $root = $token;
 
@@ -674,6 +695,7 @@ public function filtroRodamiento(Request $request)
                             });
                     });
                 }
+                });
             });
         }
     }
@@ -687,16 +709,23 @@ public function filtroRodamiento(Request $request)
     // ========== FILTRO POR CATEGORÍA ==========
     $categoriaActual = null;
     if ($request->filled('categoriaFiltro')) {
-        $categoriaInput = $request->categoriaFiltro;
-        $categoria = Categoria::where('id', $categoriaInput)
-            ->orWhere('nombre', 'LIKE', '%' . $categoriaInput . '%')
-            ->first();
+        $categoriaInput = trim((string) $request->categoriaFiltro);
+
+        // El select manda el id. Resolverlo por id exacto y recién después por
+        // nombre: el `orWhere nombre LIKE %id%` que había acá podía quedarse
+        // con otra categoría cuyo nombre contuviera esos dígitos.
+        $categoria = ctype_digit($categoriaInput)
+            ? Categoria::find($categoriaInput)
+            : null;
+        $categoria ??= Categoria::where('nombre', 'LIKE', '%' . $categoriaInput . '%')->first();
 
         if ($categoria) {
             $query->where('categoria_id', $categoria->id);
             $categoriaActual = $categoria->toArray();
         }
-        $busqueda = $categoriaInput;
+        // Ojo: $busqueda alimenta el puntaje de relevancia contra
+        // código/nombre/marca. Meter acá el id de la categoría desordenaba los
+        // resultados por coincidencias numéricas casuales.
     }
 
     // ========== FILTRO POR EQUIVALENCIA MANUAL (VIEJO + NUEVO) ==========
@@ -856,35 +885,10 @@ public function filtroRodamiento(Request $request)
     // ==============================
     // Traer productos desde la DB
     // ==============================
+    // Los productos alcanzados por equivalencia ya vienen en esta misma query
+    // (ver el OR de códigos equivalentes más arriba), con todos los filtros
+    // aplicados.
     $productos = $query->orderBy('orden', 'desc')->get();
-
-    // --- Agregar productos por equivalencia cuando se buscó un código ---
-    if (!empty($equivalenciasCodigos)) {
-
-        // Normalizar los códigos equivalentes (ej: 1420)
-        $codigosNorm = array_map(function ($c) {
-            return mb_strtolower(preg_replace('/\s+/', '', $c));
-        }, $equivalenciasCodigos);
-
-        $productosEquiv = Producto::with([
-            'categoria',
-            'portadaImagen',
-            'imagenesGaleria',
-            'productCaracteristicas.caracteristica',
-            'partesRelacionadas.portadaImagen',
-            'equivalencias',
-            'aplicaciones',
-        ])->where(function ($q) use ($codigosNorm) {
-            foreach ($codigosNorm as $code) {
-                $q->orWhereRaw("LOWER(REPLACE(codigo,' ','')) = ?", [$code]);
-            }
-        })->get();
-
-        // Unir sin duplicar ids
-        $productos = $productos->concat(
-            $productosEquiv->reject(fn($p) => $productos->contains('id', $p->id))
-        );
-    }
 
     // ==============================
     // Relevancia en PHP
