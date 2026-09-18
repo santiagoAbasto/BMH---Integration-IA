@@ -159,6 +159,17 @@ class Producto extends Model
     // public function caracteristicas(){
     //     return $this->belongsToMany('App\Models\Caracteristica');
     // }
+    /**
+     * Características con valor del producto, tal como se muestran en el sitio.
+     *
+     * La categoría es la que manda: sólo salen las que están tildadas en
+     * dashboard → Categorías. Al destildar una característica su fila de
+     * `producto_caracteristica` no se borra (así el valor vuelve si se la
+     * vuelve a tildar), por eso el filtro va acá y no en cada vista.
+     *
+     * Vienen ordenadas por el `orden` de la característica, único criterio
+     * para todas las vistas.
+     */
     public function productCaracteristicas()
     {
         return $this->hasMany(ProductCaracteristica::class, 'producto_id')
@@ -173,7 +184,19 @@ class Producto extends Model
                     ->whereColumn('pc_latest.producto_id', 'producto_caracteristica.producto_id')
                     ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
                     ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
-            });
+            })
+            // Sólo las características que la categoría del producto declara.
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('categoria_caracteristica as cc')
+                    ->join('productos as p', 'p.categoria_id', '=', 'cc.categoria_id')
+                    ->whereColumn('p.id', 'producto_caracteristica.producto_id')
+                    ->whereColumn('cc.caracteristica_id', 'producto_caracteristica.caracteristica_id')
+                    ->whereNull('cc.deleted_at');
+            })
+            // Las que no tienen `orden` van al final, como hacía cada vista.
+            ->orderByRaw('COALESCE((SELECT c.orden FROM caracteristicas c WHERE c.id = producto_caracteristica.caracteristica_id), 2147483647)')
+            ->orderBy('producto_caracteristica.id');
     }
 
 

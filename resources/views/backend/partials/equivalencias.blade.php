@@ -100,7 +100,11 @@
     {{-- Lista --}}
     .eqv-lista { display:flex; flex-direction:column; gap:7px; margin-top:14px; }
     .eqv-item { display:flex; align-items:center; gap:8px; padding:7px 8px; border:1px solid #eef0f2;
-        border-radius:10px; background:#fbfcfd; animation:eqv-flash .8s ease-out; }
+        border-radius:10px; background:#fbfcfd; }
+    {{-- Sólo las filas recién agregadas destellan. Si la animación viviera en
+         .eqv-item, cualquier reordenamiento la volvería a disparar y taparía
+         el marcado de duplicados. --}}
+    .eqv-item.eqv-nueva { animation:eqv-flash .8s ease-out; }
     @keyframes eqv-flash { 0% { background:#e7f1ff; border-color:#bcd7ff; } 100% { background:#fbfcfd; } }
     .eqv-item.eqv-arrastrando { opacity:.45; }
     .eqv-item .eqv-orden { width:64px; flex:0 0 64px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
@@ -124,10 +128,12 @@
     .eqv-in-nombre { flex:0 0 clamp(90px, 22%, 220px); color:#0b5ed7; font-weight:600; font-size:12.5px; }
     .eqv-in-nombre:not(:placeholder-shown):not(:focus) { color:#495057; font-weight:500; }
     .eqv-in-valor { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing:.01em; }
-    {{-- Valor duplicado --}}
-    .eqv-item.eqv-dup { border-color:#ffe08a; background:#fffbeb; }
-    .eqv-item.eqv-dup .eqv-in-valor { color:#92400e; }
-    .eqv-item.eqv-dup .eqv-in-valor::placeholder { color:#d3a04c; }
+    {{-- Valor duplicado: rojo fijo, sin animación que lo tape ni al agregar ni
+         al reordenar. --}}
+    .eqv-item.eqv-dup { border-color:#dc2626; background:#fee2e2; box-shadow:0 0 0 1px #dc2626;
+        animation:none; }
+    .eqv-item.eqv-dup .eqv-in-valor { color:#b91c1c; font-weight:600; border-color:#fca5a5; }
+    .eqv-item.eqv-dup .eqv-in-valor::placeholder { color:#e9a3a3; }
 
     .eqv-actions { display:flex; gap:3px; opacity:.5; transition:opacity .15s; flex-shrink:0; }
     .eqv-item:hover .eqv-actions, .eqv-item:focus-within .eqv-actions { opacity:1; }
@@ -218,6 +224,7 @@
         var sel = document.querySelector('[data-eqv-orden-mode]');
         var modo = sel ? sel.value : 'manual';
         var nodos = Array.prototype.slice.call(lista.querySelectorAll('.eqv-item'));
+        var orden0 = nodos.slice();
         nodos.forEach(function (n, i) { n.dataset.__ordenIdx = i; });
 
         nodos.sort(function (a, b) {
@@ -241,7 +248,11 @@
 
         if (modo === 'alfa_desc') nodos.reverse();
 
-        nodos.forEach(function (n) { lista.appendChild(n); });
+        // Mover nodos que ya están en su lugar reinicia sus animaciones y le
+        // roba el foco al input que se está editando: sólo reubicar si el
+        // orden calculado difiere del actual.
+        var cambio = nodos.some(function (n, i) { return orden0[i] !== n; });
+        if (cambio) nodos.forEach(function (n) { lista.appendChild(n); });
 
         var deshabilitar = (modo !== 'manual');
         nodos.forEach(function (n) {
@@ -280,8 +291,11 @@
     function agregarFila(nombre, valor, enfocar) {
         quitarVacio();
         var fila = document.createElement('div');
-        fila.className = 'eqv-item';
+        fila.className = 'eqv-item eqv-nueva';
         fila.setAttribute('role', 'listitem');
+        fila.addEventListener('animationend', function () {
+            fila.classList.remove('eqv-nueva');
+        }, { once: true });
         fila.innerHTML =
             '<input type="text" class="eqv-in eqv-orden" name="equiv_orden[]" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">' +
             '<input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">' +

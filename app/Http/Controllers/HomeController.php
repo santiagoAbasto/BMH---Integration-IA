@@ -93,15 +93,6 @@ class HomeController extends Controller
             ->orderBy('orden')
             ->orderBy('cantidad', 'DESC')
             ->get();
-        $productos->each(function (Producto $prod): void {
-            $prod->setRelation(
-                'productCaracteristicas',
-                $prod->productCaracteristicas
-                    ->sortBy(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MAX)
-                    ->values(),
-            );
-        });
-        
         return view('frontend/search', compact('productos', 'busqueda'));
     }
 

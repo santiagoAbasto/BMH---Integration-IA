@@ -68,15 +68,6 @@ class ProductoController extends Controller
         $categoria = $categorias->firstWhere('id', (int) $categoriaId);
         $marcas = $this->catalogFilterOptions->brandsWithModels();
 
-        $productos->each(function (Producto $producto): void {
-            $producto->setRelation(
-                'productCaracteristicas',
-                $producto->productCaracteristicas
-                    ->sortBy(fn ($productCaracteristica) => $productCaracteristica->caracteristica->orden ?? PHP_INT_MAX)
-                    ->values(),
-            );
-        });
-
         $ruta = 'categorias';
         $zonaclientes = Auth::guard('web')->check();
         $categoriasAll = $categorias;
@@ -125,14 +116,6 @@ class ProductoController extends Controller
         }
 
         $productos = $productos->skip($request->contador)->take($request->xpag);
-        $productos->each(function (Producto $prod): void {
-            $prod->setRelation(
-                'productCaracteristicas',
-                $prod->productCaracteristicas
-                    ->sortBy(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MAX)
-                    ->values(),
-            );
-        });
 
         return view('frontend/productos-listado', compact('productos'));
     }
@@ -177,14 +160,6 @@ class ProductoController extends Controller
             ->orderBy('orden')
             ->limit(6)
             ->get();
-        $productos->each(function (Producto $prod) use ($producto): void {
-            $prod->setRelation(
-                'productCaracteristicas',
-                $prod->productCaracteristicas
-                    ->sortBy(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MAX)
-                    ->values(),
-            );
-        });
     } else {
         $productos = null;
     }
@@ -209,8 +184,8 @@ class ProductoController extends Controller
     // ðŸ”¹ Datos extra como en edit()
     $imagenesProducto = Imagen::where('producto_id', $request->id)->where('sector', 'producto')->orderBy('orden')->get();
     $categoriaSelected = Categoria::with('caracteristicas')->find($producto->categoria_id);
+     // La relación ya filtra por la categoría y ordena por `orden`.
      $caracteristicas = $producto->productCaracteristicas
-         ->sortByDesc(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MIN)
          ->map(function ($pc) {
              $caracteristica = $pc->caracteristica;
              $caracteristica->valor = $pc->valor;
@@ -267,15 +242,6 @@ class ProductoController extends Controller
                 $query->where('id', $categoria);
             })->orderBy('orden')->get();
         }
-
-        $productos->each(function (Producto $prod): void {
-            $prod->setRelation(
-                'productCaracteristicas',
-                $prod->productCaracteristicas
-                    ->sortBy(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MAX)
-                    ->values(),
-            );
-        });
 
         return view('frontend/productos-listado', compact('productos'));
     }
@@ -977,15 +943,6 @@ public function filtroRodamiento(Request $request)
 
         $productos = $productos->sortByDesc('relevancia_score')->values();
     }
-
-    $productos->each(function (Producto $prod): void {
-        $prod->setRelation(
-            'productCaracteristicas',
-            $prod->productCaracteristicas
-                ->sortBy(fn ($pc) => $pc->caracteristica->orden ?? PHP_INT_MAX)
-                ->values(),
-        );
-    });
 
     // ==============================
     // Paginación manual
