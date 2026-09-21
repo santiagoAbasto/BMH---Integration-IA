@@ -172,6 +172,20 @@ class Apariencia extends Model
         'footer_derechos_texto' => '#FFFFFF',
     ];
 
+    /**
+     * La barra de contacto de arriba del header: igual en todas las páginas y
+     * sólo en computadora. Los datos que muestra (teléfono, mail, redes) no
+     * viven acá sino en `contacto`, que comparte con el footer y Contacto.
+     */
+    public const CAMPOS_BARRA = ['barra_fondo', 'barra_texto', 'barra_hover'];
+
+    /** El hover arranca igual que el texto: así se veía antes de poder editarlo. */
+    public const DEFAULTS_BARRA = [
+        'barra_fondo' => '#0098DA',
+        'barra_texto' => '#FFFFFF',
+        'barra_hover' => '#FFFFFF',
+    ];
+
     private const CACHE_KEY = 'apariencia.actual';
 
     /**
@@ -265,7 +279,7 @@ class Apariencia extends Model
                 }
             }
 
-            $valores = [...$valores, ...self::DEFAULTS_FOOTER];
+            $valores = [...$valores, ...self::DEFAULTS_FOOTER, ...self::DEFAULTS_BARRA];
         }
 
         return $valores;
@@ -344,6 +358,10 @@ class Apariencia extends Model
 
         foreach (self::CAMPOS_FOOTER as $campo) {
             $mapa[$campo] = self::variableFooter($campo);
+        }
+
+        foreach (self::CAMPOS_BARRA as $campo) {
+            $mapa[$campo] = '--ap-tb-'.str_replace('barra_', '', $campo);
         }
 
         return $mapa;

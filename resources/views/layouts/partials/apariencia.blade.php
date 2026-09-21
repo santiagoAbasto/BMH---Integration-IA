@@ -35,6 +35,20 @@
     @endforeach
   }
 
+  /* ---------- Barra de contacto de arriba (sólo computadora) ---------- */
+  #site-topbar .barra-superior { background-color: var(--ap-tb-fondo); }
+  #site-topbar .headerT { color: var(--ap-tb-texto); transition: color .2s; }
+  /* Los íconos traen fill/stroke blanco fijo en el SVG. */
+  #site-topbar svg [fill="white"] { fill: var(--ap-tb-texto); transition: fill .2s; }
+  #site-topbar svg [stroke="white"] { stroke: var(--ap-tb-texto); transition: stroke .2s; }
+  #site-topbar a:hover .headerT,
+  #site-topbar a:focus-visible .headerT { color: var(--ap-tb-hover); }
+  #site-topbar a:hover svg [fill="white"],
+  #site-topbar a:focus-visible svg [fill="white"] { fill: var(--ap-tb-hover); }
+  #site-topbar a:hover svg [stroke="white"],
+  #site-topbar a:focus-visible svg [stroke="white"] { stroke: var(--ap-tb-hover); }
+  #site-topbar a { text-decoration: none; }
+
   /* ---------- Logos: uno por estado ---------- */
   #site-header .logo-scroll,
   #site-header .logo-mobile { display: none; }

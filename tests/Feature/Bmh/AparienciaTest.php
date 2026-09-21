@@ -73,6 +73,7 @@ final class AparienciaTest extends TestCase
         });
 
         $this->artisan('migrate', ['--path' => 'database/migrations/2026_09_11_000001_create_apariencia_table.php'])->assertSuccessful();
+        $this->artisan('migrate', ['--path' => 'database/migrations/2026_09_21_000001_agregar_barra_superior_a_apariencia.php'])->assertSuccessful();
 
         $this->directorio = sys_get_temp_dir().'/bmh_logos_'.uniqid();
         File::ensureDirectoryExists($this->directorio);

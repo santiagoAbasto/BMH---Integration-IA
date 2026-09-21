@@ -423,6 +423,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
               <div id="collapseExtras" class="accordion-collapse collapse {{ request()->routeIs('dashboard.extras.*') ? 'show' : '' }}" aria-labelledby="extras">
                 <div class="accordion-body">
                   <a class='nav-link menu-item' href="{{route('dashboard.extras.favicon')}}">Favicon</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.barra-superior')}}">Barra superior</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.extras.header')}}">Header</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.extras.footer')}}">Footer</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.extras.imagen-por-defecto')}}">Imagen por defecto</a>

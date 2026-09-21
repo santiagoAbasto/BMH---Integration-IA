@@ -201,6 +201,8 @@ Route::controller(CaracteristicaController::class)->group(function () {
 Route::controller(AparienciaController::class)->middleware('admin')->group(function () {
     Route::get('dashboard/extras/favicon', 'favicon')->name('dashboard.extras.favicon');
     Route::put('dashboard/extras/favicon', 'updateFavicon')->name('extras.favicon.update');
+    Route::get('dashboard/extras/barra-superior', 'barraSuperior')->name('dashboard.extras.barra-superior');
+    Route::put('dashboard/extras/barra-superior', 'updateBarraSuperior')->name('extras.barra-superior.update');
     Route::get('dashboard/extras/header', 'header')->name('dashboard.extras.header');
     Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
     Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');

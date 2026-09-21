@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ActualizarBarraSuperiorRequest;
 use App\Http\Requests\ActualizarFaviconRequest;
 use App\Http\Requests\ActualizarFooterRequest;
 use App\Http\Requests\ActualizarHeaderRequest;
@@ -10,6 +11,7 @@ use App\Models\Contacto;
 use App\Models\Imagen;
 use App\Services\LogosSitio;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -56,6 +58,35 @@ class AparienciaController extends Controller
             'logoFooter' => $logos->url(LogosSitio::FOOTER),
             'contacto' => Contacto::query()->find(1),
         ]);
+    }
+
+    public function barraSuperior(): View
+    {
+        return view('backend.extras.barra-superior', [
+            'apariencia' => Apariencia::actual(),
+            'contacto' => Contacto::actual(),
+        ]);
+    }
+
+    public function updateBarraSuperior(ActualizarBarraSuperiorRequest $request): RedirectResponse
+    {
+        DB::transaction(function () use ($request): void {
+            $this->guardar($request->colores());
+
+            // Los mismos datos que edita la sección Contacto: una sola fila.
+            $contacto = Contacto::query()->find(1) ?? tap(new Contacto(), function (Contacto $nuevo): void {
+                $nuevo->id = 1;
+                $nuevo->iframe = '';
+            });
+
+            foreach ($request->datosContacto() as $campo => $valor) {
+                $contacto->{$campo} = $valor;
+            }
+
+            $contacto->save();
+        });
+
+        return redirect()->route('dashboard.extras.barra-superior')->with('success', 'Barra superior actualizada');
     }
 
     public function favicon(LogosSitio $logos): View

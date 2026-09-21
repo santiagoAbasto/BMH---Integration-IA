@@ -162,6 +162,11 @@
     });
   });
 
+  // Campos de texto (teléfono, mail, links): cuentan como cambio sin guardar.
+  form.addEventListener('input', function (e) {
+    if (e.target.matches('input[type="text"], input[type="email"], input[type="url"], textarea')) marcarCambios();
+  });
+
   // Los radios que eligen logo; los de modo se manejan aparte.
   form.querySelectorAll('input[type="radio"]:not([data-modo])').forEach(function (r) {
     r.addEventListener('change', function () { pintarLogos(); marcarCambios(); });
