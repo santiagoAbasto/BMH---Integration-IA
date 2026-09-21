@@ -24,6 +24,7 @@ use App\Models\Descarga;
 use App\Models\Medida;
 use App\Models\Repuesto;
 use App\Models\User;
+use App\Services\BusquedaPorEquivalencia;
 use App\Services\CatalogFilterOptions;
 use App\Services\LogosSitio;
 use Illuminate\Support\Facades\Auth;
@@ -373,7 +374,7 @@ class ProductoController extends Controller
     //     return view('frontend/productos-search', compact('productos',  'ventana',  'busqueda', 'productosAll', 'marcas', 'categoriasAll', 'zonaclientes'));
     // }
 
-public function filtroRodamiento(Request $request)
+public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equivalencias)
 {
     $busqueda = '';
     $filtrosAplicados = [];
@@ -728,62 +729,13 @@ public function filtroRodamiento(Request $request)
         // resultados por coincidencias numéricas casuales.
     }
 
-    // ========== FILTRO POR EQUIVALENCIA MANUAL (VIEJO + NUEVO) ==========
+    // ========== FILTRO POR EQUIVALENCIA ==========
+    // Sólo campos que son equivalencias de verdad (ver BusquedaPorEquivalencia);
+    // el grado de cada coincidencia ordena primero las exactas.
+    $coincidenciasEquivalencia = [];
     if ($request->filled('equivalenciaFiltro')) {
-        $valorSinEspacios = str_replace(' ', '', trim($request->equivalenciaFiltro));
-
-        // columnas columna_1..columna_78 (sistema viejo)
-        $columns = Schema::getColumnListing('productos');
-        $filteredColumns = array_filter($columns, fn($col) => preg_match('/^columna_\d+$/', $col));
-
-        // ids de características que representan equivalencias (sistema nuevo)
-        $caracteristicasEquivIds = Caracteristica::where(function ($q) {
-                $q->where('nombre', 'LIKE', '%EQUIVALENCIA%')
-                  ->orWhere('nombre', 'LIKE', '%BMH%')
-                  ->orWhere('nombre', 'LIKE', '%Nº ORIGINAL%')
-                  ->orWhere('nombre', 'LIKE', '%NUMERO ORIGINAL%');
-            })
-            ->pluck('id');
-
-        $query->where(function ($q) use ($filteredColumns, $valorSinEspacios, $caracteristicasEquivIds) {
-            // --- sistema viejo: columnas_X ---
-            foreach ($filteredColumns as $column) {
-                $q->orWhereRaw("REPLACE($column, ' ', '') LIKE ?", ["%{$valorSinEspacios}%"]);
-            }
-
-            // --- sistema nuevo: producto_caracteristica ---
-            if ($caracteristicasEquivIds->isNotEmpty()) {
-                $q->orWhereIn('id', function ($sub) use ($caracteristicasEquivIds, $valorSinEspacios) {
-                    $sub->select('producto_id')
-                        ->from('producto_caracteristica')
-                        ->whereIn('caracteristica_id', $caracteristicasEquivIds)
-                        ->whereRaw("REPLACE(valor, ' ', '') LIKE ?", ["%{$valorSinEspacios}%"]);
-                });
-            }
-            // --- tablas nuevas: equivalencias, aplicaciones, partes_relacionadas (conviven con legacy) ---
-            $q->orWhereExists(function ($sub) use ($valorSinEspacios) {
-                $sub->select(DB::raw(1))->from('equivalencias')
-                    ->whereColumn('equivalencias.producto_id', 'productos.id')
-                    ->where(function ($w) use ($valorSinEspacios) {
-                        $w->whereRaw("REPLACE(equivalencias.valor,' ', '') LIKE ?", ["%{$valorSinEspacios}%"])
-                          ->orWhereRaw("REPLACE(equivalencias.nombre,' ', '') LIKE ?", ["%{$valorSinEspacios}%"]);
-                    });
-            });
-            $q->orWhereExists(function ($sub) use ($valorSinEspacios) {
-                $sub->select(DB::raw(1))->from('aplicaciones')
-                    ->whereColumn('aplicaciones.producto_id', 'productos.id')
-                    ->where(function ($w) use ($valorSinEspacios) {
-                        $w->whereRaw("REPLACE(aplicaciones.valor,' ', '') LIKE ?", ["%{$valorSinEspacios}%"])
-                          ->orWhereRaw("REPLACE(aplicaciones.nombre,' ', '') LIKE ?", ["%{$valorSinEspacios}%"]);
-                    });
-            });
-            $q->orWhereExists(function ($sub) use ($valorSinEspacios) {
-                $sub->select(DB::raw(1))->from('partes_relacionadas')
-                    ->join('productos as p2', 'p2.id', '=', 'partes_relacionadas.parte_id')
-                    ->whereColumn('partes_relacionadas.producto_id', 'productos.id')
-                    ->whereRaw("REPLACE(p2.codigo,' ', '') LIKE ?", ["%{$valorSinEspacios}%"]);
-            });
-        });
+        $coincidenciasEquivalencia = $equivalencias->coincidencias($request->equivalenciaFiltro);
+        $equivalencias->filtrar($query, $coincidenciasEquivalencia);
 
         $busqueda = $request->equivalenciaFiltro;
     }
@@ -896,8 +848,10 @@ public function filtroRodamiento(Request $request)
     if (!empty($busqueda)) {
         $busquedaLower = mb_strtolower($busqueda);
 
-        $productos = $productos->map(function ($producto) use ($busquedaLower) {
-            $score = 0;
+        $productos = $productos->map(function ($producto) use ($busquedaLower, $coincidenciasEquivalencia) {
+            // Filtro «Por equivalencia»: la exacta primero, después las que
+            // empiezan con el código y al final las que lo contienen.
+            $score = BusquedaPorEquivalencia::puntaje($coincidenciasEquivalencia[$producto->id] ?? null);
 
             $codigo = mb_strtolower($producto->codigo ?? '');
             $nombre = mb_strtolower($producto->nombre ?? '');
@@ -1047,7 +1001,7 @@ public function filtroRodamiento(Request $request)
     }
 
 
-    public function productos_clientes_filter(Request $request)
+    public function productos_clientes_filter(Request $request, BusquedaPorEquivalencia $equivalencias)
     {
 
         $anuncio = Anuncio::find(1);
@@ -1105,28 +1059,13 @@ public function filtroRodamiento(Request $request)
         }
 
 
-        if ($request->has('equivalenciaFiltro') && $request->equivalenciaFiltro) {
-            $equivalenciaFiltro = $request->equivalenciaFiltro;
-
-            $query->where(function ($q) use ($equivalenciaFiltro) {
-                // Recorrer todas las columnas de columna_1 a columna_74
-                for ($i = 1; $i <= 78; $i++) {
-                    $q->orWhere("columna_$i", $equivalenciaFiltro);
-                }
-                // Tablas nuevas (conviven con legacy)
-                $q->orWhereHas('equivalencias', function ($qq) use ($equivalenciaFiltro) {
-                    $qq->where('valor', 'LIKE', '%' . $equivalenciaFiltro . '%')
-                       ->orWhere('nombre', 'LIKE', '%' . $equivalenciaFiltro . '%');
-                });
-                $q->orWhereHas('aplicaciones', function ($qq) use ($equivalenciaFiltro) {
-                    $qq->where('valor', 'LIKE', '%' . $equivalenciaFiltro . '%')
-                       ->orWhere('nombre', 'LIKE', '%' . $equivalenciaFiltro . '%');
-                });
-                $q->orWhereHas('partesRelacionadas', function ($qq) use ($equivalenciaFiltro) {
-                    $qq->where('codigo', 'LIKE', '%' . $equivalenciaFiltro . '%')
-                       ->orWhere('nombre', 'LIKE', '%' . $equivalenciaFiltro . '%');
-                });
-            });
+        // Mismo filtro que el sitio público: antes acá sólo se buscaba el valor
+        // exacto en las columnas viejas y no en las características, que es
+        // donde está cargada la mayoría de las equivalencias.
+        if ($request->filled('equivalenciaFiltro')) {
+            $coincidencias = $equivalencias->coincidencias($request->equivalenciaFiltro);
+            $equivalencias->filtrar($query, $coincidencias);
+            $equivalencias->ordenar($query, $coincidencias);
         }
 
 
