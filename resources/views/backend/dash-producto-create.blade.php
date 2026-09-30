@@ -208,7 +208,7 @@
             <div class="row">
                 <div class="col-6 my-4">
                     <label for="imagenes" class="form-label">Añadir imágenes <span class='recomendada'>(recomendada 300x300 px)</span></label>
-                    <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple accept="image/*" >
+                    <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple accept="image/*" data-achicar>
                 </div>
                 {{-- <div class="col-6 my-4">
                     <label for="imagenes" class="form-label">Añadir ficha tecnica </label>
@@ -225,6 +225,7 @@
 @endsection
 
 @section('script')
+    @include('backend.partials.achicar-imagenes')
 <script>
     $(document).ready(function() {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');

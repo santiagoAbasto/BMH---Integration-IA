@@ -204,6 +204,23 @@ final class OptimizadorImagenesTest extends TestCase
         $this->assertSame(IMAGETYPE_WEBP, getimagesize($destino.'/'.$nombre)[2]);
     }
 
+    public function test_un_webp_ya_achicado_por_el_navegador_se_guarda_como_webp(): void
+    {
+        // public/js/achicar-imagenes.js manda WebP de 2000 px a calidad 95.
+        $img = imagecreatefrompng($this->foto(2000, 1500, 'navegador.png'));
+        $ruta = $this->dir.'/navegador.webp';
+        imagewebp($img, $ruta, 95);
+        $subida = new UploadedFile($ruta, 'Foto Camara.webp', 'image/webp', null, true);
+        $destino = $this->dir.'/imagenes';
+        File::ensureDirectoryExists($destino);
+
+        $nombre = $this->optimizador->guardarSubida($subida, $destino);
+
+        $this->assertMatchesRegularExpression('/^media_[0-9a-f]+\.webp$/', $nombre);
+        [$ancho, $alto, $tipo] = getimagesize($destino.'/'.$nombre);
+        $this->assertSame([2000, 1500, IMAGETYPE_WEBP], [$ancho, $alto, $tipo]);
+    }
+
     public function test_una_subida_que_no_se_puede_optimizar_se_guarda_como_vino(): void
     {
         // Un GIF (formato no soportado por el optimizador) queda igual.

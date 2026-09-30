@@ -261,7 +261,7 @@
                     <div class="col-6 my-3">
                         <label for="imagenes" class="form-label">Añadir imágenes <span class='recomendada'>(recomendada
                                 500x500 px)</span></label>
-                        <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple
+                        <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple data-achicar
                             accept="image/*">
                     </div>
 
@@ -351,7 +351,7 @@
                                                         class='recomendada'>(recomendada 500x500 px)</span></label>
                                                 <input class="form-control preview"
                                                     data-form-id="{{ 'imagen' . $imagen->id }}" type="file"
-                                                    id="imagen" name='imagen' accept="image/*">
+                                                    id="imagen" name='imagen' accept="image/*" data-achicar>
                                             </div>
                                             <div class="mb-3 col-3">
                                                 <label for="orden" class="form-label">Orden</label>
@@ -389,6 +389,7 @@
 @endsection
 
 @section('script')
+    @include('backend.partials.achicar-imagenes')
 <script>
   let idProducto = "{{ $producto->id }}"; 
 </script>
