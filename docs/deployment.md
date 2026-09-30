@@ -213,6 +213,24 @@ build.
 0 3 * * * cd /path/bmh && php artisan bmh:catalog-sync >> storage/logs/catalog-sync.log 2>&1
 ```
 
+### 6.6 Imágenes
+
+Las subidas del admin de productos se guardan como WebP (`config/imagenes.php`).
+Para convertir las que ya estaban cargadas:
+
+```bash
+php artisan imagenes:optimizar --dry-run --limite=50   # muestra qué haría
+php artisan imagenes:optimizar                          # convierte, actualiza la base y borra el original
+```
+
+Sólo toca las imágenes con referencia exacta en la base. Deja un registro por
+corrida en `storage/app/optimizacion-imagenes/*.jsonl` (nombre viejo → nuevo)
+para poder restaurar desde un backup. **Hacer el backup de `imagenes/` fuera del
+servidor antes de correrlo**: en el hosting no hay espacio para duplicarlo.
+
+Copiar `docs/deploy/imagenes.htaccess` a `public_html/imagenes/.htaccess`: sirve
+el `.webp` cuando se pide el nombre viejo `.png`/`.jpg`.
+
 ---
 
 ## 7. Tests

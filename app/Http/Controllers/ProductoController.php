@@ -25,6 +25,8 @@ use App\Models\Medida;
 use App\Models\Repuesto;
 use App\Models\User;
 use App\Services\BusquedaPorEquivalencia;
+use App\Services\Imagenes\ImagenesDeCategoria;
+use App\Services\Imagenes\OptimizadorImagenes;
 use App\Services\CatalogFilterOptions;
 use App\Services\LogosSitio;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +38,29 @@ class ProductoController extends Controller
     public function __construct(
         private readonly CatalogFilterOptions $catalogFilterOptions,
     ) {
+    }
+
+    /** Guarda las imágenes que se suben desde el admin, optimizadas a WebP. */
+    private function optimizador(): OptimizadorImagenes
+    {
+        return app(OptimizadorImagenes::class);
+    }
+
+    /**
+     * Nombre con que existe hoy una imagen. Las que se optimizaron cambiaron
+     * de extensión (media_x.png → media_x.webp): un Excel viejo con el nombre
+     * anterior tiene que seguir apuntando a la imagen correcta.
+     */
+    private function nombreImagenVigente(string $nombre): string
+    {
+        $directorio = config('imagenes.directorio');
+        if ($nombre === '' || is_file($directorio . '/' . $nombre)) {
+            return $nombre;
+        }
+
+        $webp = pathinfo($nombre, PATHINFO_FILENAME) . '.webp';
+
+        return is_file($directorio . '/' . $webp) ? $webp : $nombre;
     }
 
     public function index(Request $request)
@@ -1204,7 +1229,12 @@ public function dash_productos(Request $request)
 
     $categorias = Categoria::orderBy('nombre')->get();
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id'));
+    // Con una categoría elegida se ofrece descargar sus imágenes en un ZIP.
+    $imagenesCategoria = (!empty($categoria_id) && $categoria_id != 'todos')
+        ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
+        : null;
+
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria'));
 }
 
     public function exportarExcel(Request $request)
@@ -1357,8 +1387,8 @@ public function dash_productos(Request $request)
             // Recorrer cada archivo
             for ($i = 0; $i < count($files); $i++) {
                 if ($files[$i]->isValid()) {
-                    $nombreImagen = 'media_' . uniqid() . '.' . $files[$i]->getClientOriginalExtension();
-                    $files[$i]->move('imagenes', $nombreImagen);
+                    // Se guarda como WebP optimizado si conviene (ver OptimizadorImagenes).
+                    $nombreImagen = $this->optimizador()->guardarSubida($files[$i], config('imagenes.directorio'));
                     $nueva_imagen = new Imagen();
                     $nueva_imagen->path = $nombreImagen;
                     $nueva_imagen->producto_id = $nuevo_producto->id;
@@ -1429,8 +1459,7 @@ public function dash_productos(Request $request)
             foreach ($files as $file) {
                 // Verificar si el archivo se cargï¿½ï¿½ correctamente
                 if ($file->isValid()) {
-                    $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $file->move('imagenes', $nombreImagen);
+                    $nombreImagen = $this->optimizador()->guardarSubida($file, config('imagenes.directorio'));
 
                     $nueva_imagen = new Imagen();
                     $nueva_imagen->path = $nombreImagen;
@@ -1569,8 +1598,7 @@ public function dash_productos(Request $request)
 
             // Verificar si el archivo se cargï¿½ï¿½ correctamente
             if ($file->isValid()) {
-                $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move('imagenes', $nombreImagen);
+                $nombreImagen = $this->optimizador()->guardarSubida($file, config('imagenes.directorio'));
                 File::delete(public_path('imagenes/' . $imagen->path));
                 $imagen->path = $nombreImagen;
             }
@@ -2211,7 +2239,7 @@ public function dash_productos(Request $request)
     {
         if ($imagenesTexto) {
             $imagenesURLs = array_map('trim', explode(',', $imagenesTexto));
-            $imagenesNombres = array_map('basename', $imagenesURLs);
+            $imagenesNombres = array_map(fn ($url) => $this->nombreImagenVigente(basename($url)), $imagenesURLs);
 
             if (count($imagenesNombres) > 0) {
                 $primeraImagen = array_shift($imagenesNombres);

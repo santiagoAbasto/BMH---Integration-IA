@@ -41,6 +41,22 @@
       <img style="height:18px; padding-right:5px;" src="{{ asset('imagenes/iconos/excel.png') }}" alt="">
       <span id="label-exportar-excel">Descargar Excel{{ $catLabel }}</span>
     </a>
+
+    {{-- Sólo con una categoría elegida: un ZIP con las imágenes nombradas por código. --}}
+    @if (isset($imagenesCategoria))
+      @if ($imagenesCategoria > 0)
+        <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
+           class="btn btn-outline-primary d-flex align-items-center gap-2"
+           title="Cada imagen lleva el código del producto (CODIGO-1, CODIGO-2 si tiene varias)">
+          <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+          <span>Descargar imágenes{{ $catLabel }} ({{ number_format($imagenesCategoria, 0, ',', '.') }})</span>
+        </a>
+      @else
+        <span class="btn btn-outline-secondary d-flex align-items-center gap-2 disabled" aria-disabled="true">
+          <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Esta categoría no tiene imágenes
+        </span>
+      @endif
+    @endif
   </div>
 
 

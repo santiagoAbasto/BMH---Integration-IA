@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\DescargaImagenesCategoriaController;
 use App\Http\Controllers\HomeSliderController;
 use App\Http\Controllers\ImagenPorDefectoController;
 use App\Http\Controllers\DashboardController;
@@ -146,6 +147,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
         Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
+        Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');
         Route::post('dashboard/producto/store', 'store')->name('producto.store');
         Route::get('dashboard/productos/editar', 'edit')->name('producto.edit');
