@@ -78,6 +78,10 @@ final class CatalogoFiltrado
             $resultado = $resultado->sortBy(fn (object $p) => $gradosEquivalencia[$p->id] ?? 9)->values();
         }
 
+        if ($filtros->orden !== null) {
+            $resultado = self::ordenarPorCodigo($resultado, $filtros->orden);
+        }
+
         $sinCategoria = $pool->filter(fn (object $p) => $cumple($p, 'categoria'));
 
         return new ResultadoCatalogo(
@@ -187,8 +191,38 @@ final class CatalogoFiltrado
             // Los ocultos (estado = 0) no se le ofrecen al visitante.
             ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0));
 
-        // El orden que se elige en el admin: manual, por código o por nombre.
         return $consulta->ordenado()->get();
+    }
+
+    /**
+     * Orden por código. «Numérico»: primero los códigos de puros números, de
+     * menor a mayor (0067, 1174, 10235), y después los que tienen letras, en
+     * orden natural (PLA18184 antes que PLA18400). «Alfabético»: al revés,
+     * primero los que tienen letras.
+     *
+     * @param  Collection<int, object>  $productos
+     * @return Collection<int, object>
+     */
+    private static function ordenarPorCodigo(Collection $productos, string $orden): Collection
+    {
+        $numericosPrimero = $orden === FiltrosCatalogo::ORDEN_NUMERICO;
+
+        return $productos->sort(function (object $a, object $b) use ($numericosPrimero): int {
+            $codigoA = trim((string) $a->codigo);
+            $codigoB = trim((string) $b->codigo);
+            $numericoA = ctype_digit($codigoA);
+            $numericoB = ctype_digit($codigoB);
+
+            if ($numericoA !== $numericoB) {
+                return $numericoA === $numericosPrimero ? -1 : 1;
+            }
+
+            $comparacion = $numericoA
+                ? [(int) $codigoA, $codigoA] <=> [(int) $codigoB, $codigoB]
+                : strnatcasecmp($codigoA, $codigoB);
+
+            return $comparacion ?: (int) $a->id <=> (int) $b->id;
+        })->values();
     }
 
     /**

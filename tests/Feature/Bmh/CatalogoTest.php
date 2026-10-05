@@ -131,6 +131,34 @@ final class CatalogoTest extends BaseTestCase
         $this->assertSame(['PRODUCTO A', 'PRODUCTO C'], $this->listados(['atributo' => ['columna_1' => '60']]));
     }
 
+    public function test_ordena_por_codigo_numericos_o_con_letras_primero(): void
+    {
+        // Como número 2… va antes que 1…0; como texto sería al revés.
+        $n = (string) random_int(10000000, 99999999);
+        $this->crear('N1', ['estado' => 1, 'codigo' => '1'.$n.'0']);
+        $this->crear('N2', ['estado' => 1, 'codigo' => '2'.$n]);
+
+        $ordenados = fn (?string $orden) => $this->get(route('productos', ['categoria' => $this->categoria, 'orden' => $orden]))
+            ->assertOk()
+            ->viewData('productos')
+            ->pluck('nombre')
+            ->all();
+
+        $this->assertSame(
+            ['PRODUCTO N2', 'PRODUCTO N1', 'PRODUCTO A', 'PRODUCTO B', 'PRODUCTO C', 'PRODUCTO D'],
+            $ordenados('numerico')
+        );
+        $this->assertSame(
+            ['PRODUCTO A', 'PRODUCTO B', 'PRODUCTO C', 'PRODUCTO D', 'PRODUCTO N2', 'PRODUCTO N1'],
+            $ordenados('alfabetico')
+        );
+
+        // El orden sigue en los links de los filtros; un valor raro se ignora.
+        $filtros = $this->get(route('productos', ['categoria' => $this->categoria, 'orden' => 'numerico']))->viewData('filtros');
+        $this->assertSame('numerico', $filtros->query(['marca' => 'BOSCH'])['orden']);
+        $this->assertNull($this->get(route('productos', ['orden' => 'cualquiera']))->viewData('filtros')->orden);
+    }
+
     public function test_los_contadores_cuentan_el_resto_de_los_filtros(): void
     {
         $resultado = $this->get(route('productos', ['categoria' => $this->categoria, 'marca' => 'BOSCH']))

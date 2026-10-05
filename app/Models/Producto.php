@@ -32,37 +32,13 @@ class Producto extends Model
         return in_array($valor, self::MODOS_ORDEN, true) ? (string) $valor : self::ORDEN_MANUAL;
     }
 
-    /** Ajuste general: cómo se ordenan los productos en el catálogo y en el admin. */
-    public const AJUSTE_ORDEN = 'productos_orden';
-    public const ORDEN_MANUAL_PRODUCTOS = 'manual';
-    public const ORDEN_POR_CODIGO = 'codigo';
-    public const ORDEN_POR_NOMBRE = 'nombre';
-
-    public const ORDENES_PRODUCTOS = [
-        self::ORDEN_MANUAL_PRODUCTOS,
-        self::ORDEN_POR_CODIGO,
-        self::ORDEN_POR_NOMBRE,
-    ];
-
-    /** El orden elegido para todos los productos; sin elegir (o un valor raro) es el manual. */
-    public static function ordenElegido(): string
-    {
-        $valor = Ajuste::obtener(self::AJUSTE_ORDEN, self::ORDEN_MANUAL_PRODUCTOS);
-
-        return in_array($valor, self::ORDENES_PRODUCTOS, true) ? $valor : self::ORDEN_MANUAL_PRODUCTOS;
-    }
-
     /**
-     * Orden de los productos: manual (campo `orden`, y por nombre entre los que
-     * lo comparten), alfabético por código o alfabético por nombre.
+     * Orden de los productos: el manual (campo `orden`), y por nombre entre
+     * los que lo comparten.
      */
     public function scopeOrdenado($query)
     {
-        return match (self::ordenElegido()) {
-            self::ORDEN_POR_CODIGO => $query->orderBy('codigo')->orderBy('id'),
-            self::ORDEN_POR_NOMBRE => $query->orderBy('nombre')->orderBy('id'),
-            default                => $query->orderBy('orden')->orderBy('nombre')->orderBy('id'),
-        };
+        return $query->orderBy('orden')->orderBy('nombre')->orderBy('id');
     }
 
     protected $fillable = [

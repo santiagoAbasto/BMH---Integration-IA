@@ -375,8 +375,9 @@
   }
 
   contenedor.addEventListener('change', function (e) {
-    var form = e.target.closest('[data-catalogo-form]');
-    if (!form || e.target.matches('[data-catalogo-texto]')) return;
+    // .form y no closest(): el orden por código está fuera del form (form="…").
+    var form = e.target.form;
+    if (!form || !form.matches('[data-catalogo-form]') || e.target.matches('[data-catalogo-texto]')) return;
     aplicar(form, e.target);
   });
 

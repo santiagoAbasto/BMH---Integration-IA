@@ -60,6 +60,7 @@ class CatalogoRequest extends FormRequest
         }
 
         $vehiculo = $this->normalizado('vehiculo', vehiculo: true);
+        $orden = $this->query('orden');
 
         return new FiltrosCatalogo(
             q: mb_strlen($q) >= BuscadorCatalogo::MINIMO_CARACTERES ? $q : '',
@@ -70,6 +71,7 @@ class CatalogoRequest extends FormRequest
             modelo: $vehiculo !== null ? $this->normalizado('modelo') : null,
             equivalencia: $this->texto('equivalencia'),
             atributos: $atributos,
+            orden: is_string($orden) && isset(FiltrosCatalogo::ORDENES[$orden]) ? $orden : null,
         );
     }
 

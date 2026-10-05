@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ajuste;
 use App\Models\Anuncio;
-use Illuminate\Validation\Rule;
 use App\Models\Bonificacion;
 use Illuminate\Http\Request;
 use App\Models\Producto;
@@ -879,22 +877,8 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    $ordenProductos = Producto::ordenElegido();
-
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'ordenProductos'));
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria'));
 }
-
-    /** Cómo se ordenan todos los productos (catálogo y listado): manual, por código o por nombre. */
-    public function guardarOrdenProductos(Request $request)
-    {
-        $datos = $request->validate([
-            'orden' => ['required', Rule::in(Producto::ORDENES_PRODUCTOS)],
-        ]);
-
-        Ajuste::guardar(Producto::AJUSTE_ORDEN, $datos['orden']);
-
-        return redirect()->back()->with('success', 'Orden de los productos actualizado.');
-    }
 
     public function exportarExcel(Request $request)
     {

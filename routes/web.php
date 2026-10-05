@@ -156,7 +156,6 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
-        Route::post('dashboard/productos/orden', 'guardarOrdenProductos')->name('dashboard.productos.orden');
         Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
         Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');

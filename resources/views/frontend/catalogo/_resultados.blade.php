@@ -11,14 +11,32 @@
         </p>
     </div>
 
-    {{-- Celular: los filtros se abren en un panel. --}}
-    <button type="button" class="catalogo__abrir-filtros" data-catalogo-abrir-filtros aria-controls="catalogo-filtros" aria-expanded="false">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Filtros
-        @if ($hayFiltros)
-            <span class="filtros__contador">{{ $filtros->cantidadActivos() }}</span>
+    <div class="catalogo__acciones">
+        {{--
+            Orden por código. Es parte del form del sidebar (form="catalogo-form"),
+            así viaja en la URL junto con los filtros y se aplica igual que ellos.
+        --}}
+        @if ($total > 1 || $filtros->orden !== null)
+            <div class="catalogo__orden">
+                <label class="catalogo__orden-titulo" for="catalogo-orden">Ordenar por código</label>
+                <select id="catalogo-orden" name="orden" form="catalogo-form" class="filtros__select" data-desplegable>
+                    <option value="" data-texto="Predeterminado" @selected($filtros->orden === null)>Predeterminado</option>
+                    @foreach (\App\Services\Catalogo\FiltrosCatalogo::ORDENES as $valor => $texto)
+                        <option value="{{ $valor }}" data-texto="{{ $texto }}" @selected($filtros->orden === $valor)>{{ $texto }}</option>
+                    @endforeach
+                </select>
+            </div>
         @endif
-    </button>
+
+        {{-- Celular: los filtros se abren en un panel. --}}
+        <button type="button" class="catalogo__abrir-filtros" data-catalogo-abrir-filtros aria-controls="catalogo-filtros" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Filtros
+            @if ($hayFiltros)
+                <span class="filtros__contador">{{ $filtros->cantidadActivos() }}</span>
+            @endif
+        </button>
+    </div>
 </div>
 
 @if ($chips->isNotEmpty())

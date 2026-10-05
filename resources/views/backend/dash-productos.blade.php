@@ -37,21 +37,6 @@
       </select>
     </form>
 
-    {{-- Cómo se ordenan todos los productos, en el catálogo y en este listado. --}}
-    <form method="POST" action="{{ route('dashboard.productos.orden') }}" class="d-flex align-items-center ms-auto" id="form-orden-productos">
-      @csrf
-      <label for="orden-productos" class="me-2 fw-bold mb-0">
-        Ordenar productos:
-        <i class="fa-regular fa-circle-question text-secondary ms-1" tabindex="0"
-           title="Cómo se ordenan todos los productos en el catálogo que ve el cliente y en este listado. «Orden manual» usa el campo Orden de cada producto; las otras dos opciones los ordenan alfabéticamente e ignoran ese campo."></i>
-      </label>
-      <select name="orden" id="orden-productos" class="form-select w-auto" onchange="this.form.submit()">
-        <option value="manual" @selected($ordenProductos === 'manual')>Orden manual</option>
-        <option value="codigo" @selected($ordenProductos === 'codigo')>Alfabético por código</option>
-        <option value="nombre" @selected($ordenProductos === 'nombre')>Alfabético por nombre</option>
-      </select>
-    </form>
-
     <a href="#" id="btn-exportar-excel" class="btn btn-success d-flex align-items-center" onclick="exportarExcelProductos(event)">
       <img style="height:18px; padding-right:5px;" src="{{ asset('imagenes/iconos/excel.png') }}" alt="">
       <span id="label-exportar-excel">Descargar Excel{{ $catLabel }}</span>

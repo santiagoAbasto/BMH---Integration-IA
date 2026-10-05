@@ -28,7 +28,8 @@
     $hayFiltros = $filtros->cantidadActivos() > 0;
 @endphp
 
-<form class="filtros" method="GET" action="{{ route($ruta) }}" data-catalogo-form>
+{{-- El orden por código (catalogo/_resultados) también es de este form, con form="catalogo-form". --}}
+<form id="catalogo-form" class="filtros" method="GET" action="{{ route($ruta) }}" data-catalogo-form>
     @if ($filtros->hayBusqueda())
         <input type="hidden" name="q" value="{{ $filtros->q }}">
     @endif

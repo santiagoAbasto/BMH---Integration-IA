@@ -20,9 +20,18 @@ final class FiltrosCatalogo
     /** Valor en la URL ⇄ productos.estado. */
     public const ESTADOS = ['nuevo' => self::NUEVO, 'reconstruido' => self::RECONSTRUIDO];
 
+    /** Orden por código: primero los códigos de puros números, o primero los que tienen letras. */
+    public const ORDEN_NUMERICO = 'numerico';
+
+    public const ORDEN_ALFABETICO = 'alfabetico';
+
+    /** Valor en la URL ⇄ texto del selector. */
+    public const ORDENES = [self::ORDEN_NUMERICO => 'Numérico', self::ORDEN_ALFABETICO => 'Alfabético'];
+
     /**
      * @param  list<int>  $estados  productos.estado (NUEVO / RECONSTRUIDO)
      * @param  array<string, string>  $atributos  columna_N => valor
+     * @param  string|null  $orden  ORDEN_NUMERICO / ORDEN_ALFABETICO; null es el orden de siempre
      */
     public function __construct(
         public readonly string $q = '',
@@ -33,6 +42,7 @@ final class FiltrosCatalogo
         public readonly ?string $modelo = null,
         public readonly ?string $equivalencia = null,
         public readonly array $atributos = [],
+        public readonly ?string $orden = null,
     ) {
     }
 
@@ -72,6 +82,7 @@ final class FiltrosCatalogo
             'modelo' => $this->modelo,
             'equivalencia' => $this->equivalencia,
             'atributo' => $this->atributos ?: null,
+            'orden' => $this->orden,
         ];
 
         // Cambiar de categoría o de vehículo invalida lo que dependía de ellos.

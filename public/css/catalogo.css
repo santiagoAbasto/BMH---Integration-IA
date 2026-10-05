@@ -398,6 +398,35 @@
 }
 .catalogo__total strong { color: var(--c-texto); }
 
+.catalogo__acciones {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Orden por código: el desplegable del sidebar, pero flotando sobre las cards. */
+.catalogo__orden {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.catalogo__orden-titulo {
+  margin: 0;
+  color: var(--c-texto-2);
+  font: 600 13px/1.2 "Montserrat", sans-serif;
+  white-space: nowrap;
+}
+.catalogo__orden .filtros__select { width: auto; }
+.catalogo__orden .desplegable { width: 170px; }
+.catalogo__orden .desplegable__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 30;
+}
+
 .catalogo__abrir-filtros {
   display: none;
   flex: none;
@@ -548,6 +577,7 @@
   .catalogo__grilla { display: block; }
   .catalogo__titulo { font-size: 21px; }
   .catalogo__abrir-filtros { display: inline-flex; }
+  .catalogo__cabecera { flex-wrap: wrap; }
 
   .catalogo__sidebar {
     position: fixed;
@@ -589,4 +619,11 @@
   .desplegable__buscar,
   .filtros__texto input { font-size: 16px; } /* sin zoom de iOS al enfocar */
   .catalogo__arriba { right: 24px; bottom: 110px; }
+}
+
+/* Celular chico: el orden ocupa el ancho, con su título arriba. */
+@media (max-width: 575px) {
+  .catalogo__acciones { width: 100%; align-items: flex-end; }
+  .catalogo__orden { flex: 1 1 auto; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
+  .catalogo__orden .desplegable { width: auto; }
 }
