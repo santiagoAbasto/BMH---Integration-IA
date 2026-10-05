@@ -11,16 +11,10 @@ use App\Models\Metadatos;
 use App\Models\Producto;
 use App\Models\Novedad;
 use App\Models\Anuncio;
-use App\Services\CatalogFilterOptions;
 use Illuminate\Support\Facades\Http;
 
 class HomeController extends Controller
 {
-    public function __construct(
-        private readonly CatalogFilterOptions $catalogFilterOptions,
-    ) {
-    }
-
     public function home(Request $request){
 
         // $url = 'https://apitest.correoargentino.com.ar/paqar/v1/auth';
@@ -45,14 +39,12 @@ class HomeController extends Controller
                 'portadaImagen',
                 'imagenesGaleria',
                 'productCaracteristicas.caracteristica',
-                'partesRelacionadas',
+                'partesRelacionadas.portadaImagen',
+                'partesRelacionadas.imagenesGaleria',
                 'equivalencias',
                 'aplicaciones',
             ])->where('destacada', true)->orderBy('orden')->get();
         $novedades = Novedad::where('destacada', true)->orderBy('orden')->get();
-        $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
-
-        $marcas = $this->catalogFilterOptions->brandsWithModels();
 
         //$request->session()->forget('modal_abierto');
         $anuncio_abierto = $request->session()->get('modal_abierto', 0); // Obtiene el valor de la sesión o 0 si no existe
@@ -62,38 +54,7 @@ class HomeController extends Controller
         }
         
         $registro = isset($request->registro);
-        return view('frontend/home', compact('home_slider','categorias', 'nosotros', 'anuncio', 'anuncio_abierto', 'nosotros_slider', 'seccion', 'novedades', 'registro', 'productos', 'marcas', 'categoriasAll'));
-    }
-
-    public function search(Request $request){
-        $busqueda = $request->search;
-
-        $productos = Producto::with([
-                'categoria',
-                'portadaImagen',
-                'imagenesGaleria',
-                'productCaracteristicas.caracteristica',
-                'partesRelacionadas.portadaImagen',
-                'equivalencias',
-                'aplicaciones',
-            ])->whereHas('categoria', function ($query) use ($busqueda) {
-            $query->where('nombre', 'like', '%'.$busqueda.'%');})
-            ->orWhereHas('subcategoria', function ($query) use ($busqueda) {
-            $query->where('nombre', 'like', '%'.$busqueda.'%');})
-            ->orWhere('nombre', 'like', '%'.$busqueda.'%')
-            ->orWhereHas('equivalencias', function ($q) use ($busqueda) {
-                $q->where('valor', 'like', '%'.$busqueda.'%')->orWhere('nombre', 'like', '%'.$busqueda.'%');
-            })
-            ->orWhereHas('aplicaciones', function ($q) use ($busqueda) {
-                $q->where('valor', 'like', '%'.$busqueda.'%')->orWhere('nombre', 'like', '%'.$busqueda.'%');
-            })
-            ->orWhereHas('partesRelacionadas', function ($q) use ($busqueda) {
-                $q->where('codigo', 'like', '%'.$busqueda.'%')->orWhere('nombre', 'like', '%'.$busqueda.'%');
-            })
-            ->orderBy('orden')
-            ->orderBy('cantidad', 'DESC')
-            ->get();
-        return view('frontend/search', compact('productos', 'busqueda'));
+        return view('frontend/home', compact('home_slider','categorias', 'nosotros', 'anuncio', 'anuncio_abierto', 'nosotros_slider', 'seccion', 'novedades', 'registro', 'productos'));
     }
 
     public function updateLogo(Request $request){

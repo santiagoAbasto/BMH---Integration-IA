@@ -32,6 +32,44 @@ class Producto extends Model
         return in_array($valor, self::MODOS_ORDEN, true) ? (string) $valor : self::ORDEN_MANUAL;
     }
 
+    /** Ajuste por categoría: cómo se ordenan sus productos en el catálogo y en el admin. */
+    public const AJUSTE_ORDEN_CATEGORIA = 'productos_orden_categoria';
+    public const ORDEN_CAT_MANUAL = 'manual';
+    public const ORDEN_CAT_CODIGO = 'codigo';
+    public const ORDEN_CAT_NOMBRE = 'nombre';
+
+    public const ORDENES_CATEGORIA = [
+        self::ORDEN_CAT_MANUAL,
+        self::ORDEN_CAT_CODIGO,
+        self::ORDEN_CAT_NOMBRE,
+    ];
+
+    /** El orden elegido para una categoría; sin elegir (o un valor raro) es el manual. */
+    public static function ordenDeCategoria(?int $categoriaId = null): string
+    {
+        if ($categoriaId === null) {
+            return self::ORDEN_CAT_MANUAL;
+        }
+
+        $valor = Ajuste::obtener(self::AJUSTE_ORDEN_CATEGORIA.'.'.$categoriaId, self::ORDEN_CAT_MANUAL);
+
+        return in_array($valor, self::ORDENES_CATEGORIA, true) ? $valor : self::ORDEN_CAT_MANUAL;
+    }
+
+    /**
+     * Orden de los productos de una categoría: manual (campo `orden`, y por
+     * nombre entre los que lo comparten), alfabético por código o alfabético
+     * por nombre. Sin categoría rige el manual.
+     */
+    public function scopeOrdenado($query, ?int $categoriaId = null)
+    {
+        return match (self::ordenDeCategoria($categoriaId)) {
+            self::ORDEN_CAT_CODIGO => $query->orderBy('codigo')->orderBy('id'),
+            self::ORDEN_CAT_NOMBRE => $query->orderBy('nombre')->orderBy('id'),
+            default                => $query->orderBy('orden')->orderBy('nombre')->orderBy('id'),
+        };
+    }
+
     protected $fillable = [
         'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 
         'columna_7', 'columna_8', 'columna_9', 'columna_10', 'columna_11', 'columna_12',

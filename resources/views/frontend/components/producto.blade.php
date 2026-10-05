@@ -1,6 +1,8 @@
 <div class='producto'>
     <div>
-        <div class='producto-portada' style='position: relative;background-image: url("{{ $producto->portadaUrl() }}"); background-size: contain; background-position: center;background-repeat:no-repeat;'>
+        <div class='producto-portada' data-gallery-open role="button" tabindex="0" aria-haspopup="dialog" aria-label="Ver fotos de {{ $producto->nombre }}"
+             @include('frontend.components.galeria-datos', ['productoGaleria' => $producto])
+             style='position: relative;background-image: url("{{ $producto->portadaUrl() }}"); background-size: contain; background-position: center;background-repeat:no-repeat;'>
             {{-- <div class='middle'>
                 <div class='d-flex'>
                 

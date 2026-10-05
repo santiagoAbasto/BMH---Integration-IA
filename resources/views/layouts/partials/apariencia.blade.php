@@ -110,6 +110,9 @@
     #site-header .navbar .nav-link:hover,
     #site-header .navbar .nav-link:active { color: {{ $var('celular', 'links_hover') }} !important; }
 
+    /* La lupa que abre el buscador va al lado del menú, con su mismo color. */
+    #site-header .buscador-header-abrir { color: {{ $var('celular', 'links') }}; }
+
     /* El ícono de menú sigue el color de los links. Máscara con un SVG
        codificado: el data-URI original no se dibujaba y el botón no se veía. */
     #site-header .navbar-toggler-icon {

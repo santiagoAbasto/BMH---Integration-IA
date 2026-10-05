@@ -1,0 +1,592 @@
+/*
+ * Catálogo con filtros (resources/views/frontend/catalogo*.blade.php).
+ *
+ * Computadora: sidebar fijo a la izquierda que acompaña el scroll.
+ * Celular: el sidebar es un panel que se abre desde «Filtros».
+ */
+
+.catalogo {
+  --c-azul: #0098DA;
+  --c-azul-oscuro: #00699A;
+  --c-azul-suave: #EEF7FC;
+  --c-verde: #3E9A43;
+  --c-texto: #1D1C1B;
+  --c-texto-2: #5F6B75;
+  --c-texto-3: #8A96A0;
+  --c-borde: #DCE3E8;
+  --c-borde-suave: #EEF1F3;
+
+  padding: 34px 0 80px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.catalogo__miga { margin-bottom: 24px; font-size: 15px; }
+
+.catalogo__grilla {
+  display: grid;
+  grid-template-columns: 296px minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+/* Fondo oscuro detrás del panel de filtros: sólo en celular. */
+.catalogo__fondo { display: none; }
+
+/* --------------------------------------------------------------- sidebar */
+
+.catalogo__sidebar {
+  position: sticky;
+  /* --catalogo-tope: alto del header cuando queda fijo arriba (catalogo.js). */
+  top: calc(var(--catalogo-tope, 0px) + 20px);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--catalogo-tope, 0px) - 40px);
+  background: #fff;
+  border: 1px solid #E6EBEF;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 35, 52, .04), 0 8px 24px rgba(15, 35, 52, .04);
+}
+
+.filtros {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.filtros__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-borde-suave);
+}
+
+.filtros__encabezado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--c-texto);
+  font: 700 16px/1.2 "Montserrat", sans-serif;
+}
+.filtros__encabezado svg { color: var(--c-azul); }
+
+.filtros__contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--c-azul);
+  color: #fff;
+  font: 700 11px/1 "Montserrat", sans-serif;
+}
+
+.filtros__limpiar {
+  margin-left: auto;
+  color: var(--c-azul);
+  font: 600 13px/1 "Montserrat", sans-serif;
+  text-decoration: none;
+}
+.filtros__limpiar:hover { color: var(--c-azul-oscuro); text-decoration: underline; }
+
+.filtros__cerrar {
+  display: none;
+  margin-left: auto;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--c-texto);
+}
+.filtros__limpiar + .filtros__cerrar { margin-left: 4px; }
+
+.filtros__cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #D5DCE1 transparent;
+}
+
+.filtros__grupo {
+  min-width: 0;
+  margin: 0;
+  padding: 16px 20px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--c-borde-suave);
+}
+
+.filtros__titulo {
+  display: block;
+  float: none;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 0;
+  color: var(--c-texto-2);
+  font: 700 11.5px/1.2 "Montserrat", sans-serif;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.filtros__subtitulo {
+  margin: 6px 0 -2px;
+  color: #3F4A52;
+  font: 600 13px/1.3 "Montserrat", sans-serif;
+}
+
+.filtros__pila { display: grid; gap: 8px; }
+
+.filtros__ayuda,
+.filtros__nota {
+  margin: 6px 0 0;
+  color: var(--c-texto-3);
+  font: 400 12px/1.4 "Montserrat", sans-serif;
+}
+.filtros__nota { margin: 0; padding: 14px 20px 18px; }
+
+/* Estado: dos chips que se prenden. */
+.filtros__estados {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.filtros__estado {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid var(--c-borde);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.filtros__estado input { position: absolute; opacity: 0; pointer-events: none; }
+.filtros__estado-nombre { color: var(--c-texto); font: 600 13.5px/1.2 "Montserrat", sans-serif; }
+.filtros__cantidad { color: var(--c-texto-3); font: 500 12px/1.2 "Montserrat", sans-serif; }
+.filtros__estado:hover { border-color: #B9C5CD; }
+.filtros__estado:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(0, 152, 218, .25); }
+.filtros__estado:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+
+.filtros__estado--nuevo:has(input:checked) { border-color: var(--c-verde); background: #EFF8EF; }
+.filtros__estado--nuevo:has(input:checked) .filtros__estado-nombre { color: #2E7D32; }
+.filtros__estado--reconstruido:has(input:checked) { border-color: var(--c-azul); background: var(--c-azul-suave); }
+.filtros__estado--reconstruido:has(input:checked) .filtros__estado-nombre { color: var(--c-azul-oscuro); }
+
+/* Texto (equivalencia). */
+.filtros__texto input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--c-borde);
+  border-radius: 10px;
+  background: #fff;
+  color: #0F1418;
+  font: 600 14px/1 "Montserrat", sans-serif;
+  outline: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtros__texto input::placeholder { color: #6B7780; font-weight: 500; }
+.filtros__texto input:focus { border-color: var(--c-azul); box-shadow: 0 0 0 3px rgba(0, 152, 218, .2); }
+.filtros__texto input:not(:placeholder-shown) { border-color: var(--c-azul); background: #F7FBFE; }
+
+/* Select común (sin JS) y respaldo. */
+.filtros__select {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--c-borde);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--c-texto);
+  font: 500 14px "Montserrat", sans-serif;
+}
+
+.filtros__aplicar,
+.filtros__ver {
+  width: 100%;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--c-azul);
+  color: #fff;
+  font: 700 15px/1 "Montserrat", sans-serif;
+}
+.filtros__aplicar { margin: 16px 20px; width: calc(100% - 40px); }
+.filtros__pie { display: none; }
+
+/* ---------------------------------------------------------- desplegable */
+
+/*
+ * Lo arma catalogo.js a partir de cada <select data-desplegable>. Se abre
+ * en el lugar (empuja lo de abajo) para no quedar cortado por el scroll del
+ * sidebar; al elegir se cierra y queda la opción elegida en el botón.
+ */
+.desplegable { position: relative; }
+.desplegable select { display: none; }
+
+.desplegable__boton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--c-borde);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--c-texto);
+  font: 500 14px/1.2 "Montserrat", sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.desplegable__boton:hover { border-color: #B9C5CD; }
+.desplegable__boton:focus-visible { outline: 0; border-color: var(--c-azul); box-shadow: 0 0 0 3px rgba(0, 152, 218, .25); }
+
+.desplegable__valor {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.desplegable__cantidad {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #F1F4F6;
+  color: var(--c-texto-2);
+  font: 600 11.5px/1.4 "Montserrat", sans-serif;
+}
+
+.desplegable__flecha {
+  flex: none;
+  color: var(--c-texto-2);
+  transition: transform .2s;
+}
+
+.desplegable--abierto .desplegable__boton { border-color: var(--c-azul); box-shadow: 0 0 0 3px rgba(0, 152, 218, .15); }
+.desplegable--abierto .desplegable__flecha { transform: rotate(180deg); }
+
+.desplegable--elegido .desplegable__boton {
+  border-color: var(--c-azul);
+  background: #F3FAFE;
+  color: var(--c-azul-oscuro);
+  font-weight: 600;
+}
+.desplegable--elegido .desplegable__cantidad { background: #DDF0FA; color: var(--c-azul-oscuro); }
+
+.desplegable--deshabilitado .desplegable__boton {
+  background: #F7F9FA;
+  color: var(--c-texto-3);
+  cursor: not-allowed;
+}
+
+.desplegable__panel {
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid rgba(15, 35, 52, .1);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 35, 52, .12);
+  animation: desplegable-abrir .14s ease-out;
+}
+.desplegable__panel[hidden] { display: none; }
+
+@keyframes desplegable-abrir { from { opacity: 0; transform: translateY(-4px); } }
+
+.desplegable__buscar {
+  width: 100%;
+  height: 38px;
+  margin-bottom: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--c-borde);
+  border-radius: 8px;
+  background: #F7F9FA;
+  color: #0F1418;
+  font: 500 13.5px/1 "Montserrat", sans-serif;
+  outline: 0;
+}
+.desplegable__buscar:focus { border-color: var(--c-azul); background: #fff; }
+
+.desplegable__lista {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.desplegable__opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--c-texto);
+  font: 500 13.5px/1.3 "Montserrat", sans-serif;
+  cursor: pointer;
+}
+.desplegable__opcion-texto { flex: 1 1 auto; min-width: 0; }
+.desplegable__opcion-cantidad { flex: none; color: var(--c-texto-3); font-size: 12px; font-weight: 600; }
+.desplegable__opcion.is-activa { background: var(--c-azul-suave); }
+.desplegable__opcion[aria-selected="true"] { color: var(--c-azul-oscuro); font-weight: 700; }
+.desplegable__opcion[aria-selected="true"]::after {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.desplegable__opcion[aria-disabled="true"] { opacity: .45; cursor: default; }
+.desplegable__sin-opciones { padding: 12px 10px; color: var(--c-texto-3); font: 500 13px/1.4 "Montserrat", sans-serif; }
+
+/* ------------------------------------------------------------ resultados */
+
+.catalogo__resultados {
+  min-width: 0;
+  transition: opacity .2s;
+}
+.catalogo.is-cargando .catalogo__resultados { opacity: .45; pointer-events: none; }
+
+/* Barra de progreso arriba de todo mientras se aplica un filtro. */
+.catalogo::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10020;
+  width: 0;
+  height: 3px;
+  background: var(--c-azul);
+  opacity: 0;
+}
+.catalogo.is-cargando::before { opacity: 1; animation: catalogo-progreso 1.4s ease-out forwards; }
+@keyframes catalogo-progreso { from { width: 0; } to { width: 85%; } }
+
+.catalogo__cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.catalogo__titulo {
+  margin: 0;
+  color: var(--c-texto);
+  font: 600 26px/1.2 "Montserrat", sans-serif;
+  word-break: break-word;
+}
+
+.catalogo__total {
+  margin: 6px 0 0;
+  color: var(--c-texto-2);
+  font: 500 14px/1.3 "Montserrat", sans-serif;
+}
+.catalogo__total strong { color: var(--c-texto); }
+
+.catalogo__abrir-filtros {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--c-borde);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--c-texto);
+  font: 600 14px/1 "Montserrat", sans-serif;
+}
+.catalogo__abrir-filtros svg { color: var(--c-azul); }
+
+.catalogo__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogo__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 10px 7px 14px;
+  border: 1px solid #CFE6F3;
+  border-radius: 999px;
+  background: var(--c-azul-suave);
+  color: var(--c-azul-oscuro);
+  font: 600 13px/1.2 "Montserrat", sans-serif;
+  text-decoration: none;
+  transition: background-color .15s, border-color .15s;
+}
+.catalogo__chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.catalogo__chip svg { flex: none; opacity: .7; }
+.catalogo__chip:hover { border-color: var(--c-azul); background: #E1F1FA; color: var(--c-azul-oscuro); }
+.catalogo__chip:hover svg { opacity: 1; }
+
+.catalogo__item { margin: 0; }
+.catalogo__item.is-nueva { animation: catalogo-aparecer .35s ease-out both; }
+@keyframes catalogo-aparecer { from { opacity: 0; transform: translateY(8px); } }
+
+/* --------------------------------------------------------- scroll infinito */
+
+.catalogo__mas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0 0;
+}
+
+.catalogo__esqueletos { display: none; width: 100%; }
+.catalogo__mas.is-cargando .catalogo__esqueletos { display: grid; gap: 18px; }
+.catalogo__esqueleto {
+  height: 230px;
+  border: 1px solid #EEF1F3;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #F4F6F8 0%, #FBFCFD 40%, #F4F6F8 80%) 0 0 / 200% 100%;
+  animation: catalogo-brillo 1.2s linear infinite;
+}
+@keyframes catalogo-brillo { to { background-position: -200% 0; } }
+
+/* Con JS el botón sólo aparece si falla la carga automática. */
+.js-catalogo .catalogo__mas:not(.con-error) [data-catalogo-cargar] { display: none; }
+
+.catalogo__fin {
+  margin: 8px 0 0;
+  color: var(--c-texto-3);
+  font: 500 14px/1.4 "Montserrat", sans-serif;
+}
+
+.catalogo__boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  border: 1px solid var(--c-azul);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--c-azul);
+  font: 600 15px/1 "Montserrat", sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+.catalogo__boton:hover,
+.catalogo__boton--lleno { background: var(--c-azul); color: #fff; }
+.catalogo__boton--lleno:hover { background: #0083BD; color: #fff; }
+
+/* Volver arriba, después de haber bajado bastante. */
+.catalogo__arriba {
+  position: fixed;
+  /* Arriba del botón de WhatsApp, en la misma columna. */
+  right: 40px;
+  bottom: 130px;
+  z-index: 98;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--c-azul);
+  box-shadow: 0 6px 20px rgba(15, 35, 52, .2);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.catalogo__arriba.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+
+/* ------------------------------------------------------------------ vacío */
+
+.catalogo__vacio {
+  margin: 10px 0;
+  padding: 48px 28px;
+  border: 1px solid var(--c-borde-suave);
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+.catalogo__vacio-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--c-azul-suave);
+  color: var(--c-azul);
+}
+.catalogo__vacio h2 { margin: 0 0 8px; color: var(--c-texto); font: 600 21px/1.3 "Montserrat", sans-serif; word-break: break-word; }
+.catalogo__vacio p { max-width: 460px; margin: 0 auto; color: var(--c-texto-2); font: 400 15px/1.55 "Montserrat", sans-serif; }
+.catalogo__vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 24px; }
+
+/* ---------------------------------------------------------------- celular */
+
+@media (max-width: 991px) {
+  .catalogo { padding-top: 24px; }
+  .catalogo__grilla { display: block; }
+  .catalogo__titulo { font-size: 21px; }
+  .catalogo__abrir-filtros { display: inline-flex; }
+
+  .catalogo__sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10010;
+    width: min(92vw, 380px);
+    max-height: none;
+    border: 0;
+    border-radius: 0 18px 18px 0;
+    box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform .28s ease, visibility 0s .28s;
+  }
+  .filtros-abiertos .catalogo__sidebar { transform: none; visibility: visible; transition: transform .28s ease; }
+
+  .catalogo__fondo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10005;
+    background: rgba(15, 23, 32, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  .filtros-abiertos .catalogo__fondo { opacity: 1; pointer-events: auto; }
+  body.filtros-abiertos { overflow: hidden; }
+
+  .filtros__cerrar { display: block; }
+  .filtros__pie {
+    display: block;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--c-borde-suave);
+    background: #fff;
+  }
+  .desplegable__buscar,
+  .filtros__texto input { font-size: 16px; } /* sin zoom de iOS al enfocar */
+  .catalogo__arriba { right: 24px; bottom: 110px; }
+}

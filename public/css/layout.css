@@ -1,0 +1,30 @@
+/*
+ * Ancho del sitio público (layouts/plantilla-front).
+ *
+ * Bootstrap frena el contenedor en 1320px. En pantallas grandes el sitio
+ * ahora llega hasta 1600px, pero siempre deja aire a los costados (80px de
+ * cada lado como mínimo): header, contenido y footer usan el mismo
+ * .container, así que se alinean solos.
+ *
+ * Entre 1400 y ~1480px queda en 1320px como antes; a partir de ahí crece
+ * hasta 1600px (pantallas de 1760px o más).
+ */
+@media (min-width: 1400px) {
+  .container {
+    max-width: clamp(1320px, calc(100vw - 160px), 1600px);
+  }
+}
+
+/*
+ * Grilla de categorías (/categorias y la Home): 6 por fila en pantallas
+ * grandes. Las cards son más angostas que antes, así que los nombres van más
+ * chicos y cortan la palabra larga (PORTAESCOBILLAS) en vez de salirse.
+ */
+.categorias-grilla .category-name {
+  padding-right: 16px;
+  font-size: clamp(17px, 1.15vw, 21px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.categorias-grilla .overlayCat { padding-left: 16px; }

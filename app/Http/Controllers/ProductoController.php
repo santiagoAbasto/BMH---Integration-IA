@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ajuste;
 use App\Models\Anuncio;
+use Illuminate\Validation\Rule;
 use App\Models\Bonificacion;
 use Illuminate\Http\Request;
 use App\Models\Producto;
@@ -24,6 +26,9 @@ use App\Models\Descarga;
 use App\Models\Medida;
 use App\Models\Repuesto;
 use App\Models\User;
+use App\Services\BuscadorCatalogo;
+use App\Services\Catalogo\CatalogoFiltrado;
+use App\Services\Catalogo\FiltrosCatalogo;
 use App\Services\BusquedaPorEquivalencia;
 use App\Services\Imagenes\ImagenesDeCategoria;
 use App\Services\Imagenes\OptimizadorImagenes;
@@ -63,56 +68,6 @@ class ProductoController extends Controller
         return is_file($directorio . '/' . $webp) ? $webp : $nombre;
     }
 
-    public function index(Request $request)
-    {
-        $categoriaId = $request->input('categoria');
-        $busqueda = trim((string) $request->input('search', ''));
-
-        $query = Producto::with([
-            'categoria',
-            'portadaImagen',
-            'imagenesGaleria',
-            'productCaracteristicas.caracteristica',
-            'partesRelacionadas.portadaImagen',
-            'equivalencias',
-            'aplicaciones',
-        ]);
-
-        if ((int) $categoriaId === 0) {
-            $query->where(function ($query) use ($busqueda): void {
-                $query->where('nombre', 'LIKE', '%' . $busqueda . '%')
-                    ->orWhereHas('categoria', function ($query) use ($busqueda): void {
-                        $query->where('nombre', 'LIKE', '%' . $busqueda . '%');
-                    });
-            });
-        } else {
-            $query->where('categoria_id', $categoriaId);
-        }
-
-        $productos = $query->orderBy('nombre')->get();
-        $categorias = Categoria::orderBy('nombre')->get();
-        $categoria = $categorias->firstWhere('id', (int) $categoriaId);
-        $marcas = $this->catalogFilterOptions->brandsWithModels();
-
-        $ruta = 'categorias';
-        $zonaclientes = Auth::guard('web')->check();
-        $categoriasAll = $categorias;
-
-        return view('frontend/productos', compact(
-            'zonaclientes',
-            'productos',
-            'marcas',
-            'categoriasAll',
-            'categorias',
-            'ruta',
-            'categoriaId',
-            'busqueda',
-            'categoria',
-        ))->with('categoria_id', $categoriaId);
-    }
-
-
-
     public function load(Request $request)
     {
         $categoria_id = $request->categoria_id;
@@ -122,6 +77,7 @@ class ProductoController extends Controller
             'imagenesGaleria',
             'productCaracteristicas.caracteristica',
             'partesRelacionadas.portadaImagen',
+            'partesRelacionadas.imagenesGaleria',
             'equivalencias',
             'aplicaciones',
         ];
@@ -132,13 +88,13 @@ class ProductoController extends Controller
                 ->orWhereHas('categoria', function ($query) use ($busqueda) {
                     $query->where('nombre', 'LIKE', '%' . $busqueda . '%');
                 })
-                ->orderBy('orden')->get();
+                ->ordenado()->get();
         } else {
             $busqueda = '';
             $productos = Producto::with($with)
                 ->whereHas('categoria', function ($query) use ($categoria_id) {
                 $query->where('id', $categoria_id);
-            })->orderBy('orden')->get();
+            })->ordenado((int) $categoria_id)->get();
         }
 
         $productos = $productos->skip($request->contador)->take($request->xpag);
@@ -148,26 +104,28 @@ class ProductoController extends Controller
 
     public function ofertas()
     {
-        $productos = Producto::with(['categoria', 'portadaImagen', 'productCaracteristicas.caracteristica'])
+        $productos = Producto::with(['categoria', 'portadaImagen', 'imagenesGaleria', 'productCaracteristicas.caracteristica'])
             ->where('descuento', '!=', 0)
-            ->orderBy('orden')
+            ->ordenado()
             ->get();
         $ventana = 'ofertas-nav';
         return view('frontend.ofertas', compact('productos', 'ventana'));
     }
 
-    public function producto(Request $request)
+    public function producto(Request $request, CatalogoFiltrado $catalogo)
 {
     // Traer producto con sus caracterÃ­sticas
     $producto = Producto::with([
         'categoria',
         'portadaImagen',
+        'imagenesGaleria',
         'productCaracteristicas.caracteristica',
         'usos',
         'dimensiones',
         'equivalencias',
         'aplicaciones',
         'partesRelacionadas.portadaImagen',
+        'partesRelacionadas.imagenesGaleria',
     ])->find($request->id);
 
     // Productos relacionados (mismo formato horizontal que el listado principal)
@@ -178,12 +136,13 @@ class ProductoController extends Controller
                 'imagenesGaleria',
                 'productCaracteristicas.caracteristica',
                 'partesRelacionadas.portadaImagen',
+                'partesRelacionadas.imagenesGaleria',
                 'equivalencias',
                 'aplicaciones',
             ])
             ->where('categoria_id', $producto->categoria->id)
             ->where('id', '!=', $producto->id)
-            ->orderBy('orden')
+            ->ordenado((int) $producto->categoria->id)
             ->limit(6)
             ->get();
     } else {
@@ -195,16 +154,17 @@ class ProductoController extends Controller
 
     // IVA y categorÃ­as
     $iva = Impuesto::find(1);
-    $categorias = Categoria::orderBy('orden')->get();
+    $categorias = Categoria::orderBy('nombre')->get();
     $categoria_id = $producto->categoria->id ?? null;
+    $ruta = 'productos';
+    $filtros = new FiltrosCatalogo(categoria: $categoria_id);
+    $resultado = $catalogo->filtrar($filtros);
     $categoria = $producto->categoria;
     $usos = $producto->usos;
     $dimensiones = $producto->dimensiones;
     $ventana = 'categorias-nav';
 
     // Otras variables
-    $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
-    $marcas = $this->catalogFilterOptions->brandsWithModels();
     $zonaclientes = Auth::guard('web')->check();
 
     // ðŸ”¹ Datos extra como en edit()
@@ -230,11 +190,12 @@ class ProductoController extends Controller
         'iva',
         'categorias',
         'categoria_id',
+        'ruta',
+        'filtros',
+        'resultado',
         'usos',
         'dimensiones',
         'ventana',
-        'categoriasAll',
-        'marcas',
         'categoria',
         // Agregados de edit()
         'imagenesProducto',
@@ -254,19 +215,20 @@ class ProductoController extends Controller
             'imagenesGaleria',
             'productCaracteristicas.caracteristica',
             'partesRelacionadas.portadaImagen',
+            'partesRelacionadas.imagenesGaleria',
             'equivalencias',
             'aplicaciones',
         ];
         $categoria = $request->categoria;
         if ($categoria == '') {
             $productos = Producto::with($with)
-                ->orderBy('orden')
+                ->ordenado()
                 ->get();
         } else {
             $productos = Producto::with($with)
                 ->whereHas('categoria', function ($query) use ($categoria) {
                 $query->where('id', $categoria);
-            })->orderBy('orden')->get();
+            })->ordenado((int) $categoria)->get();
         }
 
         return view('frontend/productos-listado', compact('productos'));
@@ -399,11 +361,10 @@ class ProductoController extends Controller
     //     return view('frontend/productos-search', compact('productos',  'ventana',  'busqueda', 'productosAll', 'marcas', 'categoriasAll', 'zonaclientes'));
     // }
 
-public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equivalencias)
+public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equivalencias, BuscadorCatalogo $buscador)
 {
     $busqueda = '';
     $filtrosAplicados = [];
-    $equivalenciasCodigos = [];
 
     // =========================
     // Filtros aplicados (texto)
@@ -451,6 +412,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         'imagenesGaleria',
         'productCaracteristicas.caracteristica',
         'partesRelacionadas.portadaImagen',
+        'partesRelacionadas.imagenesGaleria',
         'equivalencias',
         'aplicaciones',
     ]);
@@ -486,244 +448,9 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
     // ===   BUSCADOR PRINCIPAL (texto libre)             ===
     // ======================================================
     if ($request->filled('buscadorPrincipal')) {
-
         $busqueda = trim($request->buscadorPrincipal);
-        $busquedaLower = mb_strtolower($busqueda);
-        $busquedaSinEspacios = preg_replace('/\s+/', '', $busquedaLower);
-
-        // ¿Es un código? → alfanumérico sin espacios y con al menos un dígito
-        $esCodigo = preg_match('/^[0-9A-Za-z\-]+$/', $busquedaSinEspacios)
-                 && preg_match('/[0-9]/', $busquedaSinEspacios);
-
-        // ====== 1) si es código: obtener equivalencias del producto base (viejo + nuevo) ======
-        if ($esCodigo) {
-
-            // columnas de equivalencias (columna_1, columna_2, etc.) → sistema viejo
-            $columnas  = Schema::getColumnListing('productos');
-            $colsEquiv = array_filter($columnas, fn($c) => preg_match('/^columna_\d+$/', $c));
-
-            // ids de características de tipo equivalencia → sistema nuevo
-            $caracteristicasEquivIds = Caracteristica::where(function ($q) {
-                    $q->where('nombre', 'LIKE', '%EQUIVALENCIA%')
-                      ->orWhere('nombre', 'LIKE', '%BMH%')
-                      ->orWhere('nombre', 'LIKE', '%Nº ORIGINAL%')
-                      ->orWhere('nombre', 'LIKE', '%NUMERO ORIGINAL%');
-                })
-                ->pluck('id');
-
-            // 1) Producto base por codigo (ej: IMPO1747 o 1061)
-            $productoBase = Producto::whereRaw(
-                "LOWER(REPLACE(codigo,' ','')) = ?",
-                [$busquedaSinEspacios]
-            )->first();
-
-            if ($productoBase) {
-                // 1.a) equivalencias viejas en columnas_X
-                foreach ($colsEquiv as $col) {
-                    $valor = $productoBase->{$col};
-                    if (!$valor) continue;
-
-                    foreach (preg_split('/[,\s]+/', (string)$valor) as $c) {
-                        $c = trim($c);
-                        if ($c === '') continue;
-                        $equivalenciasCodigos[] = $c;
-                    }
-                }
-
-                // 1.b) equivalencias nuevas en producto_caracteristica (todas las características)
-                $valoresCarac = DB::table('producto_caracteristica')
-                    ->where('producto_id', $productoBase->id)
-                    ->pluck('valor')
-                    ->toArray();
-
-                foreach ($valoresCarac as $valor) {
-                    foreach (preg_split('/[,\s]+/', (string)$valor) as $c) {
-                        $c = trim($c);
-                        if ($c === '') continue;
-                        $equivalenciasCodigos[] = $c;
-                    }
-                }
-                // 1.c) tablas nuevas: equivalencias / aplicaciones / partes (conviven con legacy)
-                $valoresEquivNuevas = DB::table('equivalencias')->where('producto_id', $productoBase->id)->pluck('valor')->toArray();
-                foreach ($valoresEquivNuevas as $valor) {
-                    foreach (preg_split('/[,\s]+/', (string)$valor) as $c) {
-                        $c = trim($c);
-                        if ($c === '') continue;
-                        $equivalenciasCodigos[] = $c;
-                    }
-                }
-                $valoresAplic = DB::table('aplicaciones')->where('producto_id', $productoBase->id)->pluck('valor')->toArray();
-                foreach ($valoresAplic as $valor) {
-                    foreach (preg_split('/[,\s]+/', (string)$valor) as $c) {
-                        $c = trim($c);
-                        if ($c === '') continue;
-                        $equivalenciasCodigos[] = $c;
-                    }
-                }
-                $codigosPartes = DB::table('partes_relacionadas as pr')->join('productos as p2', 'p2.id', '=', 'pr.parte_id')->where('pr.producto_id', $productoBase->id)->pluck('p2.codigo')->toArray();
-                foreach ($codigosPartes as $c) {
-                    $c = trim((string)$c);
-                    if ($c === '') continue;
-                    $equivalenciasCodigos[] = $c;
-                }
-            }
-
-            // 2) Productos donde ALGUNA equivalencia contiene el código buscado (1061, 6201, etc.)
-
-            // 2.a) sistema viejo: buscar en columnas_X
-            if (!empty($colsEquiv)) {
-                $productosRelacionados = Producto::where(function ($q) use ($colsEquiv, $busquedaSinEspacios) {
-                    foreach ($colsEquiv as $col) {
-                        $q->orWhereRaw("LOWER(REPLACE($col,' ','')) LIKE ?", ['%' . $busquedaSinEspacios . '%']);
-                    }
-                })->get();
-
-                foreach ($productosRelacionados as $p) {
-                    if (!empty($p->codigo)) {
-                        $equivalenciasCodigos[] = $p->codigo;
-                    }
-                }
-            }
-
-            // 2.b) sistema nuevo: buscar en TODAS las producto_caracteristica.valor
-            if (!empty($busquedaSinEspacios)) {
-                $productosPorCarac = Producto::whereIn('id', function ($sub) use ($busquedaSinEspacios) {
-                        $sub->select('producto_id')
-                            ->from('producto_caracteristica')
-                            ->whereRaw("LOWER(REPLACE(valor,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"]);
-                    })
-                    ->get();
-
-                foreach ($productosPorCarac as $p) {
-                    if (!empty($p->codigo)) {
-                        $equivalenciasCodigos[] = $p->codigo;
-                    }
-                }
-            }
-            // 2.c) tablas nuevas: equivalencias / aplicaciones / partes
-            if (!empty($busquedaSinEspacios)) {
-                $productosPorEquivNueva = Producto::whereIn('id', function ($sub) use ($busquedaSinEspacios) {
-                        $sub->select('producto_id')->from('equivalencias')
-                            ->whereRaw("LOWER(REPLACE(valor,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"])
-                            ->orWhereRaw("LOWER(REPLACE(nombre,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"]);
-                    })->get();
-                foreach ($productosPorEquivNueva as $p) {
-                    if (!empty($p->codigo)) { $equivalenciasCodigos[] = $p->codigo; }
-                }
-                $productosPorAplic = Producto::whereIn('id', function ($sub) use ($busquedaSinEspacios) {
-                        $sub->select('producto_id')->from('aplicaciones')
-                            ->whereRaw("LOWER(REPLACE(valor,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"])
-                            ->orWhereRaw("LOWER(REPLACE(nombre,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"]);
-                    })->get();
-                foreach ($productosPorAplic as $p) {
-                    if (!empty($p->codigo)) { $equivalenciasCodigos[] = $p->codigo; }
-                }
-                $productosPorPartes = Producto::whereIn('id', function ($sub) use ($busquedaSinEspacios) {
-                        $sub->select('pr.producto_id')->from('partes_relacionadas as pr')
-                            ->join('productos as p2', 'p2.id', '=', 'pr.parte_id')
-                            ->whereRaw("LOWER(REPLACE(p2.codigo,' ','')) LIKE ?", ["%{$busquedaSinEspacios}%"]);
-                    })->get();
-                foreach ($productosPorPartes as $p) {
-                    if (!empty($p->codigo)) { $equivalenciasCodigos[] = $p->codigo; }
-                }
-            }
-
-            // limpiar duplicados
-            $equivalenciasCodigos = array_values(array_unique($equivalenciasCodigos));
-        }
-
-        // ====== 2) búsqueda súper fina por palabras ======
-        // Rompemos la frase en palabras y exigimos que TODAS aparezcan
-        // en nombre / marca / modelo / código (orden indiferente).
-        $stopWords = ['de', 'del', 'la', 'las', 'los', 'y', 'en', 'el', 'para', 'por', 'con', 'un', 'una', 'unos', 'unas', 'a'];
-        $tokensRaw = preg_split('/[\s,;.\-\/]+/', $busquedaLower);
-
-        $tokens = array_values(array_unique(array_filter($tokensRaw, function ($t) use ($stopWords) {
-            $t = trim($t);
-            return $t !== '' && mb_strlen($t) >= 2 && !in_array($t, $stopWords, true);
-        })));
-
-        // Los códigos equivalentes hallados arriba entran como un OR dentro del
-        // mismo where del buscador, no como una consulta aparte: así los filtros
-        // que vienen después (categoría, modelo, estado, atributos) también los
-        // alcanzan. Antes se concatenaban después de ejecutar la query y se
-        // colaban productos de cualquier categoría.
-        $codigosEquivNorm = array_values(array_unique(array_map(
-            fn ($c) => mb_strtolower(preg_replace('/\s+/', '', (string) $c)),
-            $equivalenciasCodigos
-        )));
-
-        if (!empty($tokens) || !empty($codigosEquivNorm)) {
-            $query->where(function ($grupo) use ($tokens, $codigosEquivNorm) {
-                if (!empty($codigosEquivNorm)) {
-                    $grupo->orWhere(function ($q) use ($codigosEquivNorm) {
-                        foreach ($codigosEquivNorm as $code) {
-                            $q->orWhereRaw("LOWER(REPLACE(codigo,' ','')) = ?", [$code]);
-                        }
-                    });
-                }
-                if (empty($tokens)) {
-                    return;
-                }
-                $grupo->orWhere(function ($q) use ($tokens) {
-                foreach ($tokens as $token) {
-                    $root = $token;
-
-                    // Singular simple (escobillas → escobilla)
-                    if (mb_strlen($root) > 4 && mb_substr($root, -1) === 's') {
-                        $root = mb_substr($root, 0, -1);
-                    }
-
-                    // Patrón para palabra completa (fusible / fusibles)
-                    $pattern = '\\b' . preg_quote($root, '/') . 's?\\b';
-                    $rootSinEspacios = str_replace(' ', '', $root);
-
-                    // Cada palabra genera un grupo OR, pero entre palabras se hace AND
-                    $q->where(function ($sub) use ($pattern, $root, $rootSinEspacios) {
-                        // NOMBRE: palabra completa + LIKE por si es abreviado (arr → arranque)
-                        $sub->whereRaw("LOWER(nombre) REGEXP ?", [$pattern])
-                            ->orWhereRaw("LOWER(nombre) LIKE ?", ["%{$root}%"])
-
-                            // MARCA / MODELO
-                            ->orWhereRaw("LOWER(marca) LIKE ?", ["%{$root}%"])
-                            ->orWhereRaw("LOWER(modelo) LIKE ?", ["%{$root}%"])
-
-                            // CÓDIGO (normalizado sin espacios)
-                            ->orWhereRaw("LOWER(REPLACE(codigo,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                            // TABLAS NUEVAS: equivalencias, aplicaciones, partes_relacionadas (conviven con legacy)
-                            ->orWhereExists(function ($qq) use ($root, $rootSinEspacios) {
-                                $qq->select(DB::raw(1))->from('equivalencias')
-                                    ->whereColumn('equivalencias.producto_id', 'productos.id')
-                                    ->where(function ($w) use ($root, $rootSinEspacios) {
-                                        $w->whereRaw("LOWER(equivalencias.valor) LIKE ?", ["%{$root}%"])
-                                          ->orWhereRaw("LOWER(REPLACE(equivalencias.valor,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                                          ->orWhereRaw("LOWER(equivalencias.nombre) LIKE ?", ["%{$root}%"]);
-                                    });
-                            })
-                            ->orWhereExists(function ($qq) use ($root, $rootSinEspacios) {
-                                $qq->select(DB::raw(1))->from('aplicaciones')
-                                    ->whereColumn('aplicaciones.producto_id', 'productos.id')
-                                    ->where(function ($w) use ($root, $rootSinEspacios) {
-                                        $w->whereRaw("LOWER(aplicaciones.valor) LIKE ?", ["%{$root}%"])
-                                          ->orWhereRaw("LOWER(REPLACE(aplicaciones.valor,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                                          ->orWhereRaw("LOWER(aplicaciones.nombre) LIKE ?", ["%{$root}%"]);
-                                    });
-                            })
-                            ->orWhereExists(function ($qq) use ($root, $rootSinEspacios) {
-                                $qq->select(DB::raw(1))->from('partes_relacionadas')
-                                    ->join('productos as p2', 'p2.id', '=', 'partes_relacionadas.parte_id')
-                                    ->whereColumn('partes_relacionadas.producto_id', 'productos.id')
-                                    ->where(function ($w) use ($root, $rootSinEspacios) {
-                                        $w->whereRaw("LOWER(p2.codigo) LIKE ?", ["%{$rootSinEspacios}%"])
-                                          ->orWhereRaw("LOWER(REPLACE(p2.codigo,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                                          ->orWhereRaw("LOWER(p2.nombre) LIKE ?", ["%{$root}%"]);
-                                    });
-                            });
-                    });
-                }
-                });
-            });
-        }
+        // Mismo texto libre que el buscador del header (ver BuscadorCatalogo).
+        $buscador->aplicarTexto($query, $busqueda);
     }
 
     // ========== FILTRO POR MODELO ==========
@@ -871,60 +598,10 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
     // Relevancia en PHP
     // ==============================
     if (!empty($busqueda)) {
-        $busquedaLower = mb_strtolower($busqueda);
-
-        $productos = $productos->map(function ($producto) use ($busquedaLower, $coincidenciasEquivalencia) {
-            // Filtro «Por equivalencia»: la exacta primero, después las que
-            // empiezan con el código y al final las que lo contienen.
-            $score = BusquedaPorEquivalencia::puntaje($coincidenciasEquivalencia[$producto->id] ?? null);
-
-            $codigo = mb_strtolower($producto->codigo ?? '');
-            $nombre = mb_strtolower($producto->nombre ?? '');
-            $marca  = mb_strtolower($producto->marca ?? '');
-            $modelo = mb_strtolower($producto->modelo ?? '');
-
-            // CÓDIGO
-            if ($codigo === $busquedaLower) {
-                $score += 1000;
-            } elseif (strpos($codigo, $busquedaLower) === 0) {
-                $score += 900;
-            } elseif (strpos($codigo, $busquedaLower) !== false) {
-                $score += 800;
-            }
-
-            // NOMBRE
-            if ($nombre === $busquedaLower) {
-                $score += 700;
-            } elseif (strpos($nombre, $busquedaLower) === 0) {
-                $score += 650;
-            } elseif (strpos($nombre, $busquedaLower) !== false) {
-                $score += 600;
-            }
-
-            // MARCA
-            if ($marca === $busquedaLower) {
-                $score += 500;
-            } elseif (strpos($marca, $busquedaLower) === 0) {
-                $score += 450;
-            } elseif (strpos($marca, $busquedaLower) !== false) {
-                $score += 400;
-            }
-
-            // MODELO
-            if (strpos($modelo, $busquedaLower) !== false) {
-                $score += 300;
-            }
-
-            // CATEGORÍA
-            if ($producto->categoria && strpos(mb_strtolower($producto->categoria->nombre ?? ''), $busquedaLower) !== false) {
-                $score += 200;
-            }
-
-            $producto->relevancia_score = $score;
-            return $producto;
-        });
-
-        $productos = $productos->sortByDesc('relevancia_score')->values();
+        // Filtro «Por equivalencia»: la exacta primero, después las que
+        // empiezan con el código y al final las que lo contienen.
+        $puntajeEquivalencia = array_map([BusquedaPorEquivalencia::class, 'puntaje'], $coincidenciasEquivalencia);
+        $productos = $buscador->ordenarPorRelevancia($productos, $busqueda, $puntajeEquivalencia);
     }
 
     // ==============================
@@ -966,48 +643,15 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
 
 
 
+    /**
+     * Inicio de la Zona de Clientes: las categorías y el margen de reventa.
+     * Buscar y filtrar productos se hace desde el buscador del header y el
+     * catálogo (CatalogoController), que muestran los precios del cliente.
+     */
     public function productos_clientes(Request $request)
     {
-
-        $categoria = $request->categoria;
-        $producto = $request->producto;
-        $codigo = $request->codigo;
-
-        $query = Producto::with([
-            'categoria',
-            'portadaImagen',
-            'productCaracteristicas.caracteristica',
-        ]);
-        if (!is_null($categoria) && $categoria != '') {
-            $query->whereHas('categoria', function ($query) use ($categoria) {
-                $query->where('id', $categoria);
-            });
-        }
-        if (!is_null($producto) && $producto != '') {
-            $query->where('nombre', 'like', '%' . $producto . '%');
-        }
-        if (!is_null($codigo) && $codigo != '') {
-            $query->where('codigo', 'like', '%' . $codigo . '%');
-        }
-        $productos = $query->orderBy('orden')
-            ->orderBy('nombre')
-            ->paginate(15)
-            ->appends([
-                'categoria' => $categoria,
-                'producto' => $producto,
-                'codigo' => $codigo
-            ]);
-
         $categorias = Categoria::orderBy('orden')->orderBy('nombre')->get();
         $bonificaciones = Bonificacion::orderBy('orden')->get();
-
-
-
-
-        $marcas = $this->catalogFilterOptions->brandsWithModels();
-        $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
-
-
 
         $zonaclientes = true;
         $ventana = 'productos-nav';
@@ -1022,7 +666,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         }
         // $request->session()->forget('anuncio_mostrado');
 
-        return view('frontend/productos-zona-privada', compact('anuncio', 'productos', 'categorias', 'zonaclientes', 'ventana', 'bonificaciones', 'marcas', 'categoriasAll'));
+        return view('frontend/productos-zona-privada', compact('anuncio', 'categorias', 'zonaclientes', 'ventana', 'bonificaciones'));
     }
 
 
@@ -1121,7 +765,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
             $query->where('estado', 2);
         }
 
-        $productos = $query->orderBy('orden')
+        $productos = $query->ordenado($request->filled('categoriaFiltro') ? (int) $request->categoriaFiltro : null)
             ->orderBy('nombre')
             ->paginate(15)
             ->appends([
@@ -1140,7 +784,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         $marcas = $this->catalogFilterOptions->brandsWithModels();
         $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
 
-        return view('frontend/productos-zona-privada', compact('anuncio', 'productos', 'categorias', 'zonaclientes', 'ventana', 'bonificaciones', 'marcas', 'categoriasAll'));
+        return view('frontend/productos-zona-privada', compact('anuncio', 'categorias', 'zonaclientes', 'ventana', 'bonificaciones'));
     }
 
 
@@ -1203,7 +847,7 @@ SVG;
             $query->where('nombre', 'like', '%' . $busqueda . '%');
         })
             ->orWhere('nombre', 'like', '%' . $request->valor . '%')
-            ->orderBy('orden')->paginate(20);
+            ->ordenado()->paginate(20);
         return view('components/productos-clientes-listado', compact('productos', 'zonaclientes'));
     }
 
@@ -1219,9 +863,10 @@ public function dash_productos(Request $request)
 {
     $categoria_id = $request->input('categoria_id');
 
-    $query = Producto::with('categoria')->orderBy('orden');
+    $hayCategoria = !empty($categoria_id) && $categoria_id != 'todos';
+    $query = Producto::with('categoria')->ordenado($hayCategoria ? (int) $categoria_id : null);
 
-    if (!empty($categoria_id) && $categoria_id != 'todos') {
+    if ($hayCategoria) {
         $query->where('categoria_id', $categoria_id);
     }
 
@@ -1234,14 +879,31 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria'));
+    $ordenCategoria = $hayCategoria ? Producto::ordenDeCategoria((int) $categoria_id) : null;
+
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'ordenCategoria'));
 }
+
+    /** Cómo se ordenan los productos de una categoría (catálogo y listado): manual, por código o por nombre. */
+    public function guardarOrdenCategoria(Request $request)
+    {
+        $datos = $request->validate([
+            'categoria_id' => ['required', 'integer', 'exists:categorias,id'],
+            'orden' => ['required', Rule::in(Producto::ORDENES_CATEGORIA)],
+        ]);
+
+        Ajuste::guardar(Producto::AJUSTE_ORDEN_CATEGORIA.'.'.$datos['categoria_id'], $datos['orden']);
+
+        return redirect()
+            ->route('dashboard.productos', ['categoria_id' => $datos['categoria_id']])
+            ->with('success', 'Orden de la categoría actualizado.');
+    }
 
     public function exportarExcel(Request $request)
     {
         $categoriaId = $request->input('categoria_id');
 
-        $query = Producto::with('categoria')->orderBy('orden');
+        $query = Producto::with('categoria')->ordenado(!empty($categoriaId) && $categoriaId != 'todos' ? (int) $categoriaId : null);
         if (!empty($categoriaId) && $categoriaId != 'todos') {
             $query->where('categoria_id', $categoriaId);
         }

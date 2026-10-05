@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Services\LogosSitio;
+use App\View\Composers\MenuProductosComposer;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
          if (app()->environment('production')) {
             URL::forceScheme('https');
         }
-        
+
+        View::composer('layouts.partials.menu-productos', MenuProductosComposer::class);
 
     }
 }

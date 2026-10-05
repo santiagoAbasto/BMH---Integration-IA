@@ -29,7 +29,8 @@
 
         </div>
         @endif
-        <div class="p-4 hoverGradient">
+        <div class="p-4 hoverGradient" data-gallery-open role="button" tabindex="0" aria-haspopup="dialog" aria-label="Ver fotos de {{ $producto->nombre }}"
+             @include('frontend.components.galeria-datos', ['productoGaleria' => $producto])>
             
             @if ($portadaUrl)
             <div class='producto-portada' style='position: relative; background-image: url("{{ $portadaUrl }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>

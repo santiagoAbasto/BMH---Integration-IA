@@ -33,6 +33,10 @@ $cart = Cart::content();
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/styles2.css?v=77">
+  <link rel="stylesheet" href="{{ asset('css/layout.css') }}?v=2">
+  <link rel="stylesheet" href="{{ asset('css/buscador-header.css') }}?v=2">
+  <link rel="stylesheet" href="{{ asset('css/menu-productos.css') }}?v=1">
+  <link rel="stylesheet" href="{{ asset('css/galeria-producto.css') }}?v=1">
   
   {{-- FONTAWESOME --}}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
@@ -94,12 +98,18 @@ $cart = Cart::content();
           @include('layouts.partials.logos-header')
         </a>
         @endif
+
+        {{-- El mismo buscador en el sitio y en la Zona de Clientes: los
+             resultados (CatalogoController) muestran los precios a quien entró. --}}
+        @include('layouts.partials.buscador-header')
+
         <div class='mobile-flex'>
+          <button type="button" class="buscador-header-abrir" data-buscador-abrir aria-label="Buscar productos" aria-controls="buscador-header">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
-          {{-- <span class="search-icon ps-2" onclick="toggleBuscador()"><img src="imagenes/iconos/search.png" alt="" style='margin-right:5px;'></span> --}}
-          
         </div>
         {{-- @if(Auth::guard('web')->check() && !isset($zonaclientes))<a href="{{route('productos.clientes')}}" style=''>@endif
         <div class='mobile user-mobile' onclick="{{Auth::guard('web')->check() && !isset($zonaclientes) ? '' : 'toggleCarrito()'}}">
@@ -115,9 +125,11 @@ $cart = Cart::content();
             <div>
               <ul class="navbar-nav ml-auto {{ Auth::guard('web')->check() ? 'linkZona' : '' }}">
                 @if(isset($zonaclientes) && Auth::guard('web')->check())
-                  <li class="nav-item">
-                    <a class="nav-link cartNav under active {{ Route::currentRouteName() == 'productos.clientes' || Route::currentRouteName() == 'productos.home'  ? 'selectUrl' : '' }}" href="{{route('productos.clientes')}}">Productos</a>
-                  </li>
+                  @include('layouts.partials.menu-productos', [
+                    'href' => route('productos.clientes'),
+                    'claseLink' => 'nav-link cartNav under active'.(in_array(Route::currentRouteName(), ['productos.clientes', 'productos.home', 'productos', 'search', 'producto'], true) ? ' selectUrl' : ''),
+                    'activo' => false,
+                  ])
                   <li class="nav-item">
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'carrito'  ? 'selectUrl' : '' }}" href="{{route('carrito')}}">Carrito</a>
                   </li>
@@ -143,7 +155,7 @@ $cart = Cart::content();
                 @else
                 @include('frontend.components/nav-item', ['titulo' => 'Home', 'ruta' => 'home'])
                 @include('frontend.components/nav-item', ['titulo' => 'Nosotros', 'ruta' => 'nosotros'])
-                @include('frontend.components.nav-item', ['titulo' => 'Productos', 'ruta' => ['categorias', 'productos', 'producto']])
+                @include('layouts.partials.menu-productos')
                 {{-- @include('frontend.components/nav-item', ['titulo' => 'Carrito', 'ruta' => Auth::guard('web')->check() ? 'carrito' : 'carrito.publico']) --}}
                   @include('frontend.components/nav-item', ['titulo' => 'Novedades', 'ruta' => ['novedades', 'novedad']])
                   @include('frontend.components/nav-item', ['titulo' => 'Contacto', 'ruta' => 'contacto'])
@@ -283,16 +295,6 @@ $cart = Cart::content();
   </div>
 
   <main>
-    <form id='buscador-mobile' action='{{route('search')}}' method='GET' style='background-color: #F3F3F3!important;'>
-      @csrf
-      <div class="form-group d-flex searchBar" >
-        <button type="submit" class="btn btn-success rounded-0 d-flex flex-column justify-content-center" style='background-color:#F3F3F3;border:none;'><img style='max-height:20px;' class='' src="imagenes/iconos/search.png" alt="" ></button>
-        <input required id="searchInput2"  type="text"  name='search' placeholder="Buscar" style='color:#000 !important; border-radius: 0 !important; background-color: #F3F3F3!important; border:none;
-        font-weight: 400;
-        line-height: normal;
-        width:100%;'>
-      </div>
-    </form>
     @yield('content')
   </main>
 
@@ -521,7 +523,11 @@ $cart = Cart::content();
     }
   })();
   </script>
+  @include('frontend.components.galeria-modal')
+  <script src="{{ asset('js/galeria-producto.js') }}?v=1"></script>
   <script src="js/carrito.js?v=4"></script>
+  <script src="{{ asset('js/buscador-header.js') }}?v=2"></script>
+  <script src="{{ asset('js/menu-productos.js') }}?v=1"></script>
   @yield('script')
   {{-- TAILWIND --}}
   {{-- <script src="https://cdn.tailwindcss.com"></script>  --}}
@@ -808,16 +814,6 @@ $(window).scroll(function() {
 
 
 
-    function toggleBuscador(){
-      var buscador = document.getElementById('buscador-mobile')
-      if($(buscador).is(':visible')){
-        $(buscador).slideUp(300)
-      } else {
-        $(buscador).slideDown(300)
-      }
-    }
-
-
     function cargarAtributosCategoria(categoriaId) {
     const url = '{{ route('categoria.atributos', ['id' => ':id']) }}'.replace(':id', categoriaId);
 
@@ -965,7 +961,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (_remember) _remember.checked = true;
         }
 
-        var _form = document.querySelector('form');
+        // El form de login, no el primero de la página: antes está el buscador del header.
+        var _form = document.querySelector('form.ingreso');
         if (_form && _inpType && _pwd && _remember) _form.addEventListener('submit', function(e) {
             if (_remember.checked) {
                 localStorage.setItem('username', _inpType.value);

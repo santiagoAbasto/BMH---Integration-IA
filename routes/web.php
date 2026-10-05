@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\BuscadorController;
+use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DescargaImagenesCategoriaController;
 use App\Http\Controllers\HomeSliderController;
 use App\Http\Controllers\ImagenPorDefectoController;
@@ -66,7 +68,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 Route::controller(HomeController::class)->group(function () {
     Route::get('/', 'home')->name('home');
-    Route::get('buscar', 'search')->name('search');
     
     Route::middleware('admin')->group(function(){
         Route::put('dashboard/logo-update', 'updateLogo')->name('logo.update');
@@ -76,6 +77,16 @@ Route::controller(HomeController::class)->group(function () {
 
     
 });
+
+// Catálogo con filtros: por categoría (/productos) y desde el buscador del
+// header (/buscar) es la misma pantalla.
+Route::get('productos', [CatalogoController::class, 'index'])->name('productos');
+Route::get('buscar', [CatalogoController::class, 'index'])->name('search');
+
+// Sugerencias del buscador del header mientras se escribe.
+Route::get('buscar/sugerencias', [BuscadorController::class, 'sugerencias'])
+    ->middleware('throttle:buscador')
+    ->name('search.sugerencias');
 
 Route::controller(NosotrosController::class)->group(function () {
     Route::get('nosotros', 'index')->name('nosotros');
@@ -123,7 +134,6 @@ Route::controller(RepuestosController::class)->group(function () {
 
 Route::controller(ProductoController::class)->group(function () {
     
-    Route::get('productos', 'index')->name('productos');
     Route::get('productos/imagen-predeterminada.svg', 'imagen_predeterminada')->name('producto.placeholder');
 Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::get('productos-filtrar', 'filtrar_productos')->name('productos.filtrar');
@@ -146,6 +156,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
+        Route::post('dashboard/productos/orden-categoria', 'guardarOrdenCategoria')->name('dashboard.productos.orden');
         Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
         Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');

@@ -19,10 +19,10 @@
         <a href='{{route('producto.edit', ['id' => $producto->id])}}'>
         <button type="button" class="btn btn-primary btn-sm me-1"><i class="fa-regular fa-pen-to-square"></i></button>
         </a>
-        <form action="{{ route('producto.delete', ['id' => $producto->id]) }}" method="POST">
+        <form action="{{ route('producto.delete', ['id' => $producto->id]) }}" method="POST" class="form-eliminar-producto" data-nombre="{{ ucfirst($producto->nombre) }}" data-codigo="{{ $producto->codigo }}">
             @csrf
             @method('DELETE')
-            <button type="submit" class="btn btn-danger btn-sm" ><i class="fa-solid fa-trash-can"></i></button>
+            <button type="submit" class="btn btn-danger btn-sm" title="Eliminar producto" aria-label="Eliminar producto"><i class="fa-solid fa-trash-can"></i></button>
         </form>    </div>
     
     </td>

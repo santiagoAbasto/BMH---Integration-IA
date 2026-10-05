@@ -5,10 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Subcategoria;
+use App\View\Composers\MenuProductosComposer;
+use Illuminate\Support\Facades\Cache;
 
 class Categoria extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        // El menú de «Productos» del header muestra las categorías desde caché.
+        $limpiarMenu = fn () => Cache::forget(MenuProductosComposer::CACHE);
+        static::saved($limpiarMenu);
+        static::deleted($limpiarMenu);
+    }
     
     protected $fillable = [
         'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 

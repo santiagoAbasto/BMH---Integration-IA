@@ -37,6 +37,24 @@
       </select>
     </form>
 
+    {{-- Sólo con una categoría elegida: cómo se ordenan sus productos. --}}
+    @if (isset($ordenCategoria))
+    <form method="POST" action="{{ route('dashboard.productos.orden') }}" class="d-flex align-items-center ms-auto" id="form-orden-categoria">
+      @csrf
+      <input type="hidden" name="categoria_id" value="{{ $categoria_id }}">
+      <label for="orden-categoria" class="me-2 fw-bold mb-0">
+        Ordenar productos:
+        <i class="fa-regular fa-circle-question text-secondary ms-1" tabindex="0"
+           title="Cómo se ordenan los productos de esta categoría en el catálogo que ve el cliente y en este listado. «Orden manual» usa el campo Orden de cada producto; las otras dos opciones los ordenan alfabéticamente e ignoran ese campo."></i>
+      </label>
+      <select name="orden" id="orden-categoria" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="manual" @selected($ordenCategoria === 'manual')>Orden manual</option>
+        <option value="codigo" @selected($ordenCategoria === 'codigo')>Alfabético por código</option>
+        <option value="nombre" @selected($ordenCategoria === 'nombre')>Alfabético por nombre</option>
+      </select>
+    </form>
+    @endif
+
     <a href="#" id="btn-exportar-excel" class="btn btn-success d-flex align-items-center" onclick="exportarExcelProductos(event)">
       <img style="height:18px; padding-right:5px;" src="{{ asset('imagenes/iconos/excel.png') }}" alt="">
       <span id="label-exportar-excel">Descargar Excel{{ $catLabel }}</span>
@@ -126,6 +144,24 @@
   <div class='card-footer'>
     <div id="productos-paginacion">
       {{$productos->links()}}
+    </div>
+  </div>
+</div>
+
+{{-- MODAL CONFIRMAR ELIMINACION --}}
+<div class="modal fade" id="confirmar-eliminar-producto" tabindex="-1" aria-labelledby="confirmar-eliminar-titulo" aria-describedby="confirmar-eliminar-desc" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content confirmar-eliminar">
+      <div class="modal-body text-center">
+        <div class="confirmar-eliminar__icono"><i class="fa-solid fa-trash-can"></i></div>
+        <h5 class="confirmar-eliminar__titulo" id="confirmar-eliminar-titulo">¿Eliminar este producto?</h5>
+        <p class="confirmar-eliminar__producto" id="confirmar-eliminar-producto-nombre"></p>
+        <p class="confirmar-eliminar__texto" id="confirmar-eliminar-desc">Esta acción no se puede deshacer. Se perderán sus datos y sus imágenes.</p>
+      </div>
+      <div class="modal-footer confirmar-eliminar__acciones">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="confirmar-eliminar-cancelar">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmar-eliminar-aceptar"><i class="fa-solid fa-trash-can me-1"></i> Sí, eliminar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -298,6 +334,75 @@
     font-weight: 500;
 }
 
+  .confirmar-eliminar {
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(32, 50, 59, .25);
+    overflow: hidden;
+  }
+
+  .confirmar-eliminar .modal-body {
+    padding: 32px 28px 8px;
+  }
+
+  .confirmar-eliminar__icono {
+    align-items: center;
+    background: #fdeaea;
+    border-radius: 50%;
+    color: #dc3545;
+    display: inline-flex;
+    font-size: 26px;
+    height: 64px;
+    justify-content: center;
+    margin-bottom: 16px;
+    width: 64px;
+  }
+
+  .confirmar-eliminar__titulo {
+    color: #20323b;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .confirmar-eliminar__producto {
+    background: #f4f6f8;
+    border-radius: 8px;
+    color: #20323b;
+    font-weight: 600;
+    margin: 0 auto 10px;
+    max-width: 100%;
+    padding: 8px 12px;
+    word-break: break-word;
+  }
+
+  .confirmar-eliminar__producto:empty {
+    display: none;
+  }
+
+  .confirmar-eliminar__texto {
+    color: #70838c;
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+
+  .confirmar-eliminar__acciones {
+    border: 0;
+    gap: 10px;
+    justify-content: center;
+    padding: 20px 28px 28px;
+  }
+
+  .confirmar-eliminar__acciones .btn {
+    border-radius: 10px;
+    flex: 1 1 0;
+    font-weight: 600;
+    padding: 10px 16px;
+  }
+
+  .confirmar-eliminar__acciones .btn-light {
+    background: #eef1f3;
+  }
+
   @media (max-width: 767px) {
     .productos-feedback {
       display: block;
@@ -331,6 +436,41 @@
           lector.readAsDataURL(input.files[0]);
       }
   }
+
+  // Confirmacion al eliminar producto (delegado: el listado se recarga por AJAX)
+  (function() {
+    var modalEl = document.getElementById('confirmar-eliminar-producto');
+    var modal = new bootstrap.Modal(modalEl);
+    var formPendiente = null;
+    var nombreEl = document.getElementById('confirmar-eliminar-producto-nombre');
+    var btnAceptar = document.getElementById('confirmar-eliminar-aceptar');
+
+    document.addEventListener('submit', function(e) {
+      var form = e.target.closest ? e.target.closest('.form-eliminar-producto') : null;
+      if (!form) return;
+      e.preventDefault();
+      formPendiente = form;
+      var nombre = form.dataset.nombre || '';
+      var codigo = form.dataset.codigo || '';
+      nombreEl.textContent = codigo ? nombre + ' (' + codigo + ')' : nombre;
+      btnAceptar.disabled = false;
+      modal.show();
+    });
+
+    modalEl.addEventListener('shown.bs.modal', function() {
+      document.getElementById('confirmar-eliminar-cancelar').focus();
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function() {
+      if (!btnAceptar.disabled) formPendiente = null;
+    });
+
+    btnAceptar.addEventListener('click', function() {
+      if (!formPendiente) return;
+      btnAceptar.disabled = true;
+      formPendiente.submit();
+    });
+  })();
 
   $(document).ready(function() {
     $('.preview').change(function() {
