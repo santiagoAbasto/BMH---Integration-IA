@@ -195,34 +195,77 @@ final class CatalogoFiltrado
     }
 
     /**
-     * Orden por código. «Numérico»: primero los códigos de puros números, de
-     * menor a mayor (0067, 1174, 10235), y después los que tienen letras, en
-     * orden natural (PLA18184 antes que PLA18400). «Alfabético»: al revés,
-     * primero los que tienen letras.
+     * Orden por código.
+     *
+     * «Numérico»: por el número del código, sin importar las letras de
+     * adelante (0094, IMPO100, A192, PND841, 1060). Con varios números
+     * (LASX 43-48) cuenta el primero; a igual número desempatan las letras
+     * (IMPO100 antes que REG100); los códigos sin número van al final.
+     *
+     * «Alfabético»: por la palabra de adelante y después el número como
+     * número (A192, IMPO100, IMPO1746, PND841); los que empiezan con un
+     * número van después, ordenados por ese número.
      *
      * @param  Collection<int, object>  $productos
      * @return Collection<int, object>
      */
     private static function ordenarPorCodigo(Collection $productos, string $orden): Collection
     {
-        $numericosPrimero = $orden === FiltrosCatalogo::ORDEN_NUMERICO;
+        $numerico = $orden === FiltrosCatalogo::ORDEN_NUMERICO;
 
-        return $productos->sort(function (object $a, object $b) use ($numericosPrimero): int {
+        return $productos->sort(function (object $a, object $b) use ($numerico): int {
             $codigoA = trim((string) $a->codigo);
             $codigoB = trim((string) $b->codigo);
-            $numericoA = ctype_digit($codigoA);
-            $numericoB = ctype_digit($codigoB);
 
-            if ($numericoA !== $numericoB) {
-                return $numericoA === $numericosPrimero ? -1 : 1;
-            }
-
-            $comparacion = $numericoA
-                ? [(int) $codigoA, $codigoA] <=> [(int) $codigoB, $codigoB]
-                : strnatcasecmp($codigoA, $codigoB);
+            $comparacion = $numerico
+                ? self::compararPorNumero($codigoA, $codigoB)
+                : self::compararPorLetras($codigoA, $codigoB);
 
             return $comparacion ?: (int) $a->id <=> (int) $b->id;
         })->values();
+    }
+
+    private static function compararPorNumero(string $a, string $b): int
+    {
+        $numeroA = self::primerNumero($a);
+        $numeroB = self::primerNumero($b);
+
+        if ($numeroA === null || $numeroB === null) {
+            return ($numeroA === null) <=> ($numeroB === null) ?: strnatcasecmp($a, $b);
+        }
+
+        // Como cantidad y no como texto: 192 antes que 1060. Comparar largo y
+        // después dígitos sirve para cualquier largo, sin pasar por int.
+        return [strlen($numeroA), $numeroA] <=> [strlen($numeroB), $numeroB] ?: strnatcasecmp($a, $b);
+    }
+
+    private static function compararPorLetras(string $a, string $b): int
+    {
+        $empiezaConNumeroA = ctype_digit(substr($a, 0, 1));
+        $empiezaConNumeroB = ctype_digit(substr($b, 0, 1));
+
+        if ($empiezaConNumeroA || $empiezaConNumeroB) {
+            return $empiezaConNumeroA <=> $empiezaConNumeroB ?: self::compararPorNumero($a, $b);
+        }
+
+        // No strnatcasecmp: con ceros a la izquierda pondría CZB090 antes que CZB33.
+        return strcasecmp(self::palabra($a), self::palabra($b)) ?: self::compararPorNumero($a, $b);
+    }
+
+    /** Las letras de adelante del código, hasta el primer número ("LASX 43-48" → "LASX"). */
+    private static function palabra(string $codigo): string
+    {
+        return trim((string) preg_replace('/\d.*$/s', '', $codigo), " -_./");
+    }
+
+    /** El primer número del código sin ceros a la izquierda ("0094" → "94"), o null si no tiene. */
+    private static function primerNumero(string $codigo): ?string
+    {
+        if (! preg_match('/\d+/', $codigo, $m)) {
+            return null;
+        }
+
+        return ltrim($m[0], '0') ?: '0';
     }
 
     /**

@@ -131,25 +131,42 @@ final class CatalogoTest extends BaseTestCase
         $this->assertSame(['PRODUCTO A', 'PRODUCTO C'], $this->listados(['atributo' => ['columna_1' => '60']]));
     }
 
-    public function test_ordena_por_codigo_numericos_o_con_letras_primero(): void
+    public function test_ordena_por_codigo_numerico_por_el_numero_y_alfabetico_por_la_palabra(): void
     {
-        // Como número 2… va antes que 1…0; como texto sería al revés.
+        // Como número 2… (9 dígitos) va antes que 1…0 (10); como texto sería al revés.
         $n = (string) random_int(10000000, 99999999);
-        $this->crear('N1', ['estado' => 1, 'codigo' => '1'.$n.'0']);
-        $this->crear('N2', ['estado' => 1, 'codigo' => '2'.$n]);
+        $codigos = [
+            'IMPO' => 'IMPO100', 'REG' => 'REG100', 'A192' => 'A192', 'P0094' => '0094',
+            'P1060' => '1060', 'KIT' => '6052KIT', 'LASX' => 'LASX 43-48', 'SIN' => 'CAJAFICHA',
+            'L9' => '2'.$n, 'L10' => '1'.$n.'0',
+            // Ceros a la izquierda: 33 < 35 < 90 aunque «090» empiece con 0.
+            'CZB33' => 'CZB33', 'CZB35' => 'CZB035F', 'CZB90' => 'CZB090',
+        ];
+        foreach ($codigos as $letra => $codigo) {
+            $this->crear($letra, ['estado' => 1, 'codigo' => $codigo]);
+        }
 
-        $ordenados = fn (?string $orden) => $this->get(route('productos', ['categoria' => $this->categoria, 'orden' => $orden]))
-            ->assertOk()
-            ->viewData('productos')
-            ->pluck('nombre')
-            ->all();
+        // Sólo el orden entre estos; los productos del setUp tienen códigos al
+        // azar. Son más de 12: se piden dos páginas juntas.
+        $ordenados = fn (string $orden) => array_values(array_intersect(
+            $this->get(route('productos', ['categoria' => $this->categoria, 'orden' => $orden, 'paginas' => 2]))
+                ->assertOk()
+                ->viewData('productos')
+                ->pluck('codigo')
+                ->all(),
+            $codigos
+        ));
 
+        // Por el número, sin importar las letras de adelante; con varios
+        // números cuenta el primero (43); a igual número, las letras; sin
+        // número, al final.
         $this->assertSame(
-            ['PRODUCTO N2', 'PRODUCTO N1', 'PRODUCTO A', 'PRODUCTO B', 'PRODUCTO C', 'PRODUCTO D'],
+            ['CZB33', 'CZB035F', 'LASX 43-48', 'CZB090', '0094', 'IMPO100', 'REG100', 'A192', '1060', '6052KIT', '2'.$n, '1'.$n.'0', 'CAJAFICHA'],
             $ordenados('numerico')
         );
+        // Por la palabra de adelante y su número; los que empiezan con número, después.
         $this->assertSame(
-            ['PRODUCTO A', 'PRODUCTO B', 'PRODUCTO C', 'PRODUCTO D', 'PRODUCTO N2', 'PRODUCTO N1'],
+            ['A192', 'CAJAFICHA', 'CZB33', 'CZB035F', 'CZB090', 'IMPO100', 'LASX 43-48', 'REG100', '0094', '1060', '6052KIT', '2'.$n, '1'.$n.'0'],
             $ordenados('alfabetico')
         );
 
