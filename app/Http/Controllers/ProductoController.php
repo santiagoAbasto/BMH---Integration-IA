@@ -94,7 +94,7 @@ class ProductoController extends Controller
             $productos = Producto::with($with)
                 ->whereHas('categoria', function ($query) use ($categoria_id) {
                 $query->where('id', $categoria_id);
-            })->ordenado((int) $categoria_id)->get();
+            })->ordenado()->get();
         }
 
         $productos = $productos->skip($request->contador)->take($request->xpag);
@@ -142,7 +142,7 @@ class ProductoController extends Controller
             ])
             ->where('categoria_id', $producto->categoria->id)
             ->where('id', '!=', $producto->id)
-            ->ordenado((int) $producto->categoria->id)
+            ->ordenado()
             ->limit(6)
             ->get();
     } else {
@@ -228,7 +228,7 @@ class ProductoController extends Controller
             $productos = Producto::with($with)
                 ->whereHas('categoria', function ($query) use ($categoria) {
                 $query->where('id', $categoria);
-            })->ordenado((int) $categoria)->get();
+            })->ordenado()->get();
         }
 
         return view('frontend/productos-listado', compact('productos'));
@@ -765,7 +765,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
             $query->where('estado', 2);
         }
 
-        $productos = $query->ordenado($request->filled('categoriaFiltro') ? (int) $request->categoriaFiltro : null)
+        $productos = $query->ordenado()
             ->orderBy('nombre')
             ->paginate(15)
             ->appends([
@@ -864,7 +864,7 @@ public function dash_productos(Request $request)
     $categoria_id = $request->input('categoria_id');
 
     $hayCategoria = !empty($categoria_id) && $categoria_id != 'todos';
-    $query = Producto::with('categoria')->ordenado($hayCategoria ? (int) $categoria_id : null);
+    $query = Producto::with('categoria')->ordenado();
 
     if ($hayCategoria) {
         $query->where('categoria_id', $categoria_id);
@@ -879,31 +879,28 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    $ordenCategoria = $hayCategoria ? Producto::ordenDeCategoria((int) $categoria_id) : null;
+    $ordenProductos = Producto::ordenElegido();
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'ordenCategoria'));
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'ordenProductos'));
 }
 
-    /** Cómo se ordenan los productos de una categoría (catálogo y listado): manual, por código o por nombre. */
-    public function guardarOrdenCategoria(Request $request)
+    /** Cómo se ordenan todos los productos (catálogo y listado): manual, por código o por nombre. */
+    public function guardarOrdenProductos(Request $request)
     {
         $datos = $request->validate([
-            'categoria_id' => ['required', 'integer', 'exists:categorias,id'],
-            'orden' => ['required', Rule::in(Producto::ORDENES_CATEGORIA)],
+            'orden' => ['required', Rule::in(Producto::ORDENES_PRODUCTOS)],
         ]);
 
-        Ajuste::guardar(Producto::AJUSTE_ORDEN_CATEGORIA.'.'.$datos['categoria_id'], $datos['orden']);
+        Ajuste::guardar(Producto::AJUSTE_ORDEN, $datos['orden']);
 
-        return redirect()
-            ->route('dashboard.productos', ['categoria_id' => $datos['categoria_id']])
-            ->with('success', 'Orden de la categoría actualizado.');
+        return redirect()->back()->with('success', 'Orden de los productos actualizado.');
     }
 
     public function exportarExcel(Request $request)
     {
         $categoriaId = $request->input('categoria_id');
 
-        $query = Producto::with('categoria')->ordenado(!empty($categoriaId) && $categoriaId != 'todos' ? (int) $categoriaId : null);
+        $query = Producto::with('categoria')->ordenado();
         if (!empty($categoriaId) && $categoriaId != 'todos') {
             $query->where('categoria_id', $categoriaId);
         }

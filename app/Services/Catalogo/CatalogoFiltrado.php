@@ -187,12 +187,8 @@ final class CatalogoFiltrado
             // Los ocultos (estado = 0) no se le ofrecen al visitante.
             ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0));
 
-        // Con una categoría elegida el catálogo respeta su orden (manual, por
-        // código o por nombre); sin categoría, alfabético por nombre.
-        return ($filtros->categoria === null
-            ? $consulta->orderBy('nombre')
-            : $consulta->ordenado($filtros->categoria))
-            ->get();
+        // El orden que se elige en el admin: manual, por código o por nombre.
+        return $consulta->ordenado()->get();
     }
 
     /**
