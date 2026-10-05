@@ -801,6 +801,8 @@
             });
         })();
 
+        {{-- Lupa por hover: apagada por ahora (config imagenes.zoom_hover). El clic abre el modal con zoom. --}}
+        @if (config('imagenes.zoom_hover'))
         // Lupa zoom para el fotorama del show (mismo comportamiento que en las cards)
         (function () {
             if (window.__pbmhZoomDetalleInit) return;
@@ -954,5 +956,6 @@
             var fotoramaRoot = document.querySelector('.fotorama');
             if (fotoramaRoot) obs.observe(fotoramaRoot, { childList: true, subtree: true });
         })();
+        @endif
     </script>
 @endsection

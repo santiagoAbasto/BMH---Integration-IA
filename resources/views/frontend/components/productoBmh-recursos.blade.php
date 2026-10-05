@@ -134,6 +134,8 @@
     @media (max-width: 991px) { #pbmh-zoom, .pbmh-lens { display:none !important; } }
 </style>
 
+{{-- Lupa por hover: apagada por ahora (config imagenes.zoom_hover). El clic abre el modal con zoom. --}}
+@if (config('imagenes.zoom_hover'))
 <script>
 (function () {
     // Lupa zoom para las imágenes de las cards (hover -> preview flotante al costado)
@@ -297,6 +299,7 @@
     }
 })();
 </script>
+@endif
 
 <script>
 (function () {

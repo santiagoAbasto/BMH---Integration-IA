@@ -51,4 +51,11 @@ return [
      * y un favicon WebP no lo muestran todos los navegadores.
      */
     'sectores_excluidos' => ['logo', 'logo2', 'logo-header-blanco', 'favicon'],
+
+    /*
+     * Lupa al pasar el mouse por la foto de las cards y de la ficha (vista
+     * normal y de clientes). Apagada por ahora: el clic abre el modal con
+     * zoom. Para volver a prenderla, IMAGENES_ZOOM_HOVER=true en el .env.
+     */
+    'zoom_hover' => (bool) env('IMAGENES_ZOOM_HOVER', false),
 ];
