@@ -27,6 +27,7 @@ use App\Models\User;
 use App\Services\BuscadorCatalogo;
 use App\Services\Catalogo\CatalogoFiltrado;
 use App\Services\Catalogo\FiltrosCatalogo;
+use App\Services\Catalogo\PartesReciprocas;
 use App\Services\BusquedaPorEquivalencia;
 use App\Services\Imagenes\ImagenesDeCategoria;
 use App\Services\Imagenes\OptimizadorImagenes;
@@ -40,6 +41,7 @@ class ProductoController extends Controller
 {
     public function __construct(
         private readonly CatalogFilterOptions $catalogFilterOptions,
+        private readonly PartesReciprocas $partesReciprocas,
     ) {
     }
 
@@ -2173,8 +2175,15 @@ public function dash_productos(Request $request)
         $filasParte = $filasParte->filter(fn (array $f): bool => in_array($f['id'], $existentes, true))->values();
 
         DB::transaction(function () use ($filasParte, $producto): void {
-            $producto->partesRelacionadas()->sync(
+            $cambios = $producto->partesRelacionadas()->sync(
                 $filasParte->mapWithKeys(fn (array $f): array => [$f['id'] => ['orden' => $f['orden']]])->all(),
+            );
+
+            // Del otro lado también: la parte tiene al producto como parte relacionada.
+            $this->partesReciprocas->sincronizar(
+                (int) $producto->id,
+                $filasParte->pluck('id')->all(),
+                $cambios['detached'],
             );
         });
     }
