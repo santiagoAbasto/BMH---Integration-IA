@@ -443,6 +443,31 @@ final class CatalogoFiltrado
     }
 
     /**
+     * Por el número de adelante y después como texto: 4MM, 4.4MM, 4.7MM, 12MM,
+     * 125MM. Con la unidad pegada, el orden natural solo ponía 4.4MM antes que
+     * 4MM (compara el punto con la M).
+     */
+    private static function compararMedidas(string $a, string $b): int
+    {
+        $numeroA = preg_match('/^\d+(?:\.\d+)?/', $a, $ma) === 1 ? (float) $ma[0] : null;
+        $numeroB = preg_match('/^\d+(?:\.\d+)?/', $b, $mb) === 1 ? (float) $mb[0] : null;
+
+        // Primero las medidas con número; los textos sueltos al final.
+        if (($numeroA === null) !== ($numeroB === null)) {
+            return $numeroA === null ? 1 : -1;
+        }
+        if ($numeroA !== null && $numeroB !== null && $numeroA !== $numeroB) {
+            return $numeroA <=> $numeroB;
+        }
+        // Mismo número: primero el valor simple (12V antes que 12/24V).
+        if ($numeroA !== null && $numeroB !== null && strlen($a) !== strlen($b)) {
+            return strlen($a) <=> strlen($b);
+        }
+
+        return strnatcasecmp($a, $b);
+    }
+
+    /**
      * Las opciones de cada medida, ordenadas como números cuando lo son
      * (12, 24, 125 y no 12, 125, 24). Una medida con un solo valor no filtra
      * nada y no se ofrece, salvo que ya esté elegida (hay que poder sacarla).
@@ -461,7 +486,7 @@ final class CatalogoFiltrado
                 $pool->filter(fn (object $p) => $cumple($p, 'atributo:'.$columna)),
                 fn (object $p) => [self::normalizar($p->{$columna})]
             );
-            uksort($opciones, fn ($a, $b) => strnatcasecmp((string) $a, (string) $b));
+            uksort($opciones, fn ($a, $b) => self::compararMedidas((string) $a, (string) $b));
 
             if (count($opciones) > 1 || isset($elegidos[$columna])) {
                 $atributos[$columna] = ['etiqueta' => $etiqueta, 'opciones' => $opciones];

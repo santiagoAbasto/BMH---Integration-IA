@@ -322,7 +322,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
     }
   </style>
 </head>
-<body>
+<body class="@yield('body-class')">
   <div class="wrapper">
 
     <div class='container-fluid' style='max-width:100%;'>
@@ -330,7 +330,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
       <div class='row d-flex'>
         
         <!-- Barra lateral izquierda -->
-        <nav class="sidebar col-3 collapse show">
+        <nav id="sidebar" class="sidebar col-3 collapse @unless(View::hasSection('sidebar-collapsed')) show @endunless" aria-label="Menú de administración">
           <div style='padding:30px;height:150px;width:100%;'>
             <div style='background-image: url("{{asset('imagenes/'.$logo2->path)}}"); background-size: contain; background-position: center;background-repeat:no-repeat;
             width:100%;

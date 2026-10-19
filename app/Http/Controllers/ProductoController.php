@@ -28,6 +28,7 @@ use App\Services\BuscadorCatalogo;
 use App\Services\Catalogo\CatalogoFiltrado;
 use App\Services\Catalogo\FiltrosCatalogo;
 use App\Services\Catalogo\PartesReciprocas;
+use App\Services\Catalogo\UnidadesProducto;
 use App\Services\BusquedaPorEquivalencia;
 use App\Services\Imagenes\ImagenesDeCategoria;
 use App\Services\Imagenes\OptimizadorImagenes;
@@ -864,7 +865,7 @@ public function dash_productos(Request $request)
     $categoria_id = $request->input('categoria_id');
 
     $hayCategoria = !empty($categoria_id) && $categoria_id != 'todos';
-    $query = Producto::with('categoria')->ordenado();
+    $query = Producto::with(['categoria', 'portadaImagen'])->ordenado();
 
     if ($hayCategoria) {
         $query->where('categoria_id', $categoria_id);
@@ -938,7 +939,7 @@ public function dash_productos(Request $request)
 
     public function store(Request $request)
     {
-
+        app(UnidadesProducto::class)->preparar($request);
 
         $nuevo_producto = new Producto();
         $nuevo_producto->nombre = $request->nombre;
@@ -1097,6 +1098,7 @@ public function dash_productos(Request $request)
     {
 
         $producto = Producto::find($request->id);
+        app(UnidadesProducto::class)->preparar($request, $producto->categoria_id);
 
         if ($request->hasFile('imagenes')) {
             $files = $request->file('imagenes');
@@ -1336,10 +1338,10 @@ public function dash_productos(Request $request)
     {
         $busqueda = (string) $request->input('valor', '');
         $categoriaId = $request->input('categoria_id');
-        $textoNormalizado = strtolower($busqueda);
+        $textoNormalizado = strtolower(trim($busqueda));
 
         $crearConsulta = function () use ($textoNormalizado) {
-            return Producto::with('categoria')
+            $query = Producto::with(['categoria', 'portadaImagen'])
                 ->where(function ($query) use ($textoNormalizado) {
                     $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%'])
                         ->orWhereRaw('LOWER(codigo) LIKE ?', ['%' . $textoNormalizado . '%'])
@@ -1348,6 +1350,19 @@ public function dash_productos(Request $request)
                             $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%']);
                         });
                 });
+
+            // El código tiene prioridad sobre nombre, descripción y categoría,
+            // incluso antes de paginar y al buscar alternativas de otra categoría.
+            if ($textoNormalizado !== '') {
+                $query->orderByRaw(
+                    'CASE WHEN LOWER(codigo) = ? THEN 0 '
+                    . 'WHEN LOWER(codigo) LIKE ? THEN 1 '
+                    . 'WHEN LOWER(codigo) LIKE ? THEN 2 ELSE 3 END',
+                    [$textoNormalizado, $textoNormalizado . '%', '%' . $textoNormalizado . '%']
+                );
+            }
+
+            return $query;
         };
 
         $query = $crearConsulta();
@@ -1380,7 +1395,7 @@ public function dash_productos(Request $request)
 
         return response()->json([
             'html' => view('backend/dash-productos-listado', compact('productos'))->render(),
-            'pagination' => $productos->links()->toHtml(),
+            'pagination' => $productos->links('pagination::bootstrap-5')->toHtml(),
             'sinResultadosCategoria' => $sinResultadosCategoria,
             'hayAlternativas' => $sinResultadosCategoria && $productos->isNotEmpty(),
         ]);

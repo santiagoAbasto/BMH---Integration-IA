@@ -25,6 +25,13 @@
           {{ session('warning') }}
       </div>
   @endif
+  @if($errors->any())
+      <div class="alert alert-danger" role="alert">
+          @foreach($errors->all() as $error)
+              <div>{{ $error }}</div>
+          @endforeach
+      </div>
+  @endif
 
   <div class="card">
     <div class="card-header">
@@ -138,7 +145,8 @@
 
             </div> --}}
 
-            <div id="dynamic-inputs"></div>
+            <div id="dynamic-inputs" class="row"
+                 data-url-categoria="{{ route('categoria.show', ':id') }}" data-cargar-inicial="true"></div>
 
 
 
@@ -226,6 +234,7 @@
 
 @section('script')
     @include('backend.partials.achicar-imagenes')
+    <script src="{{ asset('js/campos-producto.js') }}"></script>
 <script>
     $(document).ready(function() {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -239,59 +248,6 @@ checkboxes.forEach((checkbox) => {
         }
     });
 });
-
-$(document).ready(function() {
-    $('#select-categoria').change(function() {
-        var categoriaId = $(this).val();
-
-        // Utiliza la función route para obtener la URL de la ruta en el servidor
-        var url = "{{ route('categoria.show', ':id') }}".replace(':id', categoriaId);
-
-        $.ajax({
-            url: url,
-            type: 'GET',
-            success: function(data) {
-    $('#dynamic-inputs').empty();
-
-    // Inputs de columnas viejas
-    if (data.columnas) {
-        for (const [key, value] of Object.entries(data.columnas)) {
-            const inputGroup = `
-                <div class="mb-3">
-                    <label for="${key}" class="form-label">${value}</label>
-                    <input type="text" class="form-control" name="${key}" id="${key}">
-                </div>
-            `;
-            $('#dynamic-inputs').append(inputGroup);
-        }
-    }
-
-    // Inputs de nuevas características
-    if (data.caracteristicas && data.caracteristicas.length > 0) {
-        data.caracteristicas.forEach(function(caracteristica) {
-            const inputGroup = `
-                <div class="mb-3">
-                    <label for="caracteristica_${caracteristica.id}" class="form-label">${caracteristica.nombre}</label>
-                    <input type="text" class="form-control"
-                        name="caracteristicas[${caracteristica.id}]"
-                        id="caracteristica_${caracteristica.id}">
-                </div>
-            `;
-            $('#dynamic-inputs').append(inputGroup);
-        });
-    }
-}
-,
-            error: function(xhr, status, error) {
-                console.error(error); // Manejo de errores
-            }
-        });
-    });
-
-    // Resto del código...
-});
-
-
 
         $('.summernote-text').each(function() {
         

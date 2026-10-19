@@ -1,8 +1,21 @@
 @extends('layouts.plantilla-back')
 
+@section('body-class', 'productos-dashboard')
+@section('sidebar-collapsed', '1')
+
 @section('content')
 
-  <h1 class='mb-4'>Productos</h1>
+<section class="productos-page" aria-labelledby="productos-titulo">
+  <header class="productos-heading">
+    <div>
+      <p class="productos-eyebrow">Administración del catálogo</p>
+      <h1 id="productos-titulo">Productos</h1>
+      <p class="productos-intro">Buscá, organizá y actualizá tus productos.</p>
+    </div>
+    <a href="{{ route('producto.create') }}" class="btn btn-success productos-crear">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Crear producto
+    </a>
+  </header>
 
   @if(session('success'))
     <div class="alert alert-success">
@@ -24,10 +37,10 @@
       }
   @endphp
 
-  <div class="mb-3 d-flex align-items-center gap-2">
-    <form method="GET" action="{{ route('dashboard.productos') }}" class="d-flex align-items-center">
-      <label for="categoria_id" class="me-2 fw-bold">Filtrar por categoría:</label>
-      <select name="categoria_id" id="categoria_id" class="form-select w-auto" onchange="this.form.submit()">
+  <div class="productos-tools">
+    <form method="GET" action="{{ route('dashboard.productos') }}" class="productos-filtro">
+      <label for="categoria_id" class="form-label">Filtrar por categoría</label>
+      <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
           <option value="todos">Todas</option>
           @foreach($categorias as $categoria)
               <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
@@ -37,85 +50,85 @@
       </select>
     </form>
 
-    <a href="#" id="btn-exportar-excel" class="btn btn-success d-flex align-items-center" onclick="exportarExcelProductos(event)">
-      <img style="height:18px; padding-right:5px;" src="{{ asset('imagenes/iconos/excel.png') }}" alt="">
-      <span id="label-exportar-excel">Descargar Excel{{ $catLabel }}</span>
+    <div class="productos-descargas">
+    <a href="{{ route('dashboard.productos.exportar', ['categoria_id' => $categoria_id ?? 'todos']) }}" id="btn-exportar-excel" class="btn btn-outline-success" title="Descargar Excel{{ $catLabel }}">
+      <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+      <span>Descargar Excel</span>
+    </a>
+    <a href="{{ route('dashboard.productos.excel.importar') }}" class="btn btn-outline-primary" title="Actualizar precio e imágenes de muchos productos con el Excel, con vista previa antes de aplicar">
+      <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+      <span>Importar Excel</span>
+    </a>
+    <a href="{{ route('dashboard.imagenes') }}" class="btn btn-outline-secondary" title="Subir imágenes masivamente y ver sus códigos">
+      <i class="fa-solid fa-images" aria-hidden="true"></i>
+      <span>Imágenes</span>
     </a>
 
     {{-- Sólo con una categoría elegida: un ZIP con las imágenes nombradas por código. --}}
     @if (isset($imagenesCategoria))
       @if ($imagenesCategoria > 0)
         <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
-           class="btn btn-outline-primary d-flex align-items-center gap-2"
+           class="btn btn-outline-primary"
            title="Cada imagen lleva el código del producto (CODIGO-1, CODIGO-2 si tiene varias)">
           <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
-          <span>Descargar imágenes{{ $catLabel }} ({{ number_format($imagenesCategoria, 0, ',', '.') }})</span>
+           <span>Descargar imágenes ({{ number_format($imagenesCategoria, 0, ',', '.') }})</span>
         </a>
       @else
-        <span class="btn btn-outline-secondary d-flex align-items-center gap-2 disabled" aria-disabled="true">
+        <span class="btn btn-outline-secondary disabled" aria-disabled="true">
           <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Esta categoría no tiene imágenes
         </span>
       @endif
     @endif
+    </div>
   </div>
 
 
-    <div class="card">
-    <div class="card-header d-flex justify-content-between">
-      <div class='d-flex'>
-        <a href='{{route('producto.create')}}'>
-          <button type="button" class="btn btn-success"><i class="fa-solid fa-plus"></i>  CREAR</button>
-        </a>
-        <button type='button' style='height:38px;' class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#actualizar-precios">
-          <div class='d-flex'>
-            <img style='height:20px;padding-right:5px;' src="{{asset('imagenes/iconos/excel.png')}}" alt=""><p>Actualización masiva</p>
-          </div>
-          
+    <div class="card productos-panel">
+    <div class="card-header productos-toolbar">
+      <form class="productos-buscador" role="search" id="productos-buscar-form">
+        <label for="productos-busqueda" class="form-label">Buscar productos</label>
+        <div class="productos-search-control">
+          <input type="search" id="productos-busqueda" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
+          <button type="submit" id="buscador-productos" class="productos-search-btn" aria-label="Buscar productos">
+            <i class="fa fa-search" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="productos-busqueda-ayuda" class="productos-search-hint">Las coincidencias de código aparecen primero.</p>
+      </form>
+      <div class="productos-importaciones" role="group" aria-label="Actualizaciones desde Excel">
+        <span class="productos-importaciones-label">Actualizar desde Excel</span>
+        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-precios">
+          <i class="fa-solid fa-tags" aria-hidden="true"></i> Precios
         </button>
-
-        <button type='button' style='height:38px;' class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#actualizar-clientes">
-          <div class='d-flex'>
-            <img style='height:20px;padding-right:5px;' src="{{asset('imagenes/iconos/excel.png')}}" alt=""><p>Actualización Clientes</p>
-          </div>
-          
+        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-clientes">
+          <i class="fa-solid fa-users" aria-hidden="true"></i> Clientes
         </button>
-
-        <button type='button' style='height:38px;' class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#actualizar-categoriasExcel">
-          <div class='d-flex'>
-            <img style='height:20px;padding-right:5px;' src="{{asset('imagenes/iconos/excel.png')}}" alt=""><p>Actualización Categorias</p>
-          </div>
-          
+        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-categoriasExcel">
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i> Categorías
         </button>
-    </div>
-        
-    <div class="search-container">
-      <input type="text" placeholder="Buscar..." class="search-input">
-      <button id='buscador-productos' class="search-btn">
-        <i class="fa fa-search"></i>
-      </button>
-    </div>
-      
-      
+      </div>
     </div>
 
+    <p id="productos-estado" class="productos-estado" role="status" aria-live="polite"></p>
     <div id="productos-feedback" class="productos-feedback" role="status" aria-live="polite" hidden></div>
     <div id="productos-alternativas-titulo" class="productos-alternativas-titulo" role="heading" aria-level="2" hidden></div>
 
-    <div class="card-body">
+    <div class="card-body productos-listado">
 
-      <table class="table table-striped" style='border: 1px solid #dddddd;'>
+      <table class="table productos-table" role="table" aria-label="Listado de productos">
+        <caption class="visually-hidden">Productos con su código, imagen, categoría y acciones de administración.</caption>
         <thead>
-          <tr>
-            <th>Orden</th>
-            <th>Codigo</th>
-            <th>Portada</th>
-            <th>Nombre</th>
-            <th>Categoría</th>
-            <th>Destacada</th>
-            <th>Acciones</th>
+          <tr role="row">
+            <th scope="col">Orden</th>
+            <th scope="col">Código</th>
+            <th scope="col">Portada</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Destacada</th>
+            <th scope="col">Acciones</th>
           </tr>
         </thead>
-        <tbody id='productos-contenedor'>
+         <tbody id='productos-contenedor' role="rowgroup">
 
           @include('backend/dash-productos-listado')
 
@@ -123,9 +136,9 @@
       </table>
 
   </div>
-  <div class='card-footer'>
-    <div id="productos-paginacion">
-      {{$productos->links()}}
+   <div class='card-footer productos-footer' @if(!$productos->hasPages()) hidden @endif>
+     <div id="productos-paginacion">
+       {{$productos->links('pagination::bootstrap-5')}}
     </div>
   </div>
 </div>
@@ -149,25 +162,25 @@
 </div>
 
 {{-- MODAL PRECIOS --}}
-<div class="modal fade" id="actualizar-precios" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="actualizar-precios" tabindex="-1" aria-labelledby="actualizar-precios-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
   <div class="modal-content">
       <div class="modal-header">
-        <p class='fs-4'>Actualización de precios</p>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h2 class="modal-title" id="actualizar-precios-titulo">Actualización de precios</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body fs-4">
-        <label>Aclaración: los productos de la web deben tener el mismo código de producto que en el excel. Puedes modificar este código en cada producto. El orden de las columnas debe coincidir con el del modelo.</label>
+      <div class="modal-body">
+        <p>Los productos de la web deben tener el mismo código que en el Excel. Podés modificarlo en cada producto. El orden de las columnas debe coincidir con el modelo.</p>
         <form id='actualizar-precios-form' action="{{ route('actualizar.precios') }}" method="POST" enctype="multipart/form-data">
           @csrf
-          <label for="lista">Listado de precios (excel)</label>
-          <input class="form-control" type="file" id="imagenes" name="lista" accept="file/*" required>
+          <label for="lista-precios" class="form-label">Listado de precios (Excel)</label>
+          <input class="form-control" type="file" id="lista-precios" name="lista" accept=".xlsx,.xls,.csv" required>
         </form>
         <div class='d-flex mt-2'>
-          <a href="{{ asset('archivos/ejemploExcel.xlsx')}}" download><button type="button" class="btn btn-warning btn-sm me-1"><i class="fa-solid fa-download"></i> Descargar modelo</button></a>
+          <a href="{{ asset('archivos/ejemploExcel.xlsx')}}" download class="btn btn-outline-secondary"><i class="fa-solid fa-download" aria-hidden="true"></i> Descargar modelo</a>
         </div>
       </div>
-      <div class="modal-footer d-flex justify-content-center">
+      <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
       <button type="submit" data-form-id='actualizar-precios-form' class="submit btn btn-primary">Actualizar</button>
       </div>
@@ -178,18 +191,18 @@
 
 
 
-<div class="modal fade" id="actualizar-clientes" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="actualizar-clientes" tabindex="-1" aria-labelledby="actualizar-clientes-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
   <div class="modal-content">
       <div class="modal-header">
-        <p class='fs-4'>Actualización de clientes</p>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h2 class="modal-title" id="actualizar-clientes-titulo">Actualización de clientes</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body fs-4">
+      <div class="modal-body">
         <form id='actualizar-clientes-form' action="{{ route('actualizar.clientes') }}" method="POST" enctype="multipart/form-data">
           @csrf
-          <label for="lista">Listado de clientes (excel)</label>
-          <input class="form-control" type="file" id="imagenes" name="lista" accept="file/*" required>
+          <label for="lista-clientes" class="form-label">Listado de clientes (Excel)</label>
+          <input class="form-control" type="file" id="lista-clientes" name="lista" accept=".xlsx,.xls,.csv" required>
         </form>
 
       </div>
@@ -201,18 +214,18 @@
   </div>
 </div>
 
-<div class="modal fade" id="actualizar-categoriasExcel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="actualizar-categoriasExcel" tabindex="-1" aria-labelledby="actualizar-categorias-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
   <div class="modal-content">
       <div class="modal-header">
-        <p class='fs-4'>Actualización de categoriasExcel</p>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h2 class="modal-title" id="actualizar-categorias-titulo">Actualización de categorías</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body fs-4">
+      <div class="modal-body">
         <form id='actualizar-categorias-form' action="{{ route('actualizar.categoriasExcel') }}" method="POST" enctype="multipart/form-data">
           @csrf
-          <label for="lista">Listado de precios (excel)</label>
-          <input class="form-control" type="file" id="imagenes" name="lista" accept="file/*" required>
+          <label for="lista-categorias" class="form-label">Listado de categorías (Excel)</label>
+          <input class="form-control" type="file" id="lista-categorias" name="lista" accept=".xlsx,.xls,.csv" required>
         </form>
 
       </div>
@@ -223,202 +236,15 @@
   </div>
   </div>
 </div>
+</section>
 @endsection
 
 @section('styles')
-<style>
-  .productos-feedback {
-    align-items: stretch;
-    background: linear-gradient(120deg, #f4fbfe 0%, #ffffff 72%);
-    border: 1px solid #d8edf6;
-    border-left: 4px solid #0098da;
-    border-radius: 12px;
-    box-shadow: 0 8px 22px rgba(24, 77, 105, .08);
-    display: flex;
-    justify-content: space-between;
-    margin: 18px 20px 12px;
-    max-width: 680px;
-    overflow: hidden;
-    width: calc(100% - 40px);
-  }
-
-  .productos-feedback[hidden] {
-    display: none;
-  }
-
-  .productos-feedback__notice {
-    align-items: center;
-    display: flex;
-    gap: 13px;
-    min-width: 0;
-    padding: 17px 20px;
-  }
-
-  .productos-feedback__icon {
-    align-items: center;
-    background: #e1f4fb;
-    border: 1px solid #bce5f3;
-    border-radius: 10px;
-    color: #007fb7;
-    display: inline-flex;
-    flex: 0 0 38px;
-    font-size: 16px;
-    height: 38px;
-    justify-content: center;
-    width: 38px;
-  }
-
-  .productos-feedback__eyebrow {
-    color: #6f8793;
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .12em;
-    margin-bottom: 3px;
-    text-transform: uppercase;
-  }
-
-  .productos-feedback__title {
-    color: #20323b;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.25;
-    margin: 0;
-  }
-
-  .productos-feedback__copy {
-    color: #70838c;
-    font-size: 12px;
-    line-height: 1.45;
-    margin: 4px 0 0;
-  }
-
-  .productos-alternativas-titulo {
-    margin: 2px 20px 16px;
-  }
-
-  .productos-alternativas-titulo[hidden] {
-    display: none;
-  }
-
-  .productos-alternativas-titulo__heading {
-    color: #20323b;
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: -.01em;
-    line-height: 1.2;
-    margin: 0;
-}
-
-  .productos-alternativas-titulo__copy {
-    color: #70838c;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-  .confirmar-eliminar {
-    border: 0;
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(32, 50, 59, .25);
-    overflow: hidden;
-  }
-
-  .confirmar-eliminar .modal-body {
-    padding: 32px 28px 8px;
-  }
-
-  .confirmar-eliminar__icono {
-    align-items: center;
-    background: #fdeaea;
-    border-radius: 50%;
-    color: #dc3545;
-    display: inline-flex;
-    font-size: 26px;
-    height: 64px;
-    justify-content: center;
-    margin-bottom: 16px;
-    width: 64px;
-  }
-
-  .confirmar-eliminar__titulo {
-    color: #20323b;
-    font-weight: 800;
-    margin-bottom: 8px;
-  }
-
-  .confirmar-eliminar__producto {
-    background: #f4f6f8;
-    border-radius: 8px;
-    color: #20323b;
-    font-weight: 600;
-    margin: 0 auto 10px;
-    max-width: 100%;
-    padding: 8px 12px;
-    word-break: break-word;
-  }
-
-  .confirmar-eliminar__producto:empty {
-    display: none;
-  }
-
-  .confirmar-eliminar__texto {
-    color: #70838c;
-    font-size: 14px;
-    margin-bottom: 0;
-  }
-
-  .confirmar-eliminar__acciones {
-    border: 0;
-    gap: 10px;
-    justify-content: center;
-    padding: 20px 28px 28px;
-  }
-
-  .confirmar-eliminar__acciones .btn {
-    border-radius: 10px;
-    flex: 1 1 0;
-    font-weight: 600;
-    padding: 10px 16px;
-  }
-
-  .confirmar-eliminar__acciones .btn-light {
-    background: #eef1f3;
-  }
-
-  @media (max-width: 767px) {
-    .productos-feedback {
-      display: block;
-      margin-left: 12px;
-      margin-right: 12px;
-      width: calc(100% - 24px);
-    }
-
-    .productos-alternativas-titulo {
-      margin-left: 12px;
-      margin-right: 12px;
-    }
-  }
-</style>
+<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}">
 @endsection
 
 @section('script')
-<script src="https://cdn.tailwindcss.com"></script>
 <script>
-  // Preview de imagenes
-  function mostrarImagenSeleccionada(input) {
-      var imagenId = $(input).data('form-id');
-      if (input.files && input.files[0]) {
-          var lector = new FileReader();
-          lector.onload = function (e) {
-              // Muestra la imagen previa
-              document.getElementById(imagenId).src = e.target.result;
-              document.getElementById(imagenId).style.display = 'block';
-          };
-          // Lee el archivo de imagen como una URL de datos
-          lector.readAsDataURL(input.files[0]);
-      }
-  }
-
   // Confirmacion al eliminar producto (delegado: el listado se recarga por AJAX)
   (function() {
     var modalEl = document.getElementById('confirmar-eliminar-producto');
@@ -455,11 +281,8 @@
   })();
 
   $(document).ready(function() {
-    $('.preview').change(function() {
-      mostrarImagenSeleccionada(this);
-    });
-
     var solicitudProductos;
+    var esperaBusqueda;
 
     function actualizarFeedback(data) {
         var feedback = $('#productos-feedback');
@@ -497,9 +320,13 @@
     }
 
     function buscarProductos(valor, pagina) {
+        clearTimeout(esperaBusqueda);
         if (solicitudProductos) {
             solicitudProductos.abort();
         }
+
+        $('#productos-contenedor').attr('aria-busy', 'true');
+        $('#productos-estado').text('Buscando productos…');
 
         solicitudProductos = $.ajax({
             url: "{{ route('dashboard.buscar.producto') }}",
@@ -514,11 +341,15 @@
             success: function(response) {
                 $('#productos-contenedor').html(response.html);
                 $('#productos-paginacion').html(response.pagination);
-                $('#productos-paginacion').closest('.card-footer').toggle(response.pagination.trim().length > 0);
+                $('#productos-paginacion').closest('.card-footer').prop('hidden', response.pagination.trim().length === 0);
                 actualizarFeedback(response);
+                $('#productos-contenedor').attr('aria-busy', 'false');
+                $('#productos-estado').text('Listado actualizado.');
             },
             error: function(xhr) {
                 if (xhr.statusText !== 'abort') {
+                    $('#productos-contenedor').attr('aria-busy', 'false');
+                    $('#productos-estado').text('No se pudo actualizar el listado. Volvé a intentar.');
                     console.error(xhr.responseText);
                 }
             }
@@ -527,7 +358,15 @@
 
     // BUSCADOR
     $('.search-input').on('input', function() {
-        buscarProductos($(this).val(), 1);
+        var valor = $(this).val();
+        clearTimeout(esperaBusqueda);
+        if (solicitudProductos) solicitudProductos.abort();
+        esperaBusqueda = setTimeout(function() { buscarProductos(valor, 1); }, 250);
+    });
+
+    $('#productos-buscar-form').on('submit', function(e) {
+        e.preventDefault();
+        buscarProductos($('#productos-busqueda').val(), 1);
     });
 
     // El paginado del resultado AJAX conserva texto y categoría.
@@ -560,18 +399,6 @@
       });
   });
 
-  function exportarExcelProductos(e) {
-      e.preventDefault();
-      var cat = document.getElementById('categoria_id').value;
-      window.location.href = '{{ route('dashboard.productos.exportar') }}?categoria_id=' + encodeURIComponent(cat);
-  }
-
-  document.getElementById('categoria_id').addEventListener('change', function () {
-      var label = document.getElementById('label-exportar-excel');
-      label.textContent = this.value === 'todos'
-          ? 'Descargar Excel de todos los productos'
-          : 'Descargar Excel de ' + this.options[this.selectedIndex].text;
-  });
 </script>
 
 

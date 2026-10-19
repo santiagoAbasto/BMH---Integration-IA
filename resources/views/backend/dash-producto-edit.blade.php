@@ -72,6 +72,13 @@
             {{ session('warning') }}
         </div>
     @endif
+    @if($errors->any())
+        <div class="alert alert-danger" role="alert">
+            @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
 
     <div class="card">
         <div class="card-header">
@@ -159,7 +166,7 @@
 
 
                 <!-- Campos dinámicos para las 38 columnas -->
-                <div id="dynamic-inputs">
+                <div id="dynamic-inputs" class="row" data-url-categoria="{{ route('categoria.show', ':id') }}">
 
                     <div class='row'>
                         @for ($i = 1; $i <= 78; $i++)
@@ -167,7 +174,7 @@
                                 $columna = 'columna_' . $i; // nombre de la columna, como 'columna_1', 'columna_2', etc.
                                 
                                 $nombreCategoria = $producto->categoria()->first()->$columna; // obtener el nombre de la columna desde la tabla categorías
-                                $valorProducto = $producto->$columna; // obtener el valor de la columna desde la tabla productos
+                                $valorProducto = old($columna, $producto->$columna);
                             @endphp
 
                             @if(!empty($nombreCategoria))
@@ -388,94 +395,13 @@
 
 @section('script')
     @include('backend.partials.achicar-imagenes')
+    <script src="{{ asset('js/campos-producto.js') }}"></script>
 <script>
   let idProducto = "{{ $producto->id }}"; 
 </script>
 
     <script>
         $(document).ready(function() {
-
-            $('#select-categoria').change(function() {
-    var categoriaId = $(this).val();
-    var idProducto = "{{ $producto->id }}"; // Asegúrate de que el id del producto esté disponible en tu Blade
-
-    // Si la categoría seleccionada es la misma que la del producto
-    if (categoriaId == "{{ $producto->categoria_id }}") {
-        // Utiliza la función route para obtener la URL de la ruta en el servidor
-        var url = "{{ route('categoria.show', ':id') }}".replace(':id', categoriaId);
-
-        $.ajax({
-            url: url, // URL para obtener datos de la categoría
-            type: 'GET',
-            success: function(categoriaData) {
-                // Limpia los inputs previos
-                $('#dynamic-inputs').empty();
-
-                // Itera sobre las propiedades del objeto categoriaData
-                for (const [key, value] of Object.entries(categoriaData)) {
-                    // Verifica que la columna tiene un dato
-                    if (value && key.startsWith('columna_')) {
-                        const columnaId = key.split('_')[1]; // Obtiene el número de columna (1, 2, 3, etc.)
-
-                        // Solicitud para obtener el valor de la columna del producto
-                        $.ajax({
-                            url: `/getProductoValor/${columnaId}/${idProducto}/${categoriaId}`, // Usar el idProducto y categoriaId
-                            type: 'GET',
-                            success: function(productColumnValue) {
-                                // Crea el input dinámico con el valor obtenido
-                                const inputGroup = `
-                                    <div class="mb-3">
-                                        <label for="${key}" class="form-label">${value}</label>
-                                        <input type="text" class="form-control" name="${key}" id="${key}" value="${productColumnValue || ''}">
-                                    </div>
-                                `;
-                                $('#dynamic-inputs').append(inputGroup);
-                            },
-                            error: function(xhr, status, error) {
-                                console.error(error); // Manejo de errores
-                            }
-                        });
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error(error); // Manejo de errores
-            }
-        });
-    } else {
-        // Si la categoría no coincide con la categoría del producto, solo se cargan los inputs vacíos
-        $('#dynamic-inputs').empty();
-        // Solo carga los inputs vacíos sin los valores
-        var url = "{{ route('categoria.show', ':id') }}".replace(':id', categoriaId);
-
-        $.ajax({
-            url: url, // URL para obtener datos de la categoría
-            type: 'GET',
-            success: function(categoriaData) {
-                // Itera sobre las propiedades del objeto categoriaData
-                for (const [key, value] of Object.entries(categoriaData)) {
-                    // Verifica que la columna tiene un dato
-                    if (value && key.startsWith('columna_')) {
-                        const inputGroup = `
-                            <div class="mb-3">
-                                <label for="${key}" class="form-label">${value}</label>
-                                <input type="text" class="form-control" name="${key}" id="${key}" value="">
-                            </div>
-                        `;
-                        $('#dynamic-inputs').append(inputGroup);
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error(error); // Manejo de errores
-            }
-        });
-    }
-});
-
-
-
-
 
             document.getElementById('nuevo').addEventListener('change', function() {
                 if (this.checked) {
