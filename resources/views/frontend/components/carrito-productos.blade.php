@@ -494,20 +494,8 @@ background: #EBEBEB !important; height: 60px !important;">
 
 
 <script>
-    let storedCart = localStorage.getItem('carrito');
-    if (storedCart) {
-        try {
-            window.cart = JSON.parse(storedCart);
-        } catch (e) {
-            console.error('Error parsing cart:', e);
-            window.cart = @json($cart); // Si hay error, usa el carrito de Laravel
-        }
-    } else {
-        window.cart = @json($cart);
-    }
+    // El carrito del servidor manda: se guarda en la base por cliente
+    // (CarritoCompartido) y es el mismo en todos sus dispositivos. La copia
+    // de localStorage es de cada navegador y podía mostrar uno viejo.
+    window.cart = @json($cart);
 </script>
-
-<?php
-// Sobrescribir $cart con lo que viene de JS
-$cart = "<script>document.write(JSON.stringify(window.cart))</script>";
-?>
