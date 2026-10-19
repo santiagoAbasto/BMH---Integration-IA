@@ -259,8 +259,7 @@
                 <div class="row">
 
                     <div class="col-6 my-3">
-                        <label for="imagenes" class="form-label">Añadir imágenes <span class='recomendada'>(recomendada
-                                500x500 px)</span></label>
+                        <label for="imagenes" class="form-label">Añadir imágenes @include('backend.partials.foto-sugerida')</label>
                         <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple data-achicar
                             accept="image/*">
                     </div>
@@ -347,8 +346,7 @@
                                         @method('put')
                                         <div class='row'>
                                             <div class="col-9 mb-3">
-                                                <label for="imagen" class="form-label">Imagen <span
-                                                        class='recomendada'>(recomendada 500x500 px)</span></label>
+                                                <label for="imagen" class="form-label">Imagen @include('backend.partials.foto-sugerida')</label>
                                                 <input class="form-control preview"
                                                     data-form-id="{{ 'imagen' . $imagen->id }}" type="file"
                                                     id="imagen" name='imagen' accept="image/*" data-achicar>

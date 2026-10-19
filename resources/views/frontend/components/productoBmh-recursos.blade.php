@@ -7,18 +7,25 @@
     .pbmh-card { background:#fff; border:1px solid #E7E9EC; border-radius:10px; margin-bottom:18px;
         overflow:hidden; font-family:'Roboto',sans-serif; }
     .pbmh-top { display:flex; gap:26px; padding:26px 28px 22px; }
+    /*
+     * La foto va en una caja cuadrada fija, completa (contain): las fotos del
+     * catálogo son cuadradas (99,6 %) y así todas las cards miden lo mismo.
+     * Para cambiar el tamaño, sólo --pbmh-foto. En el admin se sugiere subir
+     * las fotos cuadradas (config imagenes.tamano_sugerido).
+     */
+    .pbmh-card { --pbmh-foto:420px; }
     .pbmh-gallery { display:flex; gap:12px; flex:0 0 auto; align-self:flex-start; }
-    .pbmh-thumbs { display:flex; flex-direction:column; gap:9px; width:108px; max-height:365px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
+    .pbmh-thumbs { display:flex; flex-direction:column; gap:9px; width:108px; max-height:var(--pbmh-foto); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
     .pbmh-thumbs::-webkit-scrollbar { width:3px; height:3px; }
     .pbmh-thumbs::-webkit-scrollbar-track { background:transparent; }
     .pbmh-thumbs::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
     .pbmh-thumbs::-webkit-scrollbar-thumb:hover { background:#D1D6DE; }
-    .pbmh-thumb-btn { width:108px; height:98px; border:1px solid #E7E9EC; border-radius:7px; background:#fff; padding:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:border-color .15s, box-shadow .15s; flex-shrink:0; }
+    .pbmh-thumb-btn { width:108px; height:108px; border:1px solid #E7E9EC; border-radius:7px; background:#fff; padding:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:border-color .15s, box-shadow .15s; flex-shrink:0; }
     .pbmh-thumb-btn:hover { border-color:#B8C0CC; }
     .pbmh-thumb-btn.activo { border-color:#0098DA; border-width:2px; box-shadow:0 0 0 1px rgba(0,152,218,.15); }
     .pbmh-thumb-btn img { width:100%; height:100%; object-fit:contain; display:block; }
-    .pbmh-imgbox { flex:0 0 420px; align-self:flex-start; }
-    .pbmh-imgbox img { width:420px; height:365px; object-fit:contain; display:block; }
+    .pbmh-imgbox { flex:0 0 var(--pbmh-foto); width:var(--pbmh-foto); align-self:flex-start; border-radius:10px; background:#fff; }
+    .pbmh-imgbox img { width:var(--pbmh-foto); height:var(--pbmh-foto); object-fit:contain; object-position:center; display:block; }
     .pbmh-body { flex:1; min-width:0; display:flex; flex-direction:column; }
     .pbmh-headrow { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
     .pbmh-titulos { display:flex; flex-direction:column; gap:3px; min-width:0; }
@@ -119,8 +126,9 @@
         .pbmh-gallery { width:100%; flex-direction:column; }
         .pbmh-thumbs { flex-direction:row; width:100%; max-height:none; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; padding-right:0; }
         .pbmh-thumb-btn { flex:0 0 108px; }
-        .pbmh-imgbox { flex:none; width:100%; }
-        .pbmh-imgbox img { width:100%; height:auto; max-height:500px; }
+        /* Cuadrada a todo el ancho: todas las cards con el mismo alto. */
+        .pbmh-imgbox { flex:none; width:100%; max-width:560px; align-self:center; }
+        .pbmh-imgbox img { width:100%; height:auto; aspect-ratio:1 / 1; }
         .pbmh-tabs { gap:20px; flex-wrap:wrap; }
         .pbmh-panel-inner .pbmh-tabla { min-width:900px; }
     }

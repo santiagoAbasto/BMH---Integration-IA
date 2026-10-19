@@ -53,6 +53,14 @@ return [
     'sectores_excluidos' => ['logo', 'logo2', 'logo-header-blanco', 'favicon'],
 
     /*
+     * Foto de producto que se le sugiere al admin al cargarla. Las cards la
+     * muestran en una caja cuadrada (--pbmh-foto en productoBmh-recursos):
+     * cuadrada se ve sin márgenes. 1200 px alcanza para el zoom del modal;
+     * debajo del mínimo se avisa que puede verse borrosa.
+     */
+    'tamano_sugerido' => ['lado' => 1200, 'minimo' => 800],
+
+    /*
      * Lupa al pasar el mouse por la foto de las cards y de la ficha (vista
      * normal y de clientes). Apagada por ahora: el clic abre el modal con
      * zoom. Para volver a prenderla, IMAGENES_ZOOM_HOVER=true en el .env.

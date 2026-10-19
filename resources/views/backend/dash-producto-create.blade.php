@@ -207,7 +207,7 @@
 
             <div class="row">
                 <div class="col-6 my-4">
-                    <label for="imagenes" class="form-label">Añadir imágenes <span class='recomendada'>(recomendada 300x300 px)</span></label>
+                    <label for="imagenes" class="form-label">Añadir imágenes @include('backend.partials.foto-sugerida')</label>
                     <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple accept="image/*" data-achicar>
                 </div>
                 {{-- <div class="col-6 my-4">

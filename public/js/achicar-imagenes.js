@@ -13,6 +13,9 @@
 
     var script = document.currentScript;
     var LADO_MAXIMO = parseInt((script && script.dataset.ladoMaximo) || '2000', 10);
+    // Lo que se le sugiere al admin (config imagenes.tamano_sugerido).
+    var LADO_SUGERIDO = parseInt((script && script.dataset.ladoSugerido) || '1200', 10);
+    var LADO_MINIMO = parseInt((script && script.dataset.ladoMinimo) || '800', 10);
     // Debajo de este peso, y sin pasarse del lado máximo, se sube tal cual.
     var PESO_MINIMO = 1.5 * 1024 * 1024;
     // Casi sin pérdida: el servidor vuelve a comprimir controlando la calidad.
@@ -139,6 +142,64 @@
         return el;
     }
 
+    /** Ancho y alto de una foto (null si no se puede leer). */
+    function medir(file) {
+        if (!/^image\//.test(file.type)) {
+            return Promise.resolve(null);
+        }
+
+        return cargar(file).then(function (cargada) {
+            URL.revokeObjectURL(cargada.url);
+            return { ancho: cargada.img.naturalWidth, alto: cargada.img.naturalHeight };
+        }).catch(function () { return null; });
+    }
+
+    /**
+     * Las cards muestran la foto en un cuadrado: avisa (sin frenar nada) si
+     * alguna no es cuadrada o es tan chica que puede verse borrosa.
+     */
+    function sugerir(input, archivos) {
+        var caja = input.parentNode.querySelector('.achicar-sugerencia');
+        if (!caja) {
+            caja = document.createElement('div');
+            caja.className = 'form-text achicar-sugerencia';
+            caja.setAttribute('role', 'status');
+            estado(input).insertAdjacentElement('afterend', caja);
+        }
+        caja.textContent = '';
+        caja.hidden = true;
+
+        return Promise.all(archivos.map(medir)).then(function (medidas) {
+            var noCuadradas = [];
+            var chicas = [];
+            medidas.forEach(function (m) {
+                if (!m || !m.alto) return;
+                var proporcion = m.ancho / m.alto;
+                if (proporcion < 0.9 || proporcion > 1.1) noCuadradas.push(m);
+                if (Math.min(m.ancho, m.alto) < LADO_MINIMO) chicas.push(m);
+            });
+
+            var avisos = [];
+            if (noCuadradas.length) {
+                avisos.push((noCuadradas.length === 1
+                    ? 'La foto no es cuadrada (' + medida(noCuadradas[0]) + '): se va a ver con márgenes blancos.'
+                    : noCuadradas.length + ' fotos no son cuadradas: se van a ver con márgenes blancos.') +
+                    ' Lo ideal es ' + LADO_SUGERIDO + ' × ' + LADO_SUGERIDO + ' px.');
+            }
+            if (chicas.length) {
+                avisos.push(chicas.length === 1
+                    ? 'La foto es chica (' + medida(chicas[0]) + '): puede verse borrosa. Mínimo ' + LADO_MINIMO + ' px de lado.'
+                    : chicas.length + ' fotos miden menos de ' + LADO_MINIMO + ' px de lado: pueden verse borrosas.');
+            }
+            caja.textContent = avisos.join(' ');
+            caja.hidden = avisos.length === 0;
+        });
+    }
+
+    function medida(m) {
+        return m.ancho + ' × ' + m.alto + ' px';
+    }
+
     function procesar(input) {
         var originales = Array.prototype.slice.call(input.files || []);
         if (!originales.length || typeof DataTransfer === 'undefined') {
@@ -167,6 +228,8 @@
             var antes = suma(originales);
             var despues = suma(nuevos);
             aviso.textContent = despues < antes ? 'Lista para subir: ' + mb(antes) + ' → ' + mb(despues) : '';
+
+            return sugerir(input, originales);
         }).catch(function () {
             aviso.textContent = '';
         }).then(function () {

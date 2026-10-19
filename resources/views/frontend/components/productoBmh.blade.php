@@ -42,7 +42,7 @@
             </div>
             @endif
             <div class="pbmh-imgbox" data-gallery-open role="button" tabindex="0" aria-haspopup="dialog" aria-label="Ver fotos de {{ $producto->nombre }}">
-                <img src="{{ $galeriaUrls[0] }}" alt="{{ $producto->nombre }}" loading="lazy">
+                <img src="{{ $galeriaUrls[0] }}" alt="{{ $producto->nombre }}" loading="lazy" width="420" height="420">
             </div>
         </div>
 
