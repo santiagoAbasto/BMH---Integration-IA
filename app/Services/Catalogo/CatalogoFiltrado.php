@@ -55,7 +55,12 @@ final class CatalogoFiltrado
     ) {
     }
 
-    public function filtrar(FiltrosCatalogo $filtros): ResultadoCatalogo
+    /**
+     * @param  bool  $modelosDeTodasLasMarcas  sin marca elegida, calcular también
+     *         los modelos de todas las marcas: pueden ser miles, así que no van en
+     *         la página y el desplegable los pide al abrirse (?parcial=modelos)
+     */
+    public function filtrar(FiltrosCatalogo $filtros, bool $modelosDeTodasLasMarcas = false): ResultadoCatalogo
     {
         $columnasAtributo = $filtros->categoria !== null ? $this->atributosFiltrables($filtros->categoria) : [];
         // Objetos planos: los filtros leen estos campos miles de veces y el
@@ -84,6 +89,16 @@ final class CatalogoFiltrado
 
         $sinCategoria = $pool->filter(fn (object $p) => $cumple($p, 'categoria'));
 
+        $conModelo = $pool->filter(fn (object $p) => $cumple($p, 'modelo'));
+        $modelos = [];
+        $marcasDeModelos = [];
+        if ($filtros->vehiculo !== null) {
+            $modelos = $this->contar($conModelo, fn (object $p) => $aplicaciones[$p->id][$filtros->vehiculo] ?? []);
+        } elseif ($modelosDeTodasLasMarcas) {
+            $modelos = $this->contar($conModelo, fn (object $p) => self::modelosDe($aplicaciones[$p->id] ?? []));
+            $marcasDeModelos = self::marcasDeModelos($conModelo, $aplicaciones);
+        }
+
         return new ResultadoCatalogo(
             ids: $resultado->pluck('id')->map(fn ($id) => (int) $id)->all(),
             totalSinCategoria: $sinCategoria->count(),
@@ -96,16 +111,58 @@ final class CatalogoFiltrado
                 $pool->filter(fn (object $p) => $cumple($p, 'marca')),
                 fn (object $p) => [self::normalizar($p->marca)]
             ),
+            // Con un modelo elegido, cada producto cuenta sólo en las marcas en
+            // que tiene ese modelo: uno que va en Ford Falcon y Fiat 147 no
+            // ofrece Fiat para el Falcon (daría cero resultados).
             vehiculos: $this->contar(
                 $pool->filter(fn (object $p) => $cumple($p, 'vehiculo')),
-                fn (object $p) => array_keys($aplicaciones[$p->id] ?? [])
+                fn (object $p) => array_keys($filtros->modelo === null
+                    ? $aplicaciones[$p->id] ?? []
+                    : array_filter($aplicaciones[$p->id] ?? [], fn (array $modelos) => in_array($filtros->modelo, $modelos, true)))
             ),
-            modelos: $filtros->vehiculo === null ? [] : $this->contar(
-                $pool->filter(fn (object $p) => $cumple($p, 'modelo')),
-                fn (object $p) => $aplicaciones[$p->id][$filtros->vehiculo] ?? []
-            ),
+            modelos: $modelos,
             atributos: $this->opcionesDeAtributos($pool, $columnasAtributo, $cumple, $filtros->atributos),
+            marcasDeModelos: $marcasDeModelos,
         );
+    }
+
+    /**
+     * Los modelos de un producto en todas sus marcas, sin repetir (un mismo
+     * producto que va en el Corsa de Chevrolet y de Opel cuenta una vez).
+     *
+     * @param  array<string, list<string>>  $porMarca  vehículo => [modelos]
+     * @return list<string>
+     */
+    private static function modelosDe(array $porMarca): array
+    {
+        return $porMarca === [] ? [] : array_values(array_unique(array_merge(...array_values($porMarca))));
+    }
+
+    /**
+     * De qué marcas es cada modelo, para distinguir en la lista los que se
+     * llaman igual (Corsa: Chevrolet, Opel).
+     *
+     * @param  Collection<int, object>  $productos
+     * @param  array<int, array<string, list<string>>>  $aplicaciones
+     * @return array<string, list<string>>  modelo => [marcas]
+     */
+    private static function marcasDeModelos(Collection $productos, array $aplicaciones): array
+    {
+        $marcas = [];
+        foreach ($productos as $producto) {
+            foreach ($aplicaciones[$producto->id] ?? [] as $marca => $modelos) {
+                foreach ($modelos as $modelo) {
+                    $marcas[$modelo][$marca] = true;
+                }
+            }
+        }
+
+        return array_map(function (array $porMarca): array {
+            $lista = array_keys($porMarca);
+            sort($lista, SORT_NATURAL | SORT_FLAG_CASE);
+
+            return $lista;
+        }, $marcas);
     }
 
     /**
@@ -335,8 +392,11 @@ final class CatalogoFiltrado
         if ($f->vehiculo !== null) {
             $predicados['vehiculo'] = fn (object $p) => isset($aplicaciones[$p->id][$f->vehiculo]);
         }
-        if ($f->vehiculo !== null && $f->modelo !== null) {
-            $predicados['modelo'] = fn (object $p) => in_array($f->modelo, $aplicaciones[$p->id][$f->vehiculo] ?? [], true);
+        if ($f->modelo !== null) {
+            // Con marca, el modelo de esa marca; sin marca, el modelo en cualquiera.
+            $predicados['modelo'] = $f->vehiculo !== null
+                ? fn (object $p) => in_array($f->modelo, $aplicaciones[$p->id][$f->vehiculo] ?? [], true)
+                : fn (object $p) => in_array($f->modelo, self::modelosDe($aplicaciones[$p->id] ?? []), true);
         }
         if ($f->equivalencia !== null) {
             $predicados['equivalencia'] = fn (object $p) => isset($gradosEquivalencia[$p->id]);

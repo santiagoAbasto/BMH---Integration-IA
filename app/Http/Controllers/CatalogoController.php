@@ -40,6 +40,11 @@ class CatalogoController extends Controller
     {
         $ruta = $request->route()->getName();
         $filtros = $request->filtros();
+
+        if ($request->query('parcial') === 'modelos') {
+            return $this->modelos($filtros);
+        }
+
         $resultado = $this->catalogo->filtrar($filtros);
 
         if ($request->query('parcial') === 'pagina') {
@@ -157,6 +162,32 @@ class CatalogoController extends Controller
         }
 
         return $chips;
+    }
+
+    /**
+     * Opciones del filtro de modelo con los filtros actuales. Sin marca son
+     * miles, así que no van en la página: el desplegable las pide al abrirse.
+     * Con marca no hacen falta (van en la página), pero responde igual.
+     */
+    private function modelos(FiltrosCatalogo $filtros): JsonResponse
+    {
+        $resultado = $this->catalogo->filtrar($filtros, modelosDeTodasLasMarcas: true);
+        $modelos = $resultado->modelos;
+        uksort($modelos, fn ($a, $b) => strnatcasecmp((string) $a, (string) $b));
+
+        $opciones = [];
+        foreach ($modelos as $modelo => $cantidad) {
+            $opciones[] = [
+                'valor' => (string) $modelo,
+                'texto' => self::enTitulo((string) $modelo),
+                'cantidad' => $cantidad,
+                'marcas' => array_map(self::enTitulo(...), $resultado->marcasDeModelos[$modelo] ?? []),
+            ];
+        }
+
+        // Cambia sólo cuando cambia el catálogo: unos minutos de caché en el
+        // navegador ahorran recalcular al abrir y cerrar el desplegable.
+        return response()->json(['opciones' => $opciones])->header('Cache-Control', 'private, max-age=300');
     }
 
     private static function enTitulo(string $valor): string

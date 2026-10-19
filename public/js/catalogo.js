@@ -76,6 +76,8 @@
    * «change», como si se hubiera usado el select.
    */
   var cuentaDesplegables = 0;
+  // Más que esto no se pinta de una: el aviso invita a escribir para encontrar el resto.
+  var MAX_VISIBLES = 100;
 
   function crearDesplegable(select) {
     if (select.dataset.desplegableListo) return;
@@ -129,27 +131,47 @@
     panel.appendChild(lista);
     caja.appendChild(panel);
 
-    var opciones = Array.prototype.map.call(select.options, function (opcion, i) {
-      var li = el('li', 'desplegable__opcion');
-      li.id = base + '-op-' + i;
-      li.setAttribute('role', 'option');
-      li.dataset.valor = opcion.value;
-      li.dataset.busqueda = sinAcentos(opcion.dataset.texto || opcion.textContent);
-      li.appendChild(el('span', 'desplegable__opcion-texto', opcion.dataset.texto || opcion.textContent.trim()));
-      if (opcion.dataset.cantidad != null) {
-        li.appendChild(el('span', 'desplegable__opcion-cantidad', Number(opcion.dataset.cantidad).toLocaleString('es-AR')));
-      }
-      if (opcion.disabled) li.setAttribute('aria-disabled', 'true');
-      lista.appendChild(li);
-      return li;
-    });
-    var sinOpciones = el('li', 'desplegable__sin-opciones', 'Sin coincidencias');
-    sinOpciones.hidden = true;
-    lista.appendChild(sinOpciones);
+    /*
+     * Las opciones son datos y la lista pinta sólo lo que se ve (hasta
+     * MAX_VISIBLES): un filtro con miles de modelos abre al instante y la
+     * búsqueda trae el resto. Con data-opciones-url las opciones se piden al
+     * servidor la primera vez que se abre (ver CatalogoController::modelos).
+     */
+    var datos = Array.prototype.map.call(select.options, datoDeOpcion);
+    numerar();
+    var urlOpciones = select.dataset.opcionesUrl || '';
+    var carga = urlOpciones ? 'pendiente' : 'lista'; // pendiente | cargando | lista | error
 
-    var visibles = opciones;
+    var aviso = el('li', 'desplegable__aviso');
+    var sinOpciones = el('li', 'desplegable__sin-opciones', 'Sin coincidencias');
+    aviso.setAttribute('role', 'presentation');
+    sinOpciones.setAttribute('role', 'presentation');
+
+    var visibles = [];
     var activa = -1;
     var control = buscar || lista; // quien recibe el teclado con el panel abierto
+
+    function datoDeOpcion(opcion) {
+      return nuevoDato(opcion.value, opcion.dataset.texto || opcion.textContent.trim(),
+        opcion.dataset.cantidad != null ? Number(opcion.dataset.cantidad) : null, opcion.dataset.detalle || '', opcion.disabled);
+    }
+
+    function nuevoDato(valorOpcion, texto, n, detalle, deshabilitada) {
+      return {
+        valor: valorOpcion,
+        texto: texto,
+        cantidad: n,
+        detalle: detalle,
+        deshabilitada: !!deshabilitada,
+        plano: sinAcentos(texto),
+        // Se busca también por el detalle: «ford» trae los modelos de Ford.
+        busqueda: sinAcentos(texto + ' ' + detalle),
+      };
+    }
+
+    function numerar() {
+      datos.forEach(function (dato, i) { dato.indice = i; });
+    }
 
     function pintarBoton() {
       var elegida = select.options[select.selectedIndex];
@@ -161,9 +183,138 @@
       caja.classList.toggle('desplegable--deshabilitado', select.disabled);
       boton.disabled = select.disabled;
       if (select.disabled && select.dataset.ayuda) boton.title = select.dataset.ayuda;
-      opciones.forEach(function (li) {
+      visibles.forEach(function (li) {
         li.setAttribute('aria-selected', li.dataset.valor === select.value ? 'true' : 'false');
       });
+    }
+
+    /** El texto con las partes buscadas en <mark>. */
+    function resaltar(nodo, texto, palabras) {
+      var plano = sinAcentos(texto);
+      var tramos = [];
+      palabras.forEach(function (palabra) {
+        var i = plano.indexOf(palabra);
+        if (i !== -1) tramos.push([i, i + palabra.length]);
+      });
+      // Sin acentos cambia el largo sólo con caracteres raros: ahí, sin resaltar.
+      if (!tramos.length || plano.length !== texto.length) {
+        nodo.textContent = texto;
+        return;
+      }
+      tramos.sort(function (a, b) { return a[0] - b[0]; });
+      var desde = 0;
+      tramos.forEach(function (tramo) {
+        if (tramo[0] < desde) return; // se pisa con el anterior
+        nodo.appendChild(document.createTextNode(texto.slice(desde, tramo[0])));
+        nodo.appendChild(el('mark', 'desplegable__resaltado', texto.slice(tramo[0], tramo[1])));
+        desde = tramo[1];
+      });
+      nodo.appendChild(document.createTextNode(texto.slice(desde)));
+    }
+
+    function crearItem(dato, palabras) {
+      var li = el('li', 'desplegable__opcion');
+      li.id = base + '-op-' + dato.indice;
+      li.setAttribute('role', 'option');
+      li.dataset.valor = dato.valor;
+      li.setAttribute('aria-selected', dato.valor === select.value ? 'true' : 'false');
+      var cuerpo = el('span', 'desplegable__opcion-texto');
+      var titulo = el('span', 'desplegable__opcion-titulo');
+      resaltar(titulo, dato.texto, palabras);
+      cuerpo.appendChild(titulo);
+      if (dato.detalle) {
+        var detalle = el('span', 'desplegable__opcion-detalle');
+        resaltar(detalle, dato.detalle, palabras);
+        cuerpo.appendChild(detalle);
+      }
+      li.appendChild(cuerpo);
+      if (dato.cantidad != null) {
+        li.appendChild(el('span', 'desplegable__opcion-cantidad', dato.cantidad.toLocaleString('es-AR')));
+      }
+      if (dato.deshabilitada) li.setAttribute('aria-disabled', 'true');
+      return li;
+    }
+
+    /** Primero lo que empieza con lo escrito, después una palabra que empieza así, después el resto. */
+    function puntaje(dato, palabras) {
+      var primera = palabras[0];
+      if (dato.plano.indexOf(primera) === 0) return 0;
+      if ((' ' + dato.plano).indexOf(' ' + primera) !== -1) return 1;
+      return dato.plano.indexOf(primera) !== -1 ? 2 : 3; // 3: coincide sólo el detalle
+    }
+
+    function pintarLista(encontrados, palabras) {
+      // El corte es de opciones reales: «todas» (valor vacío) no ocupa lugar.
+      var conVacia = encontrados[0] && encontrados[0].valor === '' ? 1 : 0;
+      var mostrados = encontrados.slice(0, MAX_VISIBLES + conVacia);
+      // Sin buscar, la elegida se ve aunque esté más abajo del corte.
+      if (!palabras.length && select.value !== '' && !mostrados.some(function (d) { return d.valor === select.value; })) {
+        var elegida = datos.find(function (d) { return d.valor === select.value; });
+        if (elegida) mostrados.splice(datos[0] && datos[0].valor === '' ? 1 : 0, 0, elegida);
+      }
+
+      lista.textContent = '';
+      visibles = mostrados.map(function (dato) {
+        var li = crearItem(dato, palabras);
+        lista.appendChild(li);
+        return li;
+      });
+
+      var total = encontrados.filter(function (d) { return d.valor !== ''; }).length;
+      var vistas = mostrados.filter(function (d) { return d.valor !== ''; }).length;
+      aviso.hidden = vistas >= total;
+      aviso.textContent = (palabras.length || !urlOpciones
+        ? 'Mostrando ' + vistas.toLocaleString('es-AR') + ' de ' + total.toLocaleString('es-AR') + '.'
+        : 'Los ' + vistas.toLocaleString('es-AR') + ' con más productos, de ' + total.toLocaleString('es-AR') + '.') +
+        ' Escribí para encontrar el que buscás.';
+      sinOpciones.hidden = encontrados.length > 0;
+      lista.appendChild(aviso);
+      lista.appendChild(sinOpciones);
+
+      var elegidaVisible = visibles.findIndex(function (li) { return li.dataset.valor === select.value; });
+      marcar(palabras.length ? 0 : Math.max(0, elegidaVisible));
+    }
+
+    function mostrarEstado(texto, conReintento) {
+      visibles = [];
+      activa = -1;
+      control.removeAttribute('aria-activedescendant');
+      lista.textContent = '';
+      var estado = el('li', 'desplegable__estado' + (conReintento ? ' desplegable__estado--error' : ''), texto);
+      estado.setAttribute('role', 'presentation');
+      if (conReintento) {
+        var reintentar = el('button', 'desplegable__reintentar', 'Reintentar');
+        reintentar.type = 'button';
+        reintentar.addEventListener('click', cargarOpciones);
+        estado.appendChild(reintentar);
+      }
+      lista.appendChild(estado);
+    }
+
+    function cargarOpciones() {
+      carga = 'cargando';
+      lista.setAttribute('aria-busy', 'true');
+      mostrarEstado('Cargando opciones…', false);
+      pedirJson(urlOpciones)
+        .then(function (respuesta) {
+          var vacia = datos.find(function (d) { return d.valor === ''; });
+          var elegida = datos.find(function (d) { return d.valor !== '' && d.valor === select.value; });
+          var nuevos = (respuesta.opciones || []).map(function (o) {
+            return nuevoDato(String(o.valor), o.texto, o.cantidad, (o.marcas || []).join(' · '), false);
+          });
+          // La elegida sigue aunque ya no venga (para poder ver cuál es y sacarla).
+          if (elegida && !nuevos.some(function (d) { return d.valor === elegida.valor; })) nuevos.unshift(elegida);
+          datos = (vacia ? [vacia] : []).concat(nuevos);
+          numerar();
+          carga = 'lista';
+          lista.removeAttribute('aria-busy');
+          if (!panel.hidden) filtrar(buscar ? buscar.value : '');
+        })
+        .catch(function () {
+          carga = 'error';
+          lista.removeAttribute('aria-busy');
+          mostrarEstado('No se pudieron cargar las opciones. ', true);
+        });
     }
 
     function marcar(indice) {
@@ -179,16 +330,28 @@
       li.scrollIntoView({ block: 'nearest' });
     }
 
+    /** Busca por palabras, en cualquier orden y sin acentos: «ford falcon» = «falcon ford». */
     function filtrar(texto) {
-      var buscado = sinAcentos(texto.trim());
-      visibles = opciones.filter(function (li) {
-        var mostrar = !buscado || li.dataset.busqueda.indexOf(buscado) !== -1;
-        li.hidden = !mostrar;
-        return mostrar;
-      });
-      sinOpciones.hidden = visibles.length > 0;
-      var elegida = visibles.findIndex(function (li) { return li.dataset.valor === select.value; });
-      marcar(buscado ? 0 : Math.max(0, elegida));
+      if (carga === 'cargando' || carga === 'error') return; // queda el aviso de carga o el error
+      var palabras = sinAcentos(texto.trim()).split(/\s+/).filter(Boolean);
+      var encontrados = datos;
+      if (!palabras.length && urlOpciones) {
+        // Lista larga sin buscar: primero los que tienen más productos, que
+        // son los más probables; nadie recorre miles por orden alfabético.
+        encontrados = datos.slice().sort(function (a, b) {
+          return (a.valor === '' ? -1 : 0) - (b.valor === '' ? -1 : 0) ||
+            (b.cantidad || 0) - (a.cantidad || 0) || a.indice - b.indice;
+        });
+      } else if (palabras.length) {
+        encontrados = datos
+          .filter(function (dato) {
+            return dato.valor !== '' && palabras.every(function (p) { return dato.busqueda.indexOf(p) !== -1; });
+          })
+          .map(function (dato) { return [puntaje(dato, palabras), dato]; })
+          .sort(function (a, b) { return a[0] - b[0] || a[1].indice - b[1].indice; })
+          .map(function (par) { return par[1]; });
+      }
+      pintarLista(encontrados, palabras);
     }
 
     function abrir() {
@@ -200,7 +363,8 @@
       caja.classList.add('desplegable--abierto');
       boton.setAttribute('aria-expanded', 'true');
       if (buscar) buscar.value = '';
-      filtrar('');
+      if (carga === 'pendiente' || carga === 'error') cargarOpciones();
+      else filtrar('');
       control.focus({ preventScroll: true });
       panel.scrollIntoView({ block: 'nearest' });
     }
@@ -215,6 +379,15 @@
 
     function elegir(li) {
       if (!li || li.getAttribute('aria-disabled') === 'true') return;
+      // Las que llegaron del servidor no están en el <select>: se agrega la elegida.
+      var existe = Array.prototype.some.call(select.options, function (o) { return o.value === li.dataset.valor; });
+      if (!existe) {
+        var dato = datos.find(function (d) { return d.valor === li.dataset.valor; });
+        var opcion = new Option(dato.texto, dato.valor);
+        opcion.dataset.texto = dato.texto;
+        if (dato.cantidad != null) opcion.dataset.cantidad = dato.cantidad;
+        select.appendChild(opcion);
+      }
       var cambio = select.value !== li.dataset.valor;
       select.value = li.dataset.valor;
       cerrar(true);
@@ -365,8 +538,8 @@
   }
 
   function aplicar(form, origen) {
-    // Lo que depende de otro filtro deja de valer si ese cambia.
-    if (origen && origen.name === 'vehiculo' && form.elements.modelo) form.elements.modelo.value = '';
+    // Las medidas son de cada categoría: dejan de valer si cambia. El modelo
+    // no se borra al cambiar de marca: las marcas ofrecidas ya lo tienen.
     if (origen && origen.name === 'categoria') {
       form.querySelectorAll('select[name^="atributo["]').forEach(function (s) { s.value = ''; });
     }

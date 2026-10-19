@@ -103,11 +103,20 @@
                     'seleccionado' => $filtros->vehiculo, 'buscable' => 'Buscar marca de vehículo',
                 ])
                 <label class="visually-hidden" for="filtro-modelo">Modelo del vehículo</label>
+                {{--
+                    Con marca, los modelos de esa marca van en la página. Sin marca
+                    son miles: el desplegable los trae al abrirse (opcionesUrl) y
+                    acá sólo va el elegido, con lo que hay en los resultados.
+                --}}
                 @include('frontend.catalogo._select', [
                     'name' => 'modelo', 'id' => 'filtro-modelo', 'vacio' => 'Modelo',
-                    'opciones' => $opciones($resultado->modelos, $filtros->modelo),
+                    'opciones' => $filtros->vehiculo !== null
+                        ? $opciones($resultado->modelos, $filtros->modelo)
+                        : ($filtros->modelo !== null ? [$filtros->modelo => ['texto' => $titulo($filtros->modelo), 'cantidad' => $resultado->total()]] : []),
                     'seleccionado' => $filtros->modelo, 'buscable' => 'Buscar modelo',
-                    'deshabilitado' => $filtros->vehiculo === null, 'ayuda' => 'Elegí primero la marca del vehículo',
+                    'opcionesUrl' => $filtros->vehiculo === null
+                        ? route($ruta, $filtros->query(['modelo' => null]) + ['parcial' => 'modelos'])
+                        : null,
                 ])
             </div>
         </div>

@@ -6,7 +6,8 @@
     Parámetros:
       name, id, vacio (texto de «todas»), opciones [valor => [texto, cantidad]],
       seleccionado, totalVacio (opcional), buscable (placeholder o null),
-      deshabilitado (opcional), ayuda (opcional, se muestra si está deshabilitado)
+      deshabilitado (opcional), ayuda (opcional, se muestra si está deshabilitado),
+      opcionesUrl (opcional: el desplegable trae ahí el resto de las opciones al abrirse)
 --}}
 @php
     $seleccionado = $seleccionado ?? null;
@@ -14,6 +15,7 @@
 @endphp
 <select id="{{ $id }}" name="{{ $name }}" class="filtros__select" data-desplegable
         @if (!empty($buscable)) data-buscable="{{ $buscable }}" @endif
+        @if (!empty($opcionesUrl)) data-opciones-url="{{ $opcionesUrl }}" @endif
         @if ($deshabilitado && !empty($ayuda)) data-ayuda="{{ $ayuda }}" @endif
         @disabled($deshabilitado)>
     <option value="" data-texto="{{ $vacio }}" @if (isset($totalVacio)) data-cantidad="{{ $totalVacio }}" @endif @selected($seleccionado === null)>

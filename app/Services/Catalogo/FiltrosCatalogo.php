@@ -85,12 +85,12 @@ final class FiltrosCatalogo
             'orden' => $this->orden,
         ];
 
-        // Cambiar de categoría o de vehículo invalida lo que dependía de ellos.
+        // Cambiar de categoría invalida las medidas, que son de cada categoría.
+        // El modelo, en cambio, sobrevive al cambio de marca: las marcas que
+        // se ofrecen ya están filtradas por el modelo elegido, y sin marca el
+        // modelo filtra solo.
         if (array_key_exists('categoria', $cambios) && $cambios['categoria'] !== $this->categoria) {
             $actual['atributo'] = null;
-        }
-        if (array_key_exists('vehiculo', $cambios) && $cambios['vehiculo'] !== $this->vehiculo) {
-            $actual['modelo'] = null;
         }
 
         return array_filter(array_replace($actual, $cambios), fn ($v) => $v !== null && $v !== [] && $v !== '');

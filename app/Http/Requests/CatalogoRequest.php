@@ -59,7 +59,6 @@ class CatalogoRequest extends FormRequest
             }
         }
 
-        $vehiculo = $this->normalizado('vehiculo', vehiculo: true);
         $orden = $this->query('orden');
 
         return new FiltrosCatalogo(
@@ -67,8 +66,9 @@ class CatalogoRequest extends FormRequest
             categoria: $categoria,
             estados: $estados,
             marca: $this->normalizado('marca'),
-            vehiculo: $vehiculo,
-            modelo: $vehiculo !== null ? $this->normalizado('modelo') : null,
+            vehiculo: $this->normalizado('vehiculo', vehiculo: true),
+            // El modelo vale solo: sin marca busca ese modelo en cualquiera.
+            modelo: $this->normalizado('modelo'),
             equivalencia: $this->texto('equivalencia'),
             atributos: $atributos,
             orden: is_string($orden) && isset(FiltrosCatalogo::ORDENES[$orden]) ? $orden : null,

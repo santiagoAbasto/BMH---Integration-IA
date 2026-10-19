@@ -122,8 +122,41 @@ final class CatalogoTest extends BaseTestCase
         // «FORD (FO)» y «FORD» son el mismo vehículo.
         $this->assertSame(['PRODUCTO A', 'PRODUCTO B'], $this->listados(['vehiculo' => 'Ford']));
         $this->assertSame(['PRODUCTO B'], $this->listados(['vehiculo' => 'Ford', 'modelo' => 'F100']));
-        // Sin vehículo, el modelo solo no filtra.
-        $this->assertCount(4, $this->listados(['modelo' => 'F100']));
+        // El modelo filtra solo, sin elegir la marca.
+        $this->assertSame(['PRODUCTO B'], $this->listados(['modelo' => 'F100']));
+        $this->assertSame(['PRODUCTO A'], $this->listados(['modelo' => '147']));
+        // Con una marca que no tiene ese modelo, no hay resultados.
+        $this->assertSame([], $this->listados(['vehiculo' => 'Fiat', 'modelo' => 'F100']));
+    }
+
+    public function test_con_un_modelo_elegido_las_marcas_ofrecidas_son_las_que_lo_tienen(): void
+    {
+        $resultado = $this->get(route('productos', ['categoria' => $this->categoria, 'modelo' => 'Falcon']))->viewData('resultado');
+
+        $this->assertSame(['FORD' => 1], $resultado->vehiculos);
+        // Elegir la marca después no borra el modelo.
+        $filtros = $this->get(route('productos', ['categoria' => $this->categoria, 'modelo' => 'Falcon']))->viewData('filtros');
+        $this->assertSame('FALCON', $filtros->query(['vehiculo' => 'FORD'])['modelo']);
+    }
+
+    public function test_sin_marca_los_modelos_no_van_en_la_pagina_y_se_piden_aparte(): void
+    {
+        $pagina = $this->get(route('productos', ['categoria' => $this->categoria]))->assertOk();
+        $this->assertSame([], $pagina->viewData('resultado')->modelos);
+        $this->assertStringContainsString('data-opciones-url=', $pagina->getContent());
+
+        $opciones = $this->getJson(route('productos', ['categoria' => $this->categoria, 'parcial' => 'modelos']))
+            ->assertOk()
+            ->json('opciones');
+
+        $this->assertSame(['147', 'F100', 'Falcon'], array_column($opciones, 'texto'));
+        $porModelo = array_column($opciones, null, 'valor');
+        $this->assertSame(['Fiat'], $porModelo['147']['marcas']);
+        $this->assertSame(['Ford'], $porModelo['FALCON']['marcas']);
+        $this->assertSame(1, $porModelo['F100']['cantidad']);
+
+        // Respetan los demás filtros: con la marca de repuesto VALEO no hay modelos.
+        $this->assertSame([], $this->getJson(route('productos', ['categoria' => $this->categoria, 'marca' => 'VALEO', 'parcial' => 'modelos']))->json('opciones'));
     }
 
     public function test_filtra_por_medida_de_la_categoria(): void

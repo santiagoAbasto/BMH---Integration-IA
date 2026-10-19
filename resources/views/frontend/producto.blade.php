@@ -6,7 +6,7 @@
 @endsection
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=3">
     <style>
     
         .carrito-btn {
@@ -708,7 +708,7 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('js/catalogo.js') }}?v=3"></script>
+    <script src="{{ asset('js/catalogo.js') }}?v=4"></script>
     <script>
         var carritoQuitarUrl = "{{ route('carrito.quitar') }}";
         var carritoSumarUrl = "{{ route('carrito.sumar') }}";

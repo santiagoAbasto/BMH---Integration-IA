@@ -16,8 +16,10 @@ final class ResultadoCatalogo
      * @param  array<int, int>  $estados  estado => cantidad
      * @param  array<string, int>  $marcas  marca del repuesto => cantidad
      * @param  array<string, int>  $vehiculos  marca del vehículo => cantidad
-     * @param  array<string, int>  $modelos  modelo del vehículo elegido => cantidad
+     * @param  array<string, int>  $modelos  modelo => cantidad: los de la marca elegida, o
+     *         sin marca los de todas si se pidieron (CatalogoFiltrado::filtrar)
      * @param  array<string, array{etiqueta: string, opciones: array<string, int>}>  $atributos  columna_N => opciones
+     * @param  array<string, list<string>>  $marcasDeModelos  modelo => marcas (sólo con los de todas)
      */
     public function __construct(
         public readonly array $ids,
@@ -28,6 +30,7 @@ final class ResultadoCatalogo
         public readonly array $vehiculos,
         public readonly array $modelos,
         public readonly array $atributos,
+        public readonly array $marcasDeModelos = [],
     ) {
     }
 
