@@ -8,6 +8,7 @@ use App\Http\Requests\CatalogoRequest;
 use App\Models\Categoria;
 use App\Services\Catalogo\CatalogoFiltrado;
 use App\Services\Catalogo\FiltrosCatalogo;
+use App\Services\Catalogo\ParecidosCatalogo;
 use App\Services\Catalogo\ResultadoCatalogo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,9 @@ use Illuminate\Support\Facades\Auth;
  *
  * Los parciales van con un parámetro y no con un header para que el
  * navegador nunca muestre el JSON al volver con «atrás».
+ *
+ * Si nada cumple lo pedido, debajo del aviso van los productos más
+ * parecidos (CatalogoFiltrado::parecidos) en vez de una página vacía.
  */
 class CatalogoController extends Controller
 {
@@ -84,6 +88,7 @@ class CatalogoController extends Controller
         $categorias = Categoria::orderBy('nombre')->get(['id', 'nombre']);
         $categoria = $filtros->categoria !== null ? $categorias->firstWhere('id', $filtros->categoria) : null;
         $ids = array_slice($resultado->ids, 0, self::POR_PAGINA * $paginas);
+        $chips = $this->chips($ruta, $filtros, $categoria);
 
         return [
             'ruta' => $ruta,
@@ -95,7 +100,8 @@ class CatalogoController extends Controller
             'categorias' => $categorias,
             'categoria' => $categoria,
             'titulo' => $this->titulo($filtros, $categoria),
-            'chips' => $this->chips($ruta, $filtros, $categoria),
+            'chips' => $chips,
+            'parecidos' => $resultado->total() === 0 ? $this->parecidos($ruta, $filtros, $categoria, $chips) : null,
             // El campo del header muestra lo buscado (layouts.partials.buscador-header).
             'termino' => $filtros->q,
             // El header muestra la navegación de la Zona de Clientes a quien entró.
@@ -124,44 +130,87 @@ class CatalogoController extends Controller
     }
 
     /**
-     * Filtros en uso, cada uno con el link que lo saca.
+     * Filtros en uso, cada uno con el link que lo saca. La clave es el nombre
+     * del filtro en CatalogoFiltrado (los estados, uno por estado: estado:1).
      *
-     * @return Collection<int, array{etiqueta: string, url: string}>
+     * @return Collection<string, array{etiqueta: string, url: string}>
      */
     private function chips(string $ruta, FiltrosCatalogo $filtros, ?Categoria $categoria): Collection
     {
         $chips = collect();
-        $agregar = fn (string $etiqueta, array $query) => $chips->push(['etiqueta' => $etiqueta, 'url' => route($ruta, $query)]);
+        $agregar = fn (string $clave, string $etiqueta, array $query) => $chips->put($clave, ['etiqueta' => $etiqueta, 'url' => route($ruta, $query)]);
 
         if ($filtros->hayBusqueda()) {
-            $agregar('«'.$filtros->q.'»', $filtros->query(['q' => null]));
+            $agregar('q', '«'.$filtros->q.'»', $filtros->query(['q' => null]));
         }
         if ($categoria !== null && $filtros->hayBusqueda()) {
-            $agregar(mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8'), $filtros->query(['categoria' => null]));
+            $agregar('categoria', mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8'), $filtros->query(['categoria' => null]));
         }
         foreach ($filtros->estados as $estado) {
-            $agregar($estado === FiltrosCatalogo::NUEVO ? 'Nuevo' : 'Reconstruido', $filtros->sinEstado($estado));
+            $agregar('estado:'.$estado, $estado === FiltrosCatalogo::NUEVO ? 'Nuevo' : 'Reconstruido', $filtros->sinEstado($estado));
         }
         if ($filtros->marca !== null) {
-            $agregar('Marca: '.self::enTitulo($filtros->marca), $filtros->query(['marca' => null]));
+            $agregar('marca', 'Marca: '.self::enTitulo($filtros->marca), $filtros->query(['marca' => null]));
         }
         if ($filtros->vehiculo !== null) {
-            $agregar('Vehículo: '.self::enTitulo($filtros->vehiculo), $filtros->query(['vehiculo' => null]));
+            $agregar('vehiculo', 'Vehículo: '.self::enTitulo($filtros->vehiculo), $filtros->query(['vehiculo' => null]));
         }
         if ($filtros->modelo !== null) {
-            $agregar('Modelo: '.self::enTitulo($filtros->modelo), $filtros->query(['modelo' => null]));
+            $agregar('modelo', 'Modelo: '.self::enTitulo($filtros->modelo), $filtros->query(['modelo' => null]));
         }
         if ($filtros->equivalencia !== null) {
-            $agregar('Equivalencia: '.$filtros->equivalencia, $filtros->query(['equivalencia' => null]));
+            $agregar('equivalencia', 'Equivalencia: '.$filtros->equivalencia, $filtros->query(['equivalencia' => null]));
         }
         if ($filtros->atributos !== [] && $filtros->categoria !== null) {
             $nombres = $this->catalogo->atributosFiltrables($filtros->categoria);
             foreach ($filtros->atributos as $columna => $valor) {
-                $agregar(mb_convert_case($nombres[$columna] ?? 'Medida', MB_CASE_TITLE, 'UTF-8').': '.$valor, $filtros->sinAtributo($columna));
+                $agregar('atributo:'.$columna, mb_convert_case($nombres[$columna] ?? 'Medida', MB_CASE_TITLE, 'UTF-8').': '.$valor, $filtros->sinAtributo($columna));
             }
         }
 
         return $chips;
+    }
+
+    /**
+     * Los productos más parecidos, para cuando nada cumple todo lo pedido.
+     *
+     * @param  Collection<string, array{etiqueta: string, url: string}>  $chips
+     * @return array{productos: Collection, sin: list<string>, url: string|null, total: int, termino: string|null, parcial: bool}|null
+     *         sin: los filtros que no cumplen, como se ven en los chips;
+     *         url: la página con todos ellos (null si sólo coinciden algunas palabras)
+     */
+    private function parecidos(string $ruta, FiltrosCatalogo $filtros, ?Categoria $categoria, Collection $chips): ?array
+    {
+        $parecidos = $this->catalogo->parecidos($filtros, self::POR_PAGINA);
+
+        if ($parecidos === null) {
+            return null;
+        }
+
+        $sin = [];
+        foreach ($parecidos->sinFiltros as $filtro) {
+            if ($filtro === 'categoria') {
+                $sin[] = $categoria !== null ? self::enTitulo($categoria->nombre) : 'la categoría';
+
+                continue;
+            }
+            foreach ($chips as $clave => $chip) {
+                if ($clave === $filtro || str_starts_with($clave, $filtro.':')) {
+                    $sin[] = $chip['etiqueta'];
+                }
+            }
+        }
+
+        return [
+            'productos' => $this->catalogo->productos($parecidos->ids),
+            'sin' => $sin,
+            'url' => $parecidos->tienePagina()
+                ? route($ruta, $filtros->sin($parecidos->sinFiltros, $parecidos->termino !== null ? ['q' => $parecidos->termino] : []))
+                : null,
+            'total' => $parecidos->total,
+            'termino' => $parecidos->termino,
+            'parcial' => $parecidos->parcial,
+        ];
     }
 
     /**

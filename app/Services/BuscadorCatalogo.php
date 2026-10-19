@@ -6,11 +6,13 @@ namespace App\Services;
 
 use App\Models\Categoria;
 use App\Models\Producto;
+use App\Services\Catalogo\CorrectorBusqueda;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * Búsqueda de texto libre sobre el catálogo del sitio.
@@ -23,6 +25,12 @@ use Illuminate\Support\Facades\Schema;
  * marca, modelo, rubro, atributos (columnas viejas y características),
  * equivalencias, aplicaciones o partes— y entre palabras se exige que estén
  * todas. Si el texto es un código, además entran los productos equivalentes.
+ *
+ * Es permisivo con cómo se escribe: no distingue mayúsculas ni tildes
+ * («bateria» = «BATERÍA»), los códigos se comparan sin espacios ni guiones
+ * («usx2122» = «USX21-22») y cada palabra trae también sus sinónimos
+ * (config/catalogo.php: «bendix» = «impulsor»). Si aun así no hay nada,
+ * buscarParecidos() da lo más cercano.
  *
  * El orden lo decide relevancia(): el código manda, después nombre, marca,
  * modelo y rubro.
@@ -39,6 +47,11 @@ final class BuscadorCatalogo
 
     /** @var list<string>|null */
     private ?array $columnasAtributo = null;
+
+    public function __construct(
+        private readonly CorrectorBusqueda $corrector,
+    ) {
+    }
 
     // ------------------------------------------------------------ consultas
 
@@ -67,6 +80,79 @@ final class BuscadorCatalogo
         $this->aplicarTexto($query, $termino);
 
         return $this->ordenarPorRelevancia($query->orderBy('orden', 'desc')->get(), $termino);
+    }
+
+    /**
+     * Cuando buscar() no encontró nada, lo más parecido a lo que se escribió.
+     * La primera de estas que traiga algo:
+     *  1. el texto con los errores de tipeo corregidos («alternadro»);
+     *  2. un código con algún carácter de más al final («rp0331559» → «rp033155»);
+     *  3. los productos que tienen más de las palabras buscadas, aunque no todas.
+     *
+     * @param  list<string>  $columnasExtra
+     * @return array{productos: Collection<int, Producto>, termino: string|null, parcial: bool}
+     *         termino: lo que se buscó en lugar del texto original (en 1 y 2);
+     *         parcial: coinciden sólo algunas de las palabras (en 3)
+     */
+    public function buscarParecidos(string $termino, array $columnasExtra = []): array
+    {
+        $termino = self::limpiar($termino);
+        $nada = ['productos' => collect(), 'termino' => null, 'parcial' => false];
+
+        if (mb_strlen($termino) < self::MINIMO_CARACTERES) {
+            return $nada;
+        }
+
+        $corregido = $this->corrector->corregir($termino);
+        if (self::plano($corregido) !== self::plano($termino)) {
+            $productos = $this->buscar($corregido, $columnasExtra);
+            if ($productos->isNotEmpty()) {
+                return ['productos' => $productos, 'termino' => $corregido, 'parcial' => false];
+            }
+        }
+
+        if (self::pareceCodigo($termino) && ! str_contains($termino, ' ')) {
+            for ($sobran = 1; $sobran <= 3 && mb_strlen($termino) - $sobran >= 3; $sobran++) {
+                $recortado = mb_substr($termino, 0, -$sobran);
+                $productos = $this->buscar($recortado, $columnasExtra);
+                if ($productos->isNotEmpty()) {
+                    return ['productos' => $productos, 'termino' => $recortado, 'parcial' => false];
+                }
+            }
+        }
+
+        $tokens = self::tokens($corregido);
+        if (count($tokens) < 2) {
+            return $nada;
+        }
+
+        // Cuántas de las palabras tiene cada producto: una consulta por palabra.
+        $coincidencias = [];
+        foreach ($tokens as $token) {
+            $ids = Producto::query()
+                ->where(fn (Builder $q) => $q->whereNull('estado')->orWhere('estado', '!=', 0))
+                ->where(fn (Builder $sub) => $this->coincidePalabra($sub, $token))
+                ->pluck('productos.id');
+            foreach ($ids as $id) {
+                $coincidencias[$id] = ($coincidencias[$id] ?? 0) + 1;
+            }
+        }
+
+        if ($coincidencias === []) {
+            return $nada;
+        }
+        // Sólo los que tienen más palabras: con una sola de cinco ya no se parecen.
+        $maximo = max($coincidencias);
+        $coincidencias = array_filter($coincidencias, fn (int $n) => $n === $maximo);
+
+        $productos = Producto::query()
+            ->select([...self::COLUMNAS_RANKING, ...$columnasExtra])
+            ->with('categoria:id,nombre')
+            ->whereIn('productos.id', array_keys($coincidencias))
+            ->orderBy('orden', 'desc')
+            ->get();
+
+        return ['productos' => $this->ordenarPorRelevancia($productos, $corregido), 'termino' => null, 'parcial' => true];
     }
 
     /**
@@ -103,9 +189,8 @@ final class BuscadorCatalogo
 
         return Categoria::query()
             ->where(function (Builder $q) use ($tokens): void {
-                // `categorias.nombre` es utf8mb3_bin: sin LOWER distingue mayúsculas.
                 foreach ($tokens as $token) {
-                    $q->whereRaw('LOWER(nombre) LIKE ?', ['%'.self::raiz($token).'%']);
+                    $q->whereRaw(self::sinTildes('nombre').' LIKE ?', ['%'.self::raiz($token).'%']);
                 }
             })
             ->orderBy('nombre')
@@ -158,63 +243,94 @@ final class BuscadorCatalogo
         });
     }
 
+    /** La palabra o alguno de sus sinónimos. */
     private function coincidePalabra(Builder $sub, string $token): void
     {
-        $root = self::raiz($token);
-        $pattern = '\\b'.preg_quote($root, '/').'s?\\b';
+        foreach (self::variantes($token) as $root) {
+            $sub->orWhere(fn (Builder $q) => $this->coincideRaiz($q, $root));
+        }
+    }
+
+    private function coincideRaiz(Builder $sub, string $root): void
+    {
         $rootSinEspacios = str_replace(' ', '', $root);
         $like = "%{$root}%";
+        // Los códigos se escriben con y sin espacios o guiones: «USX21-22», «usx 2122».
+        $codigo = "%{$rootSinEspacios}%";
+        $nombre = self::sinTildes('nombre');
 
-        // NOMBRE: palabra completa + LIKE por si es abreviado (arr → arranque)
-        $sub->whereRaw('LOWER(nombre) REGEXP ?', [$pattern])
-            ->orWhereRaw('LOWER(nombre) LIKE ?', [$like])
-            ->orWhereRaw('LOWER(marca) LIKE ?', [$like])
-            ->orWhereRaw('LOWER(modelo) LIKE ?', [$like])
-            ->orWhereRaw("LOWER(REPLACE(codigo,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
+        // NOMBRE (LIKE: también lo abreviado, arr → arranque), MARCA, MODELO, CÓDIGO
+        $sub->whereRaw("{$nombre} LIKE ?", [$like])
+            ->orWhereRaw(self::sinTildes('marca').' LIKE ?', [$like])
+            ->orWhereRaw(self::sinTildes('modelo').' LIKE ?', [$like])
+            ->orWhereRaw(self::compacto('codigo').' LIKE ?', [$codigo])
             // RUBRO
             ->orWhereExists(function (QueryBuilder $qq) use ($like): void {
                 $qq->select(DB::raw(1))->from('categorias')
                     ->whereColumn('categorias.id', 'productos.categoria_id')
-                    ->whereRaw('LOWER(categorias.nombre) LIKE ?', [$like]);
+                    ->whereRaw(self::sinTildes('categorias.nombre').' LIKE ?', [$like]);
             })
             // ATRIBUTOS Y MEDIDAS: columnas viejas y características
             ->when($this->columnasAtributo() !== [], function (Builder $q) use ($like): void {
-                $q->orWhereRaw("LOWER(CONCAT_WS(' ', ".implode(', ', $this->columnasAtributo()).')) LIKE ?', [$like]);
+                $q->orWhereRaw(self::sinTildes("CONCAT_WS(' ', ".implode(', ', $this->columnasAtributo()).')').' LIKE ?', [$like]);
             })
             ->orWhereExists(function (QueryBuilder $qq) use ($like): void {
                 $qq->select(DB::raw(1))->from('producto_caracteristica')
                     ->whereColumn('producto_caracteristica.producto_id', 'productos.id')
                     ->whereNull('producto_caracteristica.deleted_at')
-                    ->whereRaw('LOWER(producto_caracteristica.valor) LIKE ?', [$like]);
+                    ->whereRaw(self::sinTildes('producto_caracteristica.valor').' LIKE ?', [$like]);
             })
             // TABLAS NUEVAS: equivalencias, aplicaciones, partes_relacionadas
-            ->orWhereExists(function (QueryBuilder $qq) use ($root, $rootSinEspacios): void {
+            ->orWhereExists(function (QueryBuilder $qq) use ($like, $codigo): void {
                 $qq->select(DB::raw(1))->from('equivalencias')
                     ->whereColumn('equivalencias.producto_id', 'productos.id')
-                    ->where(function (QueryBuilder $w) use ($root, $rootSinEspacios): void {
-                        $w->whereRaw('LOWER(equivalencias.valor) LIKE ?', ["%{$root}%"])
-                            ->orWhereRaw("LOWER(REPLACE(equivalencias.valor,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                            ->orWhereRaw('LOWER(equivalencias.nombre) LIKE ?', ["%{$root}%"]);
+                    ->where(function (QueryBuilder $w) use ($like, $codigo): void {
+                        $w->whereRaw(self::sinTildes('equivalencias.valor').' LIKE ?', [$like])
+                            ->orWhereRaw(self::compacto('equivalencias.valor').' LIKE ?', [$codigo])
+                            ->orWhereRaw(self::sinTildes('equivalencias.nombre').' LIKE ?', [$like]);
                     });
             })
-            ->orWhereExists(function (QueryBuilder $qq) use ($root, $rootSinEspacios): void {
+            ->orWhereExists(function (QueryBuilder $qq) use ($like, $codigo): void {
                 $qq->select(DB::raw(1))->from('aplicaciones')
                     ->whereColumn('aplicaciones.producto_id', 'productos.id')
-                    ->where(function (QueryBuilder $w) use ($root, $rootSinEspacios): void {
-                        $w->whereRaw('LOWER(aplicaciones.valor) LIKE ?', ["%{$root}%"])
-                            ->orWhereRaw("LOWER(REPLACE(aplicaciones.valor,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                            ->orWhereRaw('LOWER(aplicaciones.nombre) LIKE ?', ["%{$root}%"]);
+                    ->where(function (QueryBuilder $w) use ($like, $codigo): void {
+                        $w->whereRaw(self::sinTildes('aplicaciones.valor').' LIKE ?', [$like])
+                            ->orWhereRaw(self::compacto('aplicaciones.valor').' LIKE ?', [$codigo])
+                            ->orWhereRaw(self::sinTildes('aplicaciones.nombre').' LIKE ?', [$like]);
                     });
             })
-            ->orWhereExists(function (QueryBuilder $qq) use ($root, $rootSinEspacios): void {
+            ->orWhereExists(function (QueryBuilder $qq) use ($like, $codigo): void {
                 $qq->select(DB::raw(1))->from('partes_relacionadas')
                     ->join('productos as p2', 'p2.id', '=', 'partes_relacionadas.parte_id')
                     ->whereColumn('partes_relacionadas.producto_id', 'productos.id')
-                    ->where(function (QueryBuilder $w) use ($root, $rootSinEspacios): void {
-                        $w->whereRaw("LOWER(REPLACE(p2.codigo,' ','')) LIKE ?", ["%{$rootSinEspacios}%"])
-                            ->orWhereRaw('LOWER(p2.nombre) LIKE ?', ["%{$root}%"]);
+                    ->where(function (QueryBuilder $w) use ($like, $codigo): void {
+                        $w->whereRaw(self::compacto('p2.codigo').' LIKE ?', [$codigo])
+                            ->orWhereRaw(self::sinTildes('p2.nombre').' LIKE ?', [$like]);
                     });
             });
+    }
+
+    /**
+     * La columna comparable sin mayúsculas ni tildes. Las columnas tienen
+     * collations distintas (utf8mb4_unicode_ci, utf8mb3_bin, armscii8_bin) y
+     * comparar una armscii8 con un texto con tildes hacía fallar la consulta.
+     */
+    private static function sinTildes(string $columna): string
+    {
+        return DB::connection()->getDriverName() === 'mysql'
+            ? "CONVERT({$columna} USING utf8mb4) COLLATE utf8mb4_unicode_ci"
+            : "LOWER({$columna})";
+    }
+
+    /** Como sinTildes(), y además sin espacios, guiones, puntos ni barras. */
+    private static function compacto(string $columna): string
+    {
+        $sinSeparadores = $columna;
+        foreach ([' ', '-', '.', '/'] as $separador) {
+            $sinSeparadores = "REPLACE({$sinSeparadores}, '{$separador}', '')";
+        }
+
+        return self::sinTildes($sinSeparadores);
     }
 
     /**
@@ -313,17 +429,17 @@ final class BuscadorCatalogo
      */
     public static function relevancia(Producto $producto, string $termino): int
     {
-        $busqueda = mb_strtolower(self::limpiar($termino));
+        $busqueda = self::plano(self::limpiar($termino));
 
         if ($busqueda === '') {
             return 0;
         }
 
-        $codigo = mb_strtolower($producto->codigo ?? '');
-        $nombre = mb_strtolower($producto->nombre ?? '');
-        $marca = mb_strtolower($producto->marca ?? '');
-        $modelo = mb_strtolower($producto->modelo ?? '');
-        $rubro = mb_strtolower($producto->categoria?->nombre ?? '');
+        $codigo = self::plano($producto->codigo ?? '');
+        $nombre = self::plano($producto->nombre ?? '');
+        $marca = self::plano($producto->marca ?? '');
+        $modelo = self::plano($producto->modelo ?? '');
+        $rubro = self::plano($producto->categoria?->nombre ?? '');
 
         $score = 0;
 
@@ -390,6 +506,36 @@ final class BuscadorCatalogo
             array_map('trim', $tokens),
             fn (string $t) => mb_strlen($t) >= 2 && ! in_array($t, self::STOP_WORDS, true)
         )));
+    }
+
+    /** Minúsculas y sin tildes: «Batería» → «bateria». */
+    public static function plano(string $texto): string
+    {
+        return mb_strtolower(Str::ascii($texto));
+    }
+
+    /**
+     * La raíz de la palabra y las de sus sinónimos (config/catalogo.php):
+     * «bendix» → [bendix, impulsor].
+     *
+     * @return list<string>
+     */
+    private static function variantes(string $token): array
+    {
+        $raiz = self::raiz($token);
+        $plana = self::plano($raiz);
+        $variantes = [$raiz];
+
+        foreach (config('catalogo.sinonimos', []) as $grupo) {
+            foreach ($grupo as $palabra) {
+                if ($plana === $palabra || (mb_strlen($plana) >= 5 && str_starts_with($palabra, $plana))) {
+                    array_push($variantes, ...$grupo);
+                    break;
+                }
+            }
+        }
+
+        return array_values(array_unique($variantes));
     }
 
     /** Alfanumérico sin espacios y con al menos un dígito: «IMPO1747», «1061». */

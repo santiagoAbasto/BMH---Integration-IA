@@ -46,8 +46,25 @@ final class CatalogoFiltrado
     /** Campos de la categoría que no sirven como filtro de medidas. */
     private const ATRIBUTOS_EXCLUIDOS = ['MARCA', 'APLICACION'];
 
+    /**
+     * Cuánto pesa no cumplir cada filtro al elegir los parecidos: más pesa,
+     * más se parece a lo pedido. La categoría vale más que todo lo demás junto.
+     */
+    private const PESOS_PARECIDOS = [
+        'categoria' => 30,
+        'equivalencia' => 8,
+        'modelo' => 6,
+        'vehiculo' => 5,
+        'marca' => 4,
+        'atributo' => 2,
+        'estado' => 1,
+    ];
+
     /** Valores que en la base significan «sin dato». */
     private const SIN_DATO = ['', '-', '--', '.', 'N/A', 'S/D'];
+
+    /** @var array{0: string, 1: Collection<int, Producto>}|null */
+    private ?array $ultimaBusqueda = null;
 
     public function __construct(
         private readonly BuscadorCatalogo $buscador,
@@ -123,6 +140,76 @@ final class CatalogoFiltrado
             modelos: $modelos,
             atributos: $this->opcionesDeAtributos($pool, $columnasAtributo, $cumple, $filtros->atributos),
             marcasDeModelos: $marcasDeModelos,
+        );
+    }
+
+    /**
+     * Cuando nada cumple todo: los productos que cumplen la mayor parte.
+     *
+     * Si el texto buscado no encontró nada, primero se busca lo parecido
+     * (BuscadorCatalogo::buscarParecidos: errores de tipeo, palabras sueltas).
+     * Después cada producto se agrupa según qué filtros no cumple y ganan los
+     * que dejan afuera lo menos importante (PESOS_PARECIDOS): una medida
+     * antes que la marca, la marca antes que la categoría.
+     *
+     * Sin texto, un producto que no cumple ningún filtro no se parece en nada:
+     * no se ofrece.
+     */
+    public function parecidos(FiltrosCatalogo $filtros, int $limite): ?ParecidosCatalogo
+    {
+        $columnasAtributo = $filtros->categoria !== null ? $this->atributosFiltrables($filtros->categoria) : [];
+        $termino = null;
+        $parcial = false;
+
+        $pool = $this->pool($filtros, array_keys($columnasAtributo));
+        if ($pool->isEmpty() && $filtros->hayBusqueda()) {
+            $alternativa = $this->buscador->buscarParecidos($filtros->q, array_keys($columnasAtributo));
+            [$pool, $termino, $parcial] = [$alternativa['productos'], $alternativa['termino'], $alternativa['parcial']];
+        }
+        $pool = $pool->map(fn (Producto $p) => (object) $p->getAttributes());
+
+        $aplicaciones = $this->aplicacionesDe($pool);
+        $gradosEquivalencia = $filtros->equivalencia !== null
+            ? $this->equivalencias->coincidencias($filtros->equivalencia)
+            : [];
+        $predicados = $this->predicados($filtros, $aplicaciones, $gradosEquivalencia, $columnasAtributo);
+
+        /** @var array<string, array{faltan: list<string>, peso: int, productos: list<object>}> $grupos */
+        $grupos = [];
+        foreach ($pool as $producto) {
+            $faltan = array_keys(array_filter($predicados, fn (\Closure $cumple) => ! $cumple($producto)));
+            if (! $filtros->hayBusqueda() && $predicados !== [] && count($faltan) === count($predicados)) {
+                continue;
+            }
+            $clave = implode('|', $faltan);
+            $grupos[$clave] ??= [
+                'faltan' => $faltan,
+                'peso' => array_sum(array_map(fn (string $f) => self::PESOS_PARECIDOS[explode(':', $f)[0]] ?? 1, $faltan)),
+                'productos' => [],
+            ];
+            $grupos[$clave]['productos'][] = $producto;
+        }
+
+        if ($grupos === []) {
+            return null;
+        }
+
+        // Gana el que menos deja afuera; a igual peso, el grupo más grande. Se
+        // muestra sólo ese: así el aviso dice exactamente qué no cumplen.
+        uasort($grupos, fn (array $a, array $b) => [$a['peso'], count($b['productos'])] <=> [$b['peso'], count($a['productos'])]);
+        $elegido = reset($grupos);
+
+        $productos = collect($elegido['productos']);
+        if ($filtros->orden !== null) {
+            $productos = self::ordenarPorCodigo($productos, $filtros->orden);
+        }
+
+        return new ParecidosCatalogo(
+            ids: $productos->take($limite)->map(fn (object $p) => (int) $p->id)->values()->all(),
+            sinFiltros: $elegido['faltan'],
+            total: $productos->count(),
+            termino: $termino,
+            parcial: $parcial,
         );
     }
 
@@ -240,7 +327,13 @@ final class CatalogoFiltrado
     private function pool(FiltrosCatalogo $filtros, array $columnasAtributo): Collection
     {
         if ($filtros->hayBusqueda()) {
-            return $this->buscador->buscar($filtros->q, $columnasAtributo);
+            // Sin resultados, parecidos() vuelve a pedir la misma búsqueda.
+            $clave = $filtros->q.'|'.implode(',', $columnasAtributo);
+            if ($this->ultimaBusqueda === null || $this->ultimaBusqueda[0] !== $clave) {
+                $this->ultimaBusqueda = [$clave, $this->buscador->buscar($filtros->q, $columnasAtributo)];
+            }
+
+            return $this->ultimaBusqueda[1];
         }
 
         $consulta = Producto::query()
@@ -443,6 +536,16 @@ final class CatalogoFiltrado
     }
 
     /**
+     * Las opciones de cada medida, ordenadas como números cuando lo son
+     * (12, 24, 125 y no 12, 125, 24). Una medida con un solo valor no filtra
+     * nada y no se ofrece, salvo que ya esté elegida (hay que poder sacarla).
+     *
+     * @param  Collection<int, Producto>  $pool
+     * @param  array<string, string>  $columnas
+     * @param  array<string, string>  $elegidos
+     * @return array<string, array{etiqueta: string, opciones: array<string, int>}>
+     */
+    /**
      * Por el número de adelante y después como texto: 4MM, 4.4MM, 4.7MM, 12MM,
      * 125MM. Con la unidad pegada, el orden natural solo ponía 4.4MM antes que
      * 4MM (compara el punto con la M).
@@ -467,16 +570,6 @@ final class CatalogoFiltrado
         return strnatcasecmp($a, $b);
     }
 
-    /**
-     * Las opciones de cada medida, ordenadas como números cuando lo son
-     * (12, 24, 125 y no 12, 125, 24). Una medida con un solo valor no filtra
-     * nada y no se ofrece, salvo que ya esté elegida (hay que poder sacarla).
-     *
-     * @param  Collection<int, Producto>  $pool
-     * @param  array<string, string>  $columnas
-     * @param  array<string, string>  $elegidos
-     * @return array<string, array{etiqueta: string, opciones: array<string, int>}>
-     */
     private function opcionesDeAtributos(Collection $pool, array $columnas, callable $cumple, array $elegidos): array
     {
         $atributos = [];

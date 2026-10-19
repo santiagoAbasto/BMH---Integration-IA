@@ -6,7 +6,7 @@
 @endsection
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=4">
     <style>
     
         .carrito-btn {

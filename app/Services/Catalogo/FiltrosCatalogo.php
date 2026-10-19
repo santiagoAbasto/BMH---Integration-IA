@@ -104,6 +104,32 @@ final class FiltrosCatalogo
         return $this->query(['estado' => array_map(fn (int $e) => array_search($e, self::ESTADOS, true), $resto) ?: null]);
     }
 
+    /**
+     * Sin varios filtros a la vez, con los nombres de CatalogoFiltrado:
+     * categoria, estado, marca, vehiculo, modelo, equivalencia o atributo:columna_N.
+     *
+     * @param  list<string>  $filtros
+     * @param  array<string, mixed>  $cambios
+     * @return array<string, mixed>
+     */
+    public function sin(array $filtros, array $cambios = []): array
+    {
+        $atributos = $this->atributos;
+
+        foreach ($filtros as $filtro) {
+            if (str_starts_with($filtro, 'atributo:')) {
+                unset($atributos[substr($filtro, strlen('atributo:'))]);
+            } else {
+                $cambios[$filtro] = null;
+            }
+        }
+
+        // Las medidas son de la categoría: sin categoría no van.
+        $cambios['atributo'] = in_array('categoria', $filtros, true) ? null : ($atributos ?: null);
+
+        return $this->query($cambios);
+    }
+
     /** Sin el atributo indicado (para el chip «×» de esa medida). */
     public function sinAtributo(string $columna): array
     {

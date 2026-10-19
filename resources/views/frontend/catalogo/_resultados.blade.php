@@ -52,7 +52,9 @@
     </ul>
 @endif
 
-@if ($total === 0)
+@if ($total === 0 && $parecidos !== null)
+    @include('frontend.catalogo._parecidos')
+@elseif ($total === 0)
     <div class="catalogo__vacio">
         <span class="catalogo__vacio-icono" aria-hidden="true">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5M8.5 8.5l5 5M13.5 8.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
