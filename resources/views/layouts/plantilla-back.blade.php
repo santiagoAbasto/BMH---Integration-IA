@@ -374,6 +374,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
                 <div class="accordion-body">
                   <a class='nav-link menu-item' href="{{route('dashboard.categorias')}}">Categorías</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.productos')}}">Productos</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.imagenes')}}">Imágenes</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.caracteristicas')}}">Caracteristicas</a>
 
                   {{-- <a class='nav-link menu-item' href="{{route('dashboard.medidas')}}">Medidas</a>

@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\BuscadorController;
 use App\Http\Controllers\CatalogoController;
+use App\Http\Controllers\BibliotecaImagenesController;
 use App\Http\Controllers\DescargaImagenesCategoriaController;
+use App\Http\Controllers\ExcelProductosController;
 use App\Http\Controllers\HomeSliderController;
 use App\Http\Controllers\ImagenPorDefectoController;
 use App\Http\Controllers\DashboardController;
@@ -156,7 +158,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
-        Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
+        // dashboard/productos/exportar-excel: ver ExcelProductosController, más abajo.
         Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');
         Route::post('dashboard/producto/store', 'store')->name('producto.store');
@@ -178,6 +180,20 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
 
 
     });
+});
+
+// Biblioteca de imágenes (subida masiva con códigos) y Excel de productos (precio e imágenes).
+Route::middleware('admin')->group(function () {
+    Route::get('dashboard/imagenes', [BibliotecaImagenesController::class, 'index'])->name('dashboard.imagenes');
+    Route::post('dashboard/imagenes', [BibliotecaImagenesController::class, 'store'])->name('dashboard.imagenes.store');
+    Route::patch('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'update'])->name('dashboard.imagenes.update');
+    Route::delete('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'destroy'])->name('dashboard.imagenes.destroy');
+
+    Route::get('dashboard/productos/exportar-excel', [ExcelProductosController::class, 'exportar'])->name('dashboard.productos.exportar');
+    Route::get('dashboard/productos/importar-excel', [ExcelProductosController::class, 'importar'])->name('dashboard.productos.excel.importar');
+    Route::post('dashboard/productos/importar-excel', [ExcelProductosController::class, 'previsualizar'])->name('dashboard.productos.excel.previsualizar');
+    Route::get('dashboard/productos/importar-excel/{token}', [ExcelProductosController::class, 'preview'])->name('dashboard.productos.excel.preview');
+    Route::post('dashboard/productos/importar-excel/{token}/confirmar', [ExcelProductosController::class, 'confirmar'])->name('dashboard.productos.excel.confirmar');
 });
 
 Route::controller(DimensionController::class)->middleware('admin')->group(function () {

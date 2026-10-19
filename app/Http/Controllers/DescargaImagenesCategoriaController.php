@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Categoria;
+use App\Services\Imagenes\BibliotecaImagenes;
 use App\Services\Imagenes\ImagenesDeCategoria;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipStream\CompressionMethod;
@@ -25,6 +27,10 @@ class DescargaImagenesCategoriaController extends Controller
     public function __invoke(Request $request, ImagenesDeCategoria $imagenes): StreamedResponse
     {
         $categoria = Categoria::query()->findOrFail((int) $request->query('categoria_id'));
+        // Las fotos cargadas desde la ficha de cada producto también salen con su código.
+        if (Schema::hasTable('biblioteca_imagenes')) {
+            app(BibliotecaImagenes::class)->sincronizar();
+        }
         ['archivos' => $archivos, 'sinImagenes' => $sinImagenes] = $imagenes->armar($categoria->id);
 
         abort_if($archivos === [], 404, 'La categoría no tiene imágenes para descargar.');
