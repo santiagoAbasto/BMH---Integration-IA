@@ -31,7 +31,11 @@ final class OptimizadorImagenesTest extends TestCase
 
         $this->dir = sys_get_temp_dir().'/bmh_optim_'.uniqid();
         File::ensureDirectoryExists($this->dir);
-        $this->optimizador = new OptimizadorImagenes(ladoMaximo: 2000, calidades: [90, 94], psnrMinimo: 42.0);
+        $this->optimizador = new OptimizadorImagenes(
+            ladoMaximo: 2000,
+            calidades: [90, 92, 94, 96, 98],
+            fidelidad: ['luma' => 47.0, 'color' => 44.0, 'zona' => 38.0],
+        );
     }
 
     protected function tearDown(): void
@@ -106,8 +110,8 @@ final class OptimizadorImagenesTest extends TestCase
         $this->assertSame([2000, 1385], [$ancho, $alto]);
         $this->assertLessThan($r->bytesOriginales * 0.5, $r->bytesNuevos);
         $this->assertSame(ResultadoOptimizacion::CON_PERDIDA, $r->modo);
-        $this->assertContains($r->calidad, [90, 94]);
-        $this->assertGreaterThanOrEqual(42.0, $r->psnr);
+        $this->assertContains($r->calidad, [90, 92, 94, 96, 98]);
+        $this->assertGreaterThanOrEqual(47.0, $r->psnr);
         // El original no se toca: borrarlo es decisión de quien llama.
         $this->assertFileExists($origen);
     }
@@ -202,6 +206,80 @@ final class OptimizadorImagenesTest extends TestCase
 
         $this->assertMatchesRegularExpression('/^media_[0-9a-f]+\.webp$/', $nombre);
         $this->assertSame(IMAGETYPE_WEBP, getimagesize($destino.'/'.$nombre)[2]);
+    }
+
+    public function test_si_el_color_se_dana_no_se_conforma_con_la_luminancia(): void
+    {
+        // Rayas rojas y verdes de casi la misma luminancia: con la luminancia
+        // sola cualquier calidad «pasa», pero el WebP con pérdida submuestrea
+        // el color y las mezcla. Tiene que quedar exacto.
+        $img = imagecreatetruecolor(600, 400);
+        $rojo = imagecolorallocate($img, 255, 0, 0);
+        $verde = imagecolorallocate($img, 0, 128, 0);
+        for ($x = 0; $x < 600; $x += 2) {
+            imagefilledrectangle($img, $x, 0, $x, 399, $x % 4 === 0 ? $rojo : $verde);
+        }
+        $destino = $this->dir.'/rayas.webp';
+
+        $r = $this->optimizador->optimizar($this->guardarPng($img, 'rayas.png'), $destino);
+
+        $this->assertTrue($r->optimizada, $r->motivo);
+        $this->assertSame(ResultadoOptimizacion::SIN_PERDIDA, $r->modo);
+        $webp = imagecreatefromwebp($destino);
+        $this->assertSame(0xFF0000, imagecolorat($webp, 0, 200) & 0xFFFFFF);
+        $this->assertSame(0x008000, imagecolorat($webp, 2, 200) & 0xFFFFFF);
+    }
+
+    public function test_conserva_el_perfil_de_color_si_no_es_srgb(): void
+    {
+        $perfil = str_pad('Display P3 · perfil de prueba', 600, "\x01");
+        $origen = $this->pngConPerfil($this->foto(800, 800, 'p3.png'), $perfil);
+        $destino = $this->dir.'/p3.webp';
+
+        $r = $this->optimizador->optimizar($origen, $destino);
+
+        $this->assertTrue($r->optimizada, $r->motivo);
+        $datos = (string) file_get_contents($destino);
+        $this->assertSame('VP8X', substr($datos, 12, 4));
+        $this->assertSame(0x20, ord($datos[20]) & 0x20, 'marca de ICC en VP8X');
+        $this->assertStringContainsString('ICCP'.pack('V', strlen($perfil)).$perfil, $datos);
+        // Sigue siendo un WebP válido.
+        $this->assertSame(IMAGETYPE_WEBP, getimagesize($destino)[2]);
+        $this->assertInstanceOf(GdImage::class, imagecreatefromwebp($destino));
+
+        // Con un perfil sRGB no se agrega nada: sin perfil ya se asume sRGB.
+        $srgb = $this->pngConPerfil($this->foto(800, 800, 'srgb.png'), str_pad('sRGB IEC61966-2.1', 600, "\x01"));
+        $this->assertTrue($this->optimizador->optimizar($srgb, $this->dir.'/srgb.webp')->optimizada);
+        $this->assertStringNotContainsString('ICCP', (string) file_get_contents($this->dir.'/srgb.webp'));
+    }
+
+    public function test_una_subida_webp_ya_comprimida_no_se_vuelve_a_comprimir(): void
+    {
+        // Recomprimir agregaría pérdida y no ahorraría lo suficiente: queda igual.
+        $img = imagecreatefrompng($this->foto(1200, 900, 'base.png'));
+        $ruta = $this->dir.'/ya.webp';
+        imagewebp($img, $ruta, 85);
+        $subida = new UploadedFile($ruta, 'Foto.webp', 'image/webp', null, true);
+        $hash = md5_file($ruta);
+        $destino = $this->dir.'/imagenes';
+        File::ensureDirectoryExists($destino);
+
+        $nombre = $this->optimizador->guardarSubida($subida, $destino);
+
+        $this->assertMatchesRegularExpression('/^media_[0-9a-f]+\.webp$/', $nombre);
+        $this->assertSame($hash, md5_file($destino.'/'.$nombre));
+    }
+
+    /** Inserta un chunk iCCP (perfil comprimido) antes de los datos del PNG. */
+    private function pngConPerfil(string $ruta, string $perfil): string
+    {
+        $png = (string) file_get_contents($ruta);
+        $datos = "perfil\0\0".gzcompress($perfil);
+        $chunk = pack('N', strlen($datos)).'iCCP'.$datos.pack('N', crc32('iCCP'.$datos));
+        // Después del IHDR (8 de firma + 25 del chunk IHDR).
+        file_put_contents($ruta, substr($png, 0, 33).$chunk.substr($png, 33));
+
+        return $ruta;
     }
 
     public function test_un_webp_ya_achicado_por_el_navegador_se_guarda_como_webp(): void

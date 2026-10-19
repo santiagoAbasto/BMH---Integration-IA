@@ -18,8 +18,10 @@
     var LADO_MINIMO = parseInt((script && script.dataset.ladoMinimo) || '800', 10);
     // Debajo de este peso, y sin pasarse del lado máximo, se sube tal cual.
     var PESO_MINIMO = 1.5 * 1024 * 1024;
-    // Casi sin pérdida: el servidor vuelve a comprimir controlando la calidad.
-    var CALIDAD = 0.95;
+    // Casi sin pérdida: la compresión de verdad la hace el servidor, una sola
+    // vez y controlando la fidelidad (OptimizadorImagenes). A 0,95 eran dos
+    // generaciones de pérdida.
+    var CALIDAD = 0.98;
 
     var pendientes = 0;
 

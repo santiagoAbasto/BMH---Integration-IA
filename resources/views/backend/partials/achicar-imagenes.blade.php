@@ -1,5 +1,5 @@
 {{-- Achica en el navegador las fotos de los <input type="file" data-achicar> antes de subirlas y avisa si no son cuadradas o son chicas. --}}
-<script src="{{ asset('js/achicar-imagenes.js') }}?v=2"
+<script src="{{ asset('js/achicar-imagenes.js') }}?v=3"
         data-lado-maximo="{{ (int) config('imagenes.lado_maximo', 2000) }}"
         data-lado-sugerido="{{ (int) config('imagenes.tamano_sugerido.lado', 1200) }}"
         data-lado-minimo="{{ (int) config('imagenes.tamano_sugerido.minimo', 800) }}"></script>

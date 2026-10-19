@@ -17,20 +17,27 @@ return [
 
     /*
      * Calidades WebP que se prueban en orden. Se queda con la primera que
-     * alcanza la fidelidad mínima; así una foto con mucho detalle sube de
-     * calidad en vez de degradarse para ahorrar bytes.
-     *
-     * Calibrado con 80 fotos reales del catálogo (120 MB): con 82 se ahorraba
-     * 97,7 % pero la textura fina del metal se suavizaba al 100 % (lo que
-     * muestra la lupa); con 90 se conserva y el ahorro sigue en 96,8 %.
+     * pasa los controles de fidelidad; así una foto con mucho detalle sube de
+     * calidad en vez de degradarse para ahorrar bytes. Si ninguna los pasa,
+     * WebP sin pérdida o el original tal cual.
      */
-    'calidades' => [90, 94],
+    'calidades' => [90, 92, 94, 96, 98],
 
     /*
-     * PSNR mínimo de luminancia (dB) contra el original ya redimensionado.
-     * Por encima de ~40 dB la diferencia no se ve; 42 deja margen.
+     * Fidelidad mínima contra el original ya redimensionado, en PSNR (dB):
+     *  - luma: luminancia de toda la imagen.
+     *  - color: Cb y Cr (el WebP con pérdida submuestrea el color).
+     *  - zona: la peor parte de la imagen (percentil 1 de zonas chicas),
+     *    para que un borde o una etiqueta no se dañen aunque el promedio dé bien.
+     *
+     * Calibrado con 60 fotos originales del catálogo. El criterio anterior
+     * (sólo luminancia ≥ 42 dB, calidades 90 y 94) dejaba pasar fotos con el
+     * color en 32 dB y zonas en 32 dB, que se notan. Con estos valores lo peor
+     * queda en 47 / 44 / 38 dB, sin diferencia visible, y ahorra 77 % (antes
+     * 81 %). Más exigente (48 / 46 / 40) ahorraba 73 % y dejaba 1 de cada 9
+     * fotos sin convertir.
      */
-    'psnr_minimo' => 42.0,
+    'fidelidad' => ['luma' => 47.0, 'color' => 44.0, 'zona' => 38.0],
 
     /*
      * Ahorro mínimo (%) para reemplazar una imagen existente. Si el WebP no

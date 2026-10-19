@@ -85,6 +85,11 @@ final class OptimizarImagenesCommandTest extends TestCase
                     (int) (60 + 150 * $x / $ancho) + $r, (int) (90 + 90 * $y / $alto) + $r, 120 + $r));
             }
         }
+        // Suavizada como una foto de cámara: bloques de bordes duros no los
+        // tiene ninguna foto real, y el optimizador (con razón) no los comprime
+        // con pérdida porque se notaría.
+        imagefilter($img, IMG_FILTER_GAUSSIAN_BLUR);
+        imagefilter($img, IMG_FILTER_GAUSSIAN_BLUR);
         str_ends_with($nombre, '.png') ? imagepng($img, "{$this->dir}/{$nombre}", 9) : imagejpeg($img, "{$this->dir}/{$nombre}", 95);
     }
 
