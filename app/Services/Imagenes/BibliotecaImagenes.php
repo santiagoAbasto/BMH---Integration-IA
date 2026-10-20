@@ -14,8 +14,11 @@ use RuntimeException;
  * Biblioteca de imágenes de productos.
  *
  * Cada archivo de public/imagenes que usan los productos tiene un código
- * único y editable (tabla biblioteca_imagenes). Ese código es el que se
- * escribe en la columna IMÁGENES del Excel de productos.
+ * único y editable (tabla biblioteca_imagenes). El código dice de qué
+ * producto es la foto: NFSO42 es la principal de NFSO42 y NFSO42-2 la
+ * segunda. Por eso, subir «NFSO42.jpg» ya se la asigna (subir()), y
+ * corregir el código de una imagen sin asignar también (renombrar()).
+ * El Excel de productos usa los mismos códigos en la columna IMÁGENES.
  *
  * Qué producto usa qué imagen sigue en la tabla imagenes (sector producto,
  * por path): esta clase nunca mueve, renombra ni borra archivos en uso.
@@ -27,6 +30,18 @@ final class BibliotecaImagenes
 
     /** En la celda IMÁGENES, quita todas las fotos del producto. */
     public const QUITAR = '-';
+
+    /** Resultados de subir(). */
+    public const ASIGNADA = 'asignada';
+
+    public const SIN_PRODUCTO = 'sin_producto';
+
+    public const CONFLICTO = 'conflicto';
+
+    public const REEMPLAZADA = 'reemplazada';
+
+    /** @var array<string, list<array{id: int, codigo: string, nombre: string}>>|null */
+    private ?array $productosPorCodigo = null;
 
     public function __construct(private readonly OptimizadorImagenes $optimizador)
     {
@@ -98,75 +113,143 @@ final class BibliotecaImagenes
     }
 
     /**
-     * Sube una imagen a la biblioteca: la optimiza (WebP sin pérdida visible,
-     * ver OptimizadorImagenes) y le da código.
+     * Sube una imagen: el nombre del archivo es su código y, si es el de un
+     * producto, la foto se le asigna sola:
+     *  - «NFSO42.jpg» → la foto principal de NFSO42;
+     *  - «NFSO42-2.jpg» → su segunda foto (NFSO42-3 la tercera…).
      *
-     * @return array{imagen: ImagenBiblioteca, motivo: string}
+     * Si ya hay una imagen con ese código no se guarda nada y se avisa
+     * (CONFLICTO), salvo que se elija qué hacer:
+     *  - $modo «reemplazar»: la nueva ocupa el lugar de la anterior en todos
+     *    los productos que la usaban (el archivo anterior queda en el disco);
+     *  - $modo «agregar»: se guarda como la próxima foto libre del producto.
+     *
+     * @param  'reemplazar'|'agregar'|null  $modo
+     * @return array{resultado: string, imagen: ImagenBiblioteca|null, destino: array|null, existente: ImagenBiblioteca|null, sugerencia: string|null}
+     *         resultado: ASIGNADA, SIN_PRODUCTO, CONFLICTO o REEMPLAZADA
      */
-    public function subir(UploadedFile $archivo): array
+    public function subir(UploadedFile $archivo, ?string $modo = null): array
     {
         $nombreOriginal = $archivo->getClientOriginalName();
-        $path = $this->optimizador->guardarSubida($archivo, $this->directorio());
-        [$codigo, $motivo] = $this->sugerirCodigo($nombreOriginal);
+        $base = CodigoImagen::normalizar(pathinfo($nombreOriginal, PATHINFO_FILENAME));
+        $existente = $base !== '' ? ImagenBiblioteca::query()->where('codigo', $base)->first() : null;
+        $resultado = ['resultado' => self::ASIGNADA, 'imagen' => null, 'destino' => null, 'existente' => $existente, 'sugerencia' => null];
 
-        $ruta = $this->directorio().DIRECTORY_SEPARATOR.$path;
-        $medidas = @getimagesize($ruta);
+        if ($existente !== null && $modo === null) {
+            return ['resultado' => self::CONFLICTO] + $resultado;
+        }
 
-        $imagen = ImagenBiblioteca::query()->create([
-            'codigo' => $codigo,
-            'path' => $path,
-            'nombre_original' => mb_substr($nombreOriginal, 0, 255),
-            'bytes' => @filesize($ruta) ?: null,
-            'ancho' => $medidas[0] ?? null,
-            'alto' => $medidas[1] ?? null,
-        ]);
+        if ($existente !== null && $modo === 'reemplazar') {
+            $imagen = $this->reemplazar($existente, $archivo);
 
-        return ['imagen' => $imagen, 'motivo' => $motivo];
+            return ['resultado' => self::REEMPLAZADA, 'imagen' => $imagen, 'destino' => $this->destinoDe($imagen->codigo)] + $resultado;
+        }
+
+        $ocupados = $this->codigosOcupados();
+        if ($base === '') {
+            $codigo = $this->siguienteGenerico($ocupados);
+        } elseif ($existente !== null) {
+            // «Agregar como otra foto»: la próxima libre del mismo producto.
+            $codigo = $this->libreDesde($this->destinoDe($base)['codigo'] ?? $base, $ocupados);
+        } else {
+            $codigo = $base;
+        }
+
+        $imagen = ImagenBiblioteca::query()->create(['codigo' => $codigo] + $this->guardarArchivo($archivo));
+        $destino = $this->asignar($imagen);
+
+        if ($destino === null) {
+            return ['resultado' => self::SIN_PRODUCTO, 'imagen' => $imagen, 'sugerencia' => $this->sugerencia($codigo)] + $resultado;
+        }
+
+        return ['imagen' => $imagen, 'destino' => $destino] + $resultado;
     }
 
     /**
-     * Código para una imagen nueva según el nombre del archivo:
-     *  - «NFSO42.jpg» (un código de producto) → NFSO42, o NFSO42-2 si ya existe;
-     *  - «NFSO42-3.jpg» → NFSO42-3 si está libre;
-     *  - una palabra del nombre que es un código de producto («foto NFSO42 frente.jpg») → ese código;
-     *  - si no, uno genérico: IMG-0001.
+     * El producto y la posición de la foto que indica un código de imagen:
+     * «NFSO42» → la principal (1) de NFSO42; «NFSO42-2» → su segunda foto.
+     * Si el código de producto está repetido, son todos los que lo tienen.
      *
-     * @return array{string, string} código y por qué
+     * @return array{codigo: string, posicion: int, productos: list<array{id: int, codigo: string, nombre: string}>}|null
      */
-    public function sugerirCodigo(string $nombreArchivo): array
+    public function destinoDe(string $codigo): ?array
     {
-        $codigos = $this->codigosOcupados();
-        $productos = $this->codigosDeProductos();
-        $base = CodigoImagen::normalizar(pathinfo($nombreArchivo, PATHINFO_FILENAME));
+        $productos = $this->productosPorCodigo();
 
-        if ($base !== '' && isset($productos[$base])) {
-            return [$this->libreDesde($base, $codigos), "El nombre del archivo es el código del producto {$base}."];
+        if (isset($productos[$codigo])) {
+            return ['codigo' => $codigo, 'posicion' => 1, 'productos' => $productos[$codigo]];
         }
-        if (preg_match('/^(.+)-(\d{1,2})$/', $base, $m) && isset($productos[$m[1]]) && ! isset($codigos[$base])) {
-            return [$base, "El nombre del archivo es la foto {$m[2]} del producto {$m[1]}."];
+        if (preg_match('/^(.+)-(\d{1,2})$/', $codigo, $m) === 1 && (int) $m[2] >= 2 && isset($productos[$m[1]])) {
+            return ['codigo' => $m[1], 'posicion' => (int) $m[2], 'productos' => $productos[$m[1]]];
         }
-        // Un código de producto dentro del nombre («foto A-101 frente»): el más
-        // largo que aparezca entero, para no confundir A-10 con A-101.
+
+        return null;
+    }
+
+    /**
+     * Pone la imagen en el producto que indica su código, en su posición
+     * (la principal pasa a ser la segunda si ya había una). Las demás fotos
+     * del producto quedan.
+     *
+     * @return array{codigo: string, posicion: int, productos: list<array{id: int, codigo: string, nombre: string}>}|null null si el código no es de ningún producto
+     */
+    public function asignar(ImagenBiblioteca $imagen): ?array
+    {
+        $destino = $this->destinoDe($imagen->codigo);
+        if ($destino === null) {
+            return null;
+        }
+
+        DB::transaction(function () use ($destino, $imagen): void {
+            foreach ($destino['productos'] as $producto) {
+                $this->ponerFoto($producto['id'], $imagen->path, $destino['posicion']);
+            }
+        });
+
+        return $destino;
+    }
+
+    /** El código mismo si nadie lo tiene; si no, el siguiente libre: NFSO42-2, NFSO42-3… */
+    public function codigoLibre(string $base): string
+    {
+        return $this->libreDesde($base, $this->codigosOcupados());
+    }
+
+    /**
+     * Para un código que no es de ningún producto, el que probablemente se
+     * quiso escribir: uno que aparece entero en el nombre («foto NFSO42
+     * frente», «NFSO42 (1)») o uno con una sola letra de diferencia.
+     */
+    public function sugerencia(string $codigo): ?string
+    {
         $mencionado = null;
-        foreach (array_keys($productos) as $codigoProducto) {
+        $parecido = null;
+        foreach (array_keys($this->productosPorCodigo()) as $codigoProducto) {
             $codigoProducto = (string) $codigoProducto;
             if (strlen($codigoProducto) >= 3 && preg_match('/\d/', $codigoProducto)
-                && str_contains('-'.$base.'-', '-'.$codigoProducto.'-')
+                && str_contains('-'.$codigo.'-', '-'.$codigoProducto.'-')
                 && strlen($codigoProducto) > strlen((string) $mencionado)) {
                 $mencionado = $codigoProducto;
             }
-        }
-        if ($mencionado !== null) {
-            return [$this->libreDesde($mencionado, $codigos), "El nombre del archivo menciona el producto {$mencionado}."];
+            if ($parecido === null && strlen($codigoProducto) >= 4 && abs(strlen($codigoProducto) - strlen($codigo)) <= 1
+                && levenshtein($codigoProducto, $codigo) === 1) {
+                $parecido = $codigoProducto;
+            }
         }
 
-        return [$this->siguienteGenerico($codigos), 'El nombre del archivo no coincide con ningún producto: recibió un código genérico.'];
+        return $mencionado ?? $parecido;
     }
 
     /**
+     * Cambia el código. Si la imagen no está en ningún producto y el código
+     * nuevo es el de uno, se le asigna (así se corrige una subida con un
+     * nombre equivocado). Una imagen en uso sólo cambia de código.
+     *
+     * @return array{codigo: string, posicion: int, productos: list<array{id: int, codigo: string, nombre: string}>}|null a qué producto se asignó
+     *
      * @throws RuntimeException con un mensaje para mostrar
      */
-    public function renombrar(ImagenBiblioteca $imagen, string $nuevo): ImagenBiblioteca
+    public function renombrar(ImagenBiblioteca $imagen, string $nuevo): ?array
     {
         $nuevo = trim($nuevo);
         $normalizado = CodigoImagen::normalizar($nuevo);
@@ -178,13 +261,16 @@ final class BibliotecaImagenes
             throw new RuntimeException("Sólo letras, números, guion (-), guion bajo (_) y punto, sin espacios. Por ejemplo: {$normalizado}");
         }
         if ($normalizado !== $imagen->codigo && ImagenBiblioteca::query()->where('codigo', $normalizado)->where('id', '<>', $imagen->id)->exists()) {
-            throw new RuntimeException("El código {$normalizado} ya lo tiene otra imagen.");
+            $destino = $this->destinoDe($normalizado);
+            throw new RuntimeException($destino === null
+                ? "El código {$normalizado} ya lo tiene otra imagen."
+                : "El código {$normalizado} ya lo tiene otra foto de ese producto. Para sumarla como otra foto, usá {$this->codigoLibre($destino['codigo'])}.");
         }
 
         $imagen->codigo = $normalizado;
         $imagen->save();
 
-        return $imagen;
+        return $this->usosDe($imagen->path) === [] ? $this->asignar($imagen) : null;
     }
 
     /**
@@ -327,7 +413,88 @@ final class BibliotecaImagenes
         return array_map(fn (array $codigos) => implode(', ', array_unique($codigos)), $celdas);
     }
 
+    /** El valor de imagenes.orden para cada posición: aa, ab, ac… */
+    public static function orden(int $posicion): string
+    {
+        $posicion = max(0, min($posicion, 675));
+
+        return chr(97 + intdiv($posicion, 26)).chr(97 + $posicion % 26);
+    }
+
     // ------------------------------------------------------------- privado
+
+    /**
+     * La imagen nueva toma el lugar de la anterior: mismo código y mismas
+     * posiciones en los productos. El archivo anterior no se borra.
+     */
+    private function reemplazar(ImagenBiblioteca $existente, UploadedFile $archivo): ImagenBiblioteca
+    {
+        $datos = $this->guardarArchivo($archivo);
+        $anterior = $existente->path;
+
+        DB::transaction(function () use ($existente, $datos, $anterior): void {
+            DB::table('imagenes')->where('sector', 'producto')->where('path', $anterior)
+                ->update(['path' => $datos['path'], 'updated_at' => now()]);
+            $existente->fill($datos)->save();
+        });
+
+        if ($this->usosDe($existente->path) === []) {
+            $this->asignar($existente);
+        }
+
+        return $existente;
+    }
+
+    /**
+     * Optimiza y guarda el archivo (WebP sin pérdida visible, ver OptimizadorImagenes).
+     *
+     * @return array{path: string, nombre_original: string, bytes: int|null, ancho: int|null, alto: int|null}
+     */
+    private function guardarArchivo(UploadedFile $archivo): array
+    {
+        $path = $this->optimizador->guardarSubida($archivo, $this->directorio());
+        $ruta = $this->directorio().DIRECTORY_SEPARATOR.$path;
+        $medidas = @getimagesize($ruta);
+
+        return [
+            'path' => $path,
+            'nombre_original' => mb_substr($archivo->getClientOriginalName(), 0, 255),
+            'bytes' => @filesize($ruta) ?: null,
+            'ancho' => $medidas[0] ?? null,
+            'alto' => $medidas[1] ?? null,
+        ];
+    }
+
+    /**
+     * Pone el archivo en la posición indicada (1 = principal) de las fotos
+     * del producto, corriendo las demás. Si ya la tenía, sólo la mueve.
+     */
+    private function ponerFoto(int $productoId, string $path, int $posicion): void
+    {
+        $fotos = DB::table('imagenes')->where('sector', 'producto')->where('producto_id', $productoId)
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")->orderBy('orden')->orderBy('id')
+            ->get(['id', 'path'])->all();
+
+        $propia = null;
+        foreach ($fotos as $i => $foto) {
+            if ($foto->path === $path) {
+                $propia = $foto;
+                unset($fotos[$i]);
+            }
+        }
+        $fotos = array_values($fotos);
+        array_splice($fotos, min($posicion - 1, count($fotos)), 0, [$propia ?? (object) ['id' => null, 'path' => $path]]);
+
+        $ahora = now();
+        foreach ($fotos as $i => $foto) {
+            $datos = ['tipo' => $i === 0 ? 'portada' : 'imagen', 'orden' => self::orden($i), 'updated_at' => $ahora];
+            if ($foto->id === null) {
+                DB::table('imagenes')->insert($datos + ['path' => $path, 'sector' => 'producto', 'producto_id' => $productoId, 'created_at' => $ahora]);
+            } else {
+                DB::table('imagenes')->where('id', $foto->id)->update($datos);
+            }
+        }
+    }
 
     /**
      * Imágenes de productos con el código y nombre del producto, por código
@@ -381,18 +548,22 @@ final class BibliotecaImagenes
         return ImagenBiblioteca::query()->pluck('codigo')->mapWithKeys(fn ($c) => [(string) $c => true])->all();
     }
 
-    /** @return array<string, true> códigos de producto normalizados */
-    private function codigosDeProductos(): array
+    /** @return array<string, list<array{id: int, codigo: string, nombre: string}>> código normalizado => productos */
+    private function productosPorCodigo(): array
     {
-        $codigos = [];
-        foreach (DB::table('productos')->whereNotNull('codigo')->pluck('codigo') as $codigo) {
-            $normalizado = CodigoImagen::normalizar((string) $codigo);
+        if ($this->productosPorCodigo !== null) {
+            return $this->productosPorCodigo;
+        }
+
+        $productos = [];
+        foreach (DB::table('productos')->whereNotNull('codigo')->orderBy('id')->get(['id', 'codigo', 'nombre']) as $producto) {
+            $normalizado = CodigoImagen::normalizar((string) $producto->codigo);
             if ($normalizado !== '') {
-                $codigos[$normalizado] = true;
+                $productos[$normalizado][] = ['id' => (int) $producto->id, 'codigo' => (string) $producto->codigo, 'nombre' => (string) $producto->nombre];
             }
         }
 
-        return $codigos;
+        return $this->productosPorCodigo = $productos;
     }
 
     /** «media_x.png», «https://…/A-101.png» y «a-101.PNG» dan la misma clave. */

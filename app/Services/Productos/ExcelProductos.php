@@ -245,7 +245,7 @@ final class ExcelProductos
                             'sector' => 'producto',
                             'producto_id' => $cambio['producto_id'],
                             'tipo' => $posicion === 0 ? 'portada' : 'imagen',
-                            'orden' => self::orden($posicion),
+                            'orden' => BibliotecaImagenes::orden($posicion),
                             'created_at' => $ahora,
                             'updated_at' => $ahora,
                         ];
@@ -466,13 +466,6 @@ final class ExcelProductos
     }
 
     /** Posición → orden de dos letras (aa, ab, …), como el admin. */
-    private static function orden(int $posicion): string
-    {
-        $posicion = max(0, min($posicion, 675));
-
-        return chr(97 + intdiv($posicion, 26)).chr(97 + $posicion % 26);
-    }
-
     private static function letra(int $indice): string
     {
         $letra = '';

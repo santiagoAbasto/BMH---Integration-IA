@@ -1,7 +1,7 @@
 @extends('layouts.plantilla-back')
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/biblioteca-imagenes.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/biblioteca-imagenes.css') }}?v=2">
 @endsection
 
 @section('content')
@@ -18,24 +18,25 @@
             <p class="bi-eyebrow">Productos</p>
             <h1 class="bi-title">Biblioteca de imágenes</h1>
             <p class="bi-subtitle">
-                Acá están todas las fotos de los productos. Cada una tiene un <strong>código</strong>: escribiéndolo en la
-                columna <strong>Imágenes</strong> del Excel de productos, la foto queda asignada a ese producto.
+                Subí las fotos con el <strong>código del producto como nombre</strong> y se asignan solas.
+                Cada foto queda con ese código, que también sirve para la columna <strong>Imágenes</strong> del Excel de productos.
             </p>
         </div>
         <div class="bi-actions">
+            <span class="bi-actions-texto">¿Preferís el Excel?</span>
             <a class="bi-btn" href="{{ route('dashboard.productos.exportar', ['categoria_id' => 'todos']) }}">
-                <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Exportar Excel
+                <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Exportar
             </a>
-            <a class="bi-btn bi-btn-primario" href="{{ route('dashboard.productos.excel.importar') }}">
-                <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i> Importar Excel
+            <a class="bi-btn" href="{{ route('dashboard.productos.excel.importar') }}">
+                <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i> Importar
             </a>
         </div>
     </header>
 
     <ol class="bi-pasos" aria-label="Cómo cargar imágenes masivamente">
-        <li class="bi-paso is-actual"><div><strong>Subí las imágenes</strong><span>Arrastrá todas las fotos juntas a la zona de abajo. Cada una recibe un código.</span></div></li>
-        <li class="bi-paso"><div><strong>Revisá los códigos</strong><span>Se ponen solos según el nombre del archivo. Si querés, cambialos con el lápiz.</span></div></li>
-        <li class="bi-paso"><div><strong>Asignalas con el Excel</strong><span>En la columna Imágenes del Excel escribí los códigos y subilo en «Importar Excel».</span></div></li>
+        <li class="bi-paso is-actual"><div><strong>Nombrá cada foto con el código</strong><span><span class="bi-mono">RP033155.jpg</span> es la principal y <span class="bi-mono">RP033155-2.jpg</span> la segunda.</span></div></li>
+        <li class="bi-paso"><div><strong>Arrastralas todas juntas</strong><span>Se suben y quedan asignadas a su producto, sin Excel.</span></div></li>
+        <li class="bi-paso"><div><strong>Revisá el resultado</strong><span>Lo que necesite atención queda arriba, en rojo o amarillo, para corregirlo ahí mismo.</span></div></li>
     </ol>
 
     {{-- Subida --}}
@@ -52,12 +53,12 @@
                     </span>
                 </label>
                 <div>
-                    <h2 class="bi-card-titulo">¿Qué código recibe cada imagen?</h2>
+                    <h2 class="bi-card-titulo">¿Cómo se asigna cada foto?</h2>
                     <ul class="bi-reglas">
-                        <li><i class="fa-solid fa-link" aria-hidden="true"></i><span>Si el archivo se llama como un producto, toma <strong>su código</strong>: <span class="bi-mono">NFSO42.jpg</span> → <span class="bi-codigo"><span>NFSO42</span></span></span></li>
-                        <li><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Si ese código ya lo tiene otra foto, se numera: <span class="bi-codigo"><span>NFSO42-2</span></span>, <span class="bi-codigo"><span>NFSO42-3</span></span>…</span></li>
-                        <li><i class="fa-solid fa-hashtag" aria-hidden="true"></i><span>Si el nombre no coincide con ningún producto, recibe uno <strong>genérico</strong>: <span class="bi-codigo bi-codigo-mudo"><span>IMG-0001</span></span></span></li>
-                        <li><i class="fa-solid fa-pen" aria-hidden="true"></i><span>Podés <strong>cambiar el código</strong> de cualquier imagen con el lápiz.</span></li>
+                        <li><i class="fa-solid fa-star" aria-hidden="true"></i><span><span class="bi-mono">NFSO42.jpg</span> → la <strong>foto principal</strong> del producto NFSO42.</span></li>
+                        <li><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><span class="bi-mono">NFSO42-2.jpg</span>, <span class="bi-mono">NFSO42-3.jpg</span>… → la <strong>segunda, tercera</strong> foto. Las que ya tenía el producto se conservan.</span></li>
+                        <li class="is-error"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i><span>Si <strong>no hay un producto</strong> con ese código, te avisa y lo corregís con el lápiz: al guardar, se asigna.</span></li>
+                        <li class="is-aviso"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Si <strong>ya hay una foto</strong> con ese código, no pisa nada: te pregunta si reemplazarla o agregarla como otra foto.</span></li>
                     </ul>
                 </div>
             </div>
@@ -65,15 +66,25 @@
             <div class="bi-subidas" id="panel-subidas" hidden>
                 <div class="bi-subidas-cabecera">
                     <div>
-                        <h2 class="bi-card-titulo">Subidas de ahora</h2>
+                        <h2 class="bi-card-titulo">Resultado de la subida</h2>
                         <p class="bi-card-sub" id="resumen-subidas" aria-live="polite"></p>
                     </div>
-                    <button type="button" class="bi-btn bi-btn-chico" id="copiar-codigos" hidden>
-                        <i class="fa-regular fa-copy" aria-hidden="true"></i> Copiar todos los códigos
-                    </button>
+                    <div class="bi-contadores" aria-hidden="true">
+                        <span class="bi-contador is-ok"><i class="fa-solid fa-circle-check"></i> <b data-cuenta="ok">0</b> asignadas</span>
+                        <span class="bi-contador is-error" data-contador="error" hidden><i class="fa-solid fa-circle-xmark"></i> <b data-cuenta="error">0</b> para corregir</span>
+                        <span class="bi-contador is-aviso" data-contador="aviso" hidden><i class="fa-solid fa-triangle-exclamation"></i> <b data-cuenta="aviso">0</b> ya existían</span>
+                    </div>
                 </div>
                 <div class="bi-progreso" aria-hidden="true"><span id="barra-subidas"></span></div>
-                <div class="bi-subidas-lista" id="lista-subidas"></div>
+
+                <section class="bi-grupo bi-grupo-revisar" id="grupo-revisar" hidden aria-labelledby="titulo-revisar">
+                    <h3 class="bi-grupo-titulo" id="titulo-revisar"><i class="fa-solid fa-hand-point-right" aria-hidden="true"></i> Para revisar</h3>
+                    <div class="bi-subidas-lista" id="lista-revisar"></div>
+                </section>
+                <section class="bi-grupo" aria-labelledby="titulo-listas">
+                    <h3 class="bi-grupo-titulo" id="titulo-listas">Subidas</h3>
+                    <div class="bi-subidas-lista" id="lista-subidas"></div>
+                </section>
             </div>
         </div>
     </section>
@@ -138,8 +149,10 @@
                         <button type="button" class="bi-btn bi-btn-icono" data-accion="cancelar" title="Cancelar" aria-label="Cancelar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </form>
                     <div class="bi-error-campo" data-rol="error" role="alert" hidden></div>
-                    <div class="bi-usos">
-                        @if (! $usosImagen)
+                    <div class="bi-usos" data-rol="usos">
+                        @if (! $usosImagen && isset($sinProducto[$imagen->id]))
+                            <span class="bi-usos-error"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> No hay ningún producto con este código. Corregilo con el lápiz y se asigna sola.</span>
+                        @elseif (! $usosImagen)
                             No está asignada a ningún producto.
                         @endif
                         @foreach (['Principal de' => $principal, 'También en' => $galeria] as $texto => $lista)
@@ -192,6 +205,38 @@
     @endif
 </div>
 
+{{-- Corregir el código de una subida sin producto --}}
+<template id="plantilla-corregir">
+    <form class="bi-corregir" novalidate>
+        <label class="bi-corregir-etiqueta">Código correcto</label>
+        <div class="bi-corregir-campos">
+            <input type="text" maxlength="60" autocomplete="off" spellcheck="false">
+            <button type="submit" class="bi-btn bi-btn-primario bi-btn-chico"><i class="fa-solid fa-check" aria-hidden="true"></i> Guardar y asignar</button>
+        </div>
+        <div class="bi-corregir-sugerencia" hidden>
+            ¿Es del producto <strong data-rol="sugerencia-producto"></strong>?
+            <button type="button" class="bi-btn bi-btn-chico" data-accion="usar-sugerencia"></button>
+        </div>
+        <div class="bi-error-campo" role="alert" hidden></div>
+    </form>
+</template>
+
+{{-- Ya hay una foto con ese código: comparar y elegir --}}
+<template id="plantilla-conflicto">
+    <div class="bi-conflicto">
+        <div class="bi-comparar">
+            <figure><img alt="Foto actual" loading="lazy"><figcaption>Actual</figcaption></figure>
+            <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+            <figure><img alt="Foto nueva"><figcaption>Nueva</figcaption></figure>
+        </div>
+        <div class="bi-conflicto-acciones">
+            <button type="button" class="bi-btn bi-btn-primario bi-btn-chico" data-accion="reemplazar"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Reemplazar la actual</button>
+            <button type="button" class="bi-btn bi-btn-chico" data-accion="agregar"><i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar como otra foto</button>
+            <button type="button" class="bi-btn bi-btn-fantasma bi-btn-chico" data-accion="omitir">Omitir</button>
+        </div>
+    </div>
+</template>
+
 {{-- Una imagen recién subida (la completa biblioteca-imagenes.js) --}}
 <template id="plantilla-tile">
     <article class="bi-tile is-nueva" data-en-uso="0">
@@ -232,5 +277,5 @@
             data-lado-maximo="{{ (int) config('imagenes.lado_maximo', 2000) }}"
             data-lado-sugerido="{{ $ladoSugerido }}"
             data-lado-minimo="{{ (int) config('imagenes.tamano_sugerido.minimo', 800) }}"></script>
-    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=1"></script>
+    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=2"></script>
 @endsection

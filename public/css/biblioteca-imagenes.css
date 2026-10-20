@@ -245,9 +245,69 @@ details.bi-detalles > summary::before { content: "▸"; display: inline-block; m
 details.bi-detalles[open] > summary::before { transform: rotate(90deg); }
 details.bi-detalles > div { padding: 0 6px 6px; }
 
+/* ------------------------------------- resultado de la subida (por nombre) */
+.bi-actions { align-items: center; }
+.bi-actions-texto { color: var(--bi-texto-3); font-size: 13px; }
+.bi-reglas li.is-error i { color: var(--bi-rojo); }
+.bi-reglas li.is-aviso i { color: #C98A00; }
+
+.bi-contadores { display: flex; flex-wrap: wrap; gap: 8px; }
+.bi-contador { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.bi-contador b { font-weight: 800; }
+.bi-contador.is-ok { background: var(--bi-verde-suave); color: var(--bi-verde); }
+.bi-contador.is-error { background: var(--bi-rojo-suave); color: var(--bi-rojo); }
+.bi-contador.is-aviso { background: var(--bi-ambar-suave); color: var(--bi-ambar); }
+
+.bi-grupo + .bi-grupo { margin-top: 16px; }
+.bi .bi-grupo-titulo { margin: 0 0 8px; color: var(--bi-texto-2); font-size: 12px !important; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.bi-grupo-revisar { padding: 12px; border: 1px solid #F1D9A8; border-radius: 12px; background: #FFFBF2; }
+.bi .bi-grupo-revisar .bi-grupo-titulo { color: var(--bi-ambar); }
+.bi-grupo-revisar .bi-subidas-lista { max-height: none; overflow: visible; }
+
+.bi-subida-item { align-items: start; }
+.bi-subida-item > .bi-estado { margin-top: 3px; }
+.bi-subida-item.is-lista { border-color: #CDE8D5; }
+.bi-subida-item.is-aviso { border-color: #F1D9A8; background: var(--bi-ambar-suave); }
+.bi-subida-item.is-aviso .bi-subida-detalle { color: var(--bi-ambar); }
+.bi-subida-item.is-omitida { opacity: .65; }
+.bi-estado.is-aviso { color: var(--bi-ambar); }
+.bi-estado.is-omitida { color: var(--bi-texto-3); }
+.bi-subida-accion:empty { display: none; }
+.bi-subida-accion { margin-top: 8px; }
+
+.bi-enlace { padding: 0; border: 0; background: none; color: var(--bi-azul-oscuro); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.bi-enlace:hover { color: var(--bi-azul); }
+
+.bi-corregir-etiqueta { display: block; margin: 0 0 4px; color: var(--bi-texto); font-size: 12px; font-weight: 600; }
+.bi-corregir-campos { display: flex; flex-wrap: wrap; gap: 6px; }
+.bi-corregir-campos input { flex: 1 1 180px; min-width: 0; max-width: 280px; height: 34px; padding: 0 10px; border: 1px solid #E8A9A2; border-radius: 8px; background: #fff; font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: 13.5px; text-transform: uppercase; }
+.bi-corregir-campos input:focus { outline: none; border-color: var(--bi-azul); box-shadow: 0 0 0 3px rgba(0, 152, 218, .2); }
+.bi-corregir-sugerencia { margin-top: 6px; color: var(--bi-texto); font-size: 13px; }
+.bi-corregir .bi-error-campo { margin-top: 6px; }
+
+.bi-conflicto { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.bi-comparar { display: flex; align-items: center; gap: 10px; }
+.bi-comparar figure { margin: 0; text-align: center; }
+.bi-comparar img { width: 72px; height: 72px; border: 1px solid var(--bi-borde); border-radius: 8px; background: #fff; object-fit: contain; }
+.bi-comparar figcaption { margin-top: 3px; color: var(--bi-texto-2); font-size: 11.5px; font-weight: 600; }
+.bi-comparar > i { color: var(--bi-texto-3); }
+.bi-conflicto-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.bi-usos-error { color: var(--bi-rojo); font-weight: 600; }
+
 @media (max-width: 991px) {
   .bi-subida { grid-template-columns: 1fr; }
   .bi-pasos { grid-template-columns: 1fr; }
   .bi-aviso { grid-template-columns: 22px minmax(0, 1fr); }
   .bi-aviso-donde { grid-column: 2; }
+}
+
+/* Celular: el estado arriba del texto, para que el mensaje y el campo tengan todo el ancho. */
+@media (max-width: 575px) {
+  .bi-subida-item { grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; row-gap: 2px; }
+  .bi-subida-item img { width: 40px; height: 40px; grid-row: 1 / span 2; }
+  .bi-subida-item > .bi-estado { grid-column: 2; grid-row: 1; margin-top: 0; }
+  .bi-subida-item > .bi-subida-texto { grid-column: 2; grid-row: 2; }
+  .bi-corregir-campos input { max-width: none; flex-basis: 100%; }
+  .bi-corregir-campos .bi-btn { width: 100%; justify-content: center; }
 }

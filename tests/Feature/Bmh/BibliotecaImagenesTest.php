@@ -153,46 +153,129 @@ final class BibliotecaImagenesTest extends TestCase
         $this->assertSame(['segunda.png' => 'X100-2'], $this->codigos());
     }
 
-    public function test_el_codigo_de_una_imagen_nueva_sale_del_nombre_del_archivo(): void
+    private function foto(string $nombre): UploadedFile
     {
-        $this->archivo('ya.png');
-        $this->producto(1, 'NFSO42', ['ya.png']);
-        $this->producto(2, 'A-101', []);
-        $biblioteca = app(BibliotecaImagenes::class);
-        $biblioteca->sincronizar();
+        $ruta = sys_get_temp_dir().'/'.uniqid().'.png';
+        $img = imagecreatetruecolor(300, 300);
+        imagefill($img, 0, 0, imagecolorallocate($img, random_int(0, 255), 40, 40));
+        imagepng($img, $ruta);
 
-        $this->assertSame('NFSO42-2', $biblioteca->sugerirCodigo('NFSO42.jpg')[0], 'NFSO42 ya lo tiene otra');
-        $this->assertSame('A-101', $biblioteca->sugerirCodigo('a-101.PNG')[0]);
-        $this->assertSame('NFSO42-5', $biblioteca->sugerirCodigo('NFSO42 (5).jpg')[0]);
-        $this->assertSame('A-101', $biblioteca->sugerirCodigo('foto A-101 frente.jpg')[0]);
-        [$generico, $motivo] = $biblioteca->sugerirCodigo('IMG_20261019.jpg');
-        $this->assertSame('IMG-0001', $generico);
-        $this->assertStringContainsString('genérico', $motivo);
+        return new UploadedFile($ruta, $nombre, 'image/png', null, true);
     }
 
-    public function test_subir_varias_imagenes_les_da_codigo(): void
+    private function subir(string $nombre, ?string $modo = null): \Illuminate\Testing\TestResponse
+    {
+        return $this->actingAs($this->admin, 'admin')->post(
+            route('dashboard.imagenes.store'),
+            ['imagen' => $this->foto($nombre)] + ($modo ? ['modo' => $modo] : []),
+            ['Accept' => 'application/json']
+        );
+    }
+
+    /** @return list<array{string, string}> path y tipo de las fotos del producto, en orden */
+    private function fotos(int $productoId): array
+    {
+        return DB::table('imagenes')->where('sector', 'producto')->where('producto_id', $productoId)
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")->orderBy('orden')
+            ->get(['path', 'tipo'])->map(fn ($f) => [$f->path, $f->tipo])->all();
+    }
+
+    public function test_el_codigo_dice_de_que_producto_y_que_foto_es(): void
     {
         $this->producto(1, 'NFSO42', []);
-        $foto = function (string $nombre): UploadedFile {
-            $ruta = sys_get_temp_dir().'/'.uniqid().'.png';
-            $img = imagecreatetruecolor(300, 300);
-            imagefill($img, 0, 0, imagecolorallocate($img, 200, 40, 40));
-            imagepng($img, $ruta);
+        $this->producto(2, 'LASX 43-48', []);
+        $biblioteca = app(BibliotecaImagenes::class);
 
-            return new UploadedFile($ruta, $nombre, 'image/png', null, true);
-        };
+        $this->assertSame([1, 'NFSO42'], [$biblioteca->destinoDe('NFSO42')['posicion'], $biblioteca->destinoDe('NFSO42')['codigo']]);
+        $this->assertSame(3, $biblioteca->destinoDe('NFSO42-3')['posicion']);
+        $this->assertSame(1, $biblioteca->destinoDe('LASX-43-48')['posicion'], 'un código de producto con guion no es «foto 48»');
+        $this->assertNull($biblioteca->destinoDe('NFSO42-1'));
+        $this->assertNull($biblioteca->destinoDe('IMG_2034'));
 
-        $primera = $this->actingAs($this->admin, 'admin')->post(route('dashboard.imagenes.store'), ['imagen' => $foto('NFSO42.png')], ['Accept' => 'application/json']);
-        $segunda = $this->actingAs($this->admin, 'admin')->post(route('dashboard.imagenes.store'), ['imagen' => $foto('otra cosa.png')], ['Accept' => 'application/json']);
+        $this->assertSame('NFSO42', $biblioteca->sugerencia('FOTO-NFSO42-FRENTE'));
+        $this->assertSame('NFSO42', $biblioteca->sugerencia('NFSO42-1'));
+        $this->assertSame('NFSO42', $biblioteca->sugerencia('NFS042'), 'una letra de diferencia');
+        $this->assertNull($biblioteca->sugerencia('IMG_2034'));
+    }
 
-        $primera->assertCreated()->assertJsonPath('imagen.codigo', 'NFSO42');
-        $segunda->assertCreated()->assertJsonPath('imagen.codigo', 'IMG-0001');
-        $this->assertStringContainsString('código del producto NFSO42', $primera->json('motivo'));
-        $this->assertFileExists($this->dir.'/'.ImagenBiblioteca::query()->where('codigo', 'NFSO42')->value('path'));
+    public function test_subir_una_foto_con_el_codigo_como_nombre_la_asigna_al_producto(): void
+    {
+        $this->archivo('vieja.png');
+        $this->producto(1, 'NFSO42', ['vieja.png']);
+        $this->producto(2, 'A-101', []);
+
+        $segunda = $this->subir('NFSO42-2.png')->assertCreated()
+            ->assertJsonPath('resultado', 'asignada')
+            ->assertJsonPath('imagen.codigo', 'NFSO42-2')
+            ->assertJsonPath('mensaje', 'Es la foto 2 de NFSO42.')
+            ->assertJsonPath('productos.0.codigo', 'NFSO42');
+        $this->subir('a-101.png')->assertCreated()->assertJsonPath('mensaje', 'Es la foto principal de A-101.');
+
+        $nueva = ImagenBiblioteca::query()->where('codigo', 'NFSO42-2')->value('path');
+        $this->assertSame([['vieja.png', 'portada'], [$nueva, 'imagen']], $this->fotos(1), 'la que ya tenía se conserva');
+        $this->assertSame('portada', $this->fotos(2)[0][1]);
+        $this->assertFileExists($this->dir.'/'.$nueva);
+        $this->assertStringContainsString('productos/editar?id=1', (string) $segunda->json('productos.0.url'));
 
         $this->actingAs($this->admin, 'admin')
             ->post(route('dashboard.imagenes.store'), ['imagen' => UploadedFile::fake()->create('lista.pdf', 10, 'application/pdf')], ['Accept' => 'application/json'])
             ->assertStatus(422)->assertJsonPath('errors.imagen.0', 'Tiene que ser una imagen JPG, PNG o WEBP.');
+    }
+
+    public function test_sin_producto_queda_para_corregir_y_al_corregirlo_se_asigna(): void
+    {
+        $this->producto(1, 'NFSO42', []);
+
+        $respuesta = $this->subir('foto NFSO42 frente.png')->assertCreated()
+            ->assertJsonPath('resultado', 'sin_producto')
+            ->assertJsonPath('imagen.codigo', 'FOTO-NFSO42-FRENTE')
+            ->assertJsonPath('sugerencia', ['producto' => 'NFSO42', 'codigo' => 'NFSO42'])
+            ->assertJsonPath('mensaje', 'No hay ningún producto con el código FOTO-NFSO42-FRENTE. Corregilo y se asigna sola.');
+        $this->assertSame([], $this->fotos(1));
+
+        // Si el producto ya tiene principal, se sugiere su próxima foto.
+        $this->subir('NFSO42.png')->assertCreated();
+        $this->subir('NFSO42 frente.png')->assertJsonPath('sugerencia', ['producto' => 'NFSO42', 'codigo' => 'NFSO42-2']);
+        $this->actingAs($this->admin, 'admin')->patchJson($respuesta->json('imagen.update_url'), ['codigo' => 'NFSO42'])
+            ->assertStatus(422)->assertJsonPath('mensaje', 'El código NFSO42 ya lo tiene otra foto de ese producto. Para sumarla como otra foto, usá NFSO42-2.');
+
+        // La grilla la marca para corregirla.
+        $this->actingAs($this->admin, 'admin')->get(route('dashboard.imagenes'))->assertSee('No hay ningún producto con este código');
+
+        $this->actingAs($this->admin, 'admin')->patchJson($respuesta->json('imagen.update_url'), ['codigo' => 'NFSO42-2'])
+            ->assertOk()
+            ->assertJsonPath('resultado', 'asignada')
+            ->assertJsonPath('mensaje', 'Es la foto 2 de NFSO42.');
+        $this->assertSame(['portada', 'imagen'], array_column($this->fotos(1), 1));
+    }
+
+    public function test_si_ya_hay_una_foto_con_ese_codigo_pregunta_antes_de_tocar_nada(): void
+    {
+        $this->archivo('actual.png');
+        $this->producto(1, 'NFSO42', ['actual.png']);
+        app(BibliotecaImagenes::class)->sincronizar();
+
+        $this->subir('NFSO42.png')->assertStatus(409)
+            ->assertJsonPath('resultado', 'conflicto')
+            ->assertJsonPath('mensaje', 'Ya hay una imagen con el código NFSO42 (es la foto principal de NFSO42).')
+            ->assertJsonPath('existente.codigo', 'NFSO42');
+        $this->assertSame(1, ImagenBiblioteca::query()->count(), 'no se guardó nada');
+        $this->assertSame([['actual.png', 'portada']], $this->fotos(1));
+
+        // Reemplazar: misma posición y mismo código; el archivo anterior queda.
+        $this->subir('NFSO42.png', 'reemplazar')->assertCreated()
+            ->assertJsonPath('resultado', 'reemplazada')
+            ->assertJsonPath('mensaje', 'Reemplazó a la anterior: es la foto principal de NFSO42.');
+        $nueva = ImagenBiblioteca::query()->where('codigo', 'NFSO42')->value('path');
+        $this->assertNotSame('actual.png', $nueva);
+        $this->assertSame([[$nueva, 'portada']], $this->fotos(1));
+        $this->assertFileExists($this->dir.'/actual.png');
+
+        // Agregar como otra foto: la próxima libre.
+        $this->subir('NFSO42.png', 'agregar')->assertCreated()
+            ->assertJsonPath('imagen.codigo', 'NFSO42-2')
+            ->assertJsonPath('mensaje', 'Es la foto 2 de NFSO42.');
+        $this->assertCount(2, $this->fotos(1));
     }
 
     public function test_renombrar_valida_el_formato_y_que_no_se_repita(): void
