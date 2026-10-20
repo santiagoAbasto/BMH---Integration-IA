@@ -302,6 +302,43 @@ details.bi-detalles > div { padding: 0 6px 6px; }
   .bi-aviso-donde { grid-column: 2; }
 }
 
+/* ----------------------------------------- elegir el lugar de una foto */
+.bi [hidden] { display: none !important; }
+.bi-lugar-envoltura { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #E8A9A2; }
+.bi-lugar-mensaje { margin: 0 0 10px; color: var(--bi-texto); font-size: 13.5px; font-weight: 600; }
+.bi-lugar { display: flex; align-items: flex-start; gap: 16px; }
+.bi-lugar-nueva { flex: none; margin: 0; text-align: center; }
+.bi-lugar-nueva img { width: 92px; height: 92px; border: 2px solid var(--bi-azul); border-radius: 10px; background: #fff; object-fit: contain; }
+.bi-lugar-nueva figcaption { margin-top: 4px; color: var(--bi-azul-oscuro); font-size: 12px; font-weight: 700; }
+.bi-lugar-cuerpo { flex: 1; min-width: 0; }
+.bi-lugar-ayuda { margin: 0 0 10px; color: var(--bi-texto-2); font-size: 13px; line-height: 1.5; }
+.bi-lugar-mas-chico { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px dashed var(--bi-azul); border-radius: 5px; color: var(--bi-azul); font-weight: 800; line-height: 1; }
+.bi-lugar-tira { display: flex; align-items: stretch; gap: 6px; margin: 0; padding: 2px 2px 8px; list-style: none; overflow-x: auto; }
+.bi-lugar-item { display: flex; flex: none; }
+.bi-lugar-hueco { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 58px; min-height: 132px; padding: 4px; border: 2px dashed #A9CDE3; border-radius: 10px; background: var(--bi-azul-suave); color: var(--bi-azul-oscuro); font-size: 11px; font-weight: 700; line-height: 1.2; cursor: pointer; transition: background-color .15s, border-color .15s; }
+.bi-lugar-hueco i { font-size: 16px; }
+.bi-lugar-hueco:hover, .bi-lugar-hueco:focus-visible { border-color: var(--bi-azul); background: #D6EEFA; outline: none; }
+.bi-lugar-hueco[disabled], .bi-lugar-foto .bi-btn[disabled] { opacity: .5; cursor: default; }
+.bi-lugar-foto { flex-direction: column; align-items: center; gap: 3px; width: 112px; padding: 6px; border: 1px solid var(--bi-borde); border-radius: 10px; background: #fff; }
+.bi-lugar-foto img { width: 96px; height: 72px; border-radius: 6px; background: var(--bi-fondo); object-fit: contain; }
+.bi-lugar-foto.is-objetivo { border-color: #E2B65A; box-shadow: 0 0 0 2px #FBE7B8; }
+.bi-lugar-rol { color: var(--bi-texto); font-size: 12px; font-weight: 700; }
+.bi-lugar-codigo { max-width: 100%; overflow: hidden; color: var(--bi-texto-3); font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.bi-lugar-foto .bi-btn { width: 100%; justify-content: center; margin-top: auto; }
+.bi-lugar-omitir { margin-top: 6px; }
+
+.bi-dialogo { width: min(980px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 35, 52, .3); }
+.bi-dialogo::backdrop { background: rgba(15, 35, 52, .45); }
+.bi-dialogo-interior { padding: 18px 20px 20px; }
+.bi-dialogo-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.bi-dialogo .bi-card-titulo { margin: 0; }
+
+@media (max-width: 575px) {
+  .bi-lugar { flex-direction: column; }
+  .bi-lugar-nueva { display: flex; align-items: center; gap: 10px; }
+  .bi-lugar-nueva img { width: 64px; height: 64px; }
+}
+
 /* Celular: el estado arriba del texto, para que el mensaje y el campo tengan todo el ancho. */
 @media (max-width: 575px) {
   .bi-subida-item { grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; row-gap: 2px; }

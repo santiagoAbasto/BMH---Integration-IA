@@ -5,7 +5,9 @@
  * Cada foto subida termina en uno de estos estados:
  *  - ok:     quedó asignada a su producto (el nombre del archivo es su código);
  *  - error:  ningún producto tiene ese código → se corrige ahí mismo;
- *  - aviso:  ya había una foto con ese código → reemplazar, agregar u omitir;
+ *  - aviso:  ya había una foto con ese código → elegir cuál reemplazar o en
+ *            qué lugar ponerla, u omitir (lo mismo al corregir un código que ya
+ *            tiene otra foto del producto: ver armarLugar());
  *  - omitida, o fallo de la subida (red, tamaño…).
  * Lo que necesita atención va a «Para revisar», arriba de lo que salió bien.
  */
@@ -33,6 +35,7 @@
   var plantilla = document.getElementById('plantilla-tile');
   var plantillaCorregir = document.getElementById('plantilla-corregir');
   var plantillaConflicto = document.getElementById('plantilla-conflicto');
+  var dialogo = document.getElementById('dialogo-lugar');
 
   var tareas = [];
   var cola = [];
@@ -97,6 +100,117 @@
       try { document.execCommand('copy'); hecho(); } catch (e) { /* sin portapapeles */ }
       area.remove();
     }
+  }
+
+  // ------------------------------------------------------- elegir lugar
+
+  function nombreDelLugar(posicion) {
+    return posicion === 1 ? 'Principal' : 'Foto ' + posicion;
+  }
+
+  /**
+   * Las fotos del producto en orden, con un «+» entre cada una para poner la
+   * nueva en ese lugar y un «Reemplazar» en cada foto. Reemplazar pide una
+   * segunda confirmación porque saca esa foto del producto.
+   * alElegir recibe { modo: 'agregar', posicion } o { modo: 'reemplazar', objetivo }.
+   */
+  function armarLugar(datos, urlNueva, alElegir) {
+    var caja = el('div', 'bi-lugar');
+    var fotos = datos.fotos || [];
+
+    var nueva = el('figure', 'bi-lugar-nueva');
+    var imagenNueva = el('img');
+    imagenNueva.src = urlNueva;
+    imagenNueva.alt = 'Foto nueva';
+    nueva.appendChild(imagenNueva);
+    nueva.appendChild(el('figcaption', null, 'Foto nueva'));
+    caja.appendChild(nueva);
+
+    var cuerpo = el('div', 'bi-lugar-cuerpo');
+    var ayuda = el('p', 'bi-lugar-ayuda');
+    ayuda.appendChild(document.createTextNode('Así están hoy las fotos de '));
+    ayuda.appendChild(el('strong', null, datos.producto.codigo));
+    ayuda.appendChild(document.createTextNode('. Tocá '));
+    ayuda.appendChild(el('span', 'bi-lugar-mas-chico', '+'));
+    ayuda.appendChild(document.createTextNode(' para poner la nueva en ese lugar, o «Reemplazar» para cambiar esa foto por la nueva.'));
+    cuerpo.appendChild(ayuda);
+
+    var tira = el('ol', 'bi-lugar-tira');
+    var botones = [];
+    var hueco = function (posicion) {
+      var li = el('li', 'bi-lugar-item');
+      var boton = el('button', 'bi-lugar-hueco');
+      boton.type = 'button';
+      var texto = posicion === 1 ? 'Poner como principal' : posicion === fotos.length + 1 ? 'Agregar al final' : 'Poner como foto ' + posicion;
+      boton.title = texto;
+      boton.setAttribute('aria-label', texto);
+      boton.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i>';
+      boton.appendChild(el('span', null, posicion === fotos.length + 1 && posicion > 1 ? 'Al final' : nombreDelLugar(posicion)));
+      boton.addEventListener('click', function () { elegir({ modo: 'agregar', posicion: posicion }); });
+      botones.push(boton);
+      li.appendChild(boton);
+      tira.appendChild(li);
+    };
+
+    fotos.forEach(function (foto) {
+      hueco(foto.posicion);
+      var li = el('li', 'bi-lugar-item bi-lugar-foto' + (foto.path === datos.objetivo ? ' is-objetivo' : ''));
+      var imagen = el('img');
+      imagen.src = foto.url;
+      imagen.alt = nombreDelLugar(foto.posicion) + ' de ' + datos.producto.codigo;
+      imagen.loading = 'lazy';
+      li.appendChild(imagen);
+      li.appendChild(el('span', 'bi-lugar-rol', nombreDelLugar(foto.posicion)));
+      li.appendChild(el('span', 'bi-lugar-codigo', foto.codigo || 'sin código'));
+      var reemplazar = el('button', 'bi-btn bi-btn-chico', 'Reemplazar');
+      reemplazar.type = 'button';
+      reemplazar.setAttribute('aria-label', 'Reemplazar la ' + nombreDelLugar(foto.posicion).toLowerCase() + ' por la nueva');
+      var espera;
+      reemplazar.addEventListener('click', function () {
+        if (!reemplazar.classList.contains('bi-btn-peligro')) {
+          reemplazar.classList.add('bi-btn-peligro');
+          reemplazar.textContent = 'Sí, reemplazar';
+          espera = setTimeout(function () {
+            reemplazar.classList.remove('bi-btn-peligro');
+            reemplazar.textContent = 'Reemplazar';
+          }, 4000);
+          return;
+        }
+        clearTimeout(espera);
+        elegir({ modo: 'reemplazar', objetivo: foto.path });
+      });
+      botones.push(reemplazar);
+      li.appendChild(reemplazar);
+      tira.appendChild(li);
+    });
+    hueco(fotos.length + 1);
+    cuerpo.appendChild(tira);
+
+    var error = el('div', 'bi-error-campo');
+    error.setAttribute('role', 'alert');
+    error.hidden = true;
+    cuerpo.appendChild(error);
+    caja.appendChild(cuerpo);
+
+    function elegir(lugar) {
+      botones.forEach(function (b) { b.disabled = true; });
+      error.hidden = true;
+      Promise.resolve(alElegir(lugar)).catch(function (e) {
+        botones.forEach(function (b) { b.disabled = false; });
+        error.textContent = e.message;
+        error.hidden = false;
+      });
+    }
+
+    return caja;
+  }
+
+  /** Cuerpo del PATCH al elegir el lugar. */
+  function pedidoDeLugar(codigo, lugar) {
+    var cuerpo = { codigo: codigo, modo: lugar.modo };
+    if (lugar.objetivo) cuerpo.objetivo = lugar.objetivo;
+    if (lugar.posicion) cuerpo.posicion = lugar.posicion;
+    return cuerpo;
   }
 
   // ------------------------------------------------------------- subida
@@ -225,27 +339,64 @@
     var botones = form.querySelectorAll('button, input');
     botones.forEach(function (b) { b.disabled = true; });
     aviso.hidden = true;
-    pedir(tarea.imagen.update_url, 'PATCH', { codigo: campo.value.trim().toUpperCase() }).then(function (datos) {
-      tarea.imagen = datos.imagen;
-      actualizarTile(tarea.tile, datos);
-      if (datos.resultado === 'sin_producto') {
-        mostrarCorreccion(tarea, datos);
-        tarea.accion.querySelector('input').focus();
-      } else {
-        mostrarAsignada(tarea, datos);
-      }
+    var codigo = campo.value.trim().toUpperCase();
+    var anterior = form.parentNode.querySelector('.bi-lugar-envoltura');
+    if (anterior) anterior.remove();
+    pedir(tarea.imagen.update_url, 'PATCH', { codigo: codigo }).then(function (datos) {
+      despuesDeCorregir(tarea, datos);
     }).catch(function (e) {
       botones.forEach(function (b) { b.disabled = false; });
+      if (e.status === 409 && e.datos && e.datos.fotos) {
+        // El código ya lo tiene otra foto del producto: elegir el lugar.
+        var envoltura = el('div', 'bi-lugar-envoltura');
+        envoltura.appendChild(el('p', 'bi-lugar-mensaje', e.datos.mensaje + ' ¿Qué hacemos con esta?'));
+        envoltura.appendChild(armarLugar(e.datos, tarea.miniatura.src, function (lugar) {
+          return pedir(tarea.imagen.update_url, 'PATCH', pedidoDeLugar(codigo, lugar)).then(function (datos) {
+            despuesDeCorregir(tarea, datos);
+          });
+        }));
+        form.parentNode.appendChild(envoltura);
+        return;
+      }
       aviso.textContent = e.message;
       aviso.hidden = false;
       campo.focus();
     });
   }
 
-  /** Ya hay una foto con ese código: mostrar las dos y elegir. */
+  function despuesDeCorregir(tarea, datos) {
+    tarea.imagen = datos.imagen;
+    actualizarTile(tarea.tile, datos);
+    if (datos.resultado === 'sin_producto') {
+      mostrarCorreccion(tarea, datos);
+      tarea.accion.querySelector('input').focus();
+    } else {
+      mostrarAsignada(tarea, datos);
+    }
+  }
+
+  /**
+   * Ya hay una foto con ese código. Si es de un producto, se elige el lugar
+   * entre sus fotos; si no, reemplazar la otra o guardarla con otro código.
+   */
   function mostrarConflicto(tarea, datos) {
     ponerEstado(tarea, 'aviso', datos.mensaje);
     tarea.accion.innerHTML = '';
+    if (datos.fotos) {
+      tarea.accion.appendChild(armarLugar(datos, tarea.miniatura.src, function (lugar) {
+        tarea.modo = lugar.modo;
+        tarea.lugar = lugar;
+        encolarTarea(tarea);
+      }));
+      var omitir = el('button', 'bi-btn bi-btn-fantasma bi-btn-chico bi-lugar-omitir', 'Omitir: dejar las fotos como están');
+      omitir.type = 'button';
+      omitir.addEventListener('click', function () {
+        tarea.accion.innerHTML = '';
+        ponerEstado(tarea, 'omitida', 'No se subió: quedaron las fotos que ya estaban.');
+      });
+      tarea.accion.appendChild(omitir);
+      return;
+    }
     var caja = plantillaConflicto.content.firstElementChild.cloneNode(true);
     var fotos = caja.querySelectorAll('img');
     fotos[0].src = datos.existente.url;
@@ -276,12 +427,16 @@
       // El nombre original es el código, aunque el navegador la haya pasado a WebP.
       datos.append('imagen', archivo, nombreParaSubir(tarea.archivo.name, archivo));
       if (tarea.modo) datos.append('modo', tarea.modo);
+      if (tarea.lugar && tarea.lugar.objetivo) datos.append('objetivo', tarea.lugar.objetivo);
+      if (tarea.lugar && tarea.lugar.posicion) datos.append('posicion', tarea.lugar.posicion);
       return pedir(URL_SUBIR, 'POST', datos);
     }).then(function (respuesta) {
       tarea.modo = null;
+      tarea.lugar = null;
       mostrarResultado(tarea, respuesta);
     }).catch(function (error) {
       tarea.modo = null;
+      tarea.lugar = null;
       if (error.status === 409 && error.datos && error.datos.existente) {
         mostrarConflicto(tarea, error.datos);
       } else {
@@ -388,14 +543,14 @@
       error.appendChild(document.createTextNode('No hay ningún producto con este código. Corregilo con el lápiz y se asigna sola.'));
       usos.appendChild(error);
     } else if (datos.productos && datos.productos.length) {
-      usos.textContent = datos.mensaje.replace(/^Es la /, '').replace(/^./, function (c) { return c.toUpperCase(); });
+      usos.textContent = datos.donde || '';
       tile.dataset.enUso = '1';
       var estado = tile.querySelector('.bi-tile-estado');
       if (estado) estado.innerHTML = '<span class="bi-etiqueta bi-etiqueta-uso"><i class="fa-solid fa-check" aria-hidden="true"></i> En uso</span>';
-      var borrar = tile.querySelector('[data-accion="eliminar"]');
-      if (borrar) {
-        borrar.disabled = true;
-        borrar.title = 'No se puede eliminar porque está en uso';
+      var pregunta = tile.querySelector('[data-rol="pregunta"]');
+      if (pregunta) {
+        pregunta.textContent = 'Está en ' + datos.productos.map(function (p) { return p.codigo; }).join(', ') +
+          ': se va a sacar de ese producto y, si era la principal, la siguiente foto pasa a serlo. No se puede deshacer.';
       }
     }
   }
@@ -471,7 +626,7 @@
     var estabaEnUso = tile.dataset.enUso === '1';
     var botones = form.querySelectorAll('button');
     botones.forEach(function (b) { b.disabled = true; });
-    pedir(tile.dataset.updateUrl, 'PATCH', { codigo: nuevo }).then(function (datos) {
+    var listo = function (datos) {
       actualizarTile(tile, datos);
       mostrarEdicion(tile, false);
       if (estabaEnUso) {
@@ -479,13 +634,36 @@
       } else if (datos.resultado !== 'sin_producto') {
         error(tile, 'Listo: ' + datos.mensaje.charAt(0).toLowerCase() + datos.mensaje.slice(1), 'ok');
       }
-    }).catch(function (e) {
+    };
+    pedir(tile.dataset.updateUrl, 'PATCH', { codigo: nuevo }).then(listo).catch(function (e) {
+      if (e.status === 409 && e.datos && e.datos.fotos) {
+        abrirDialogo(e.datos, tile.querySelector('.bi-tile-foto img').src, function (lugar) {
+          return pedir(tile.dataset.updateUrl, 'PATCH', pedidoDeLugar(nuevo, lugar)).then(function (datos) {
+            dialogo.close();
+            listo(datos);
+          });
+        });
+        return;
+      }
       error(tile, e.message);
       campo.focus();
     }).then(function () {
       botones.forEach(function (b) { b.disabled = false; });
     });
   }
+
+  function abrirDialogo(datos, urlNueva, alElegir) {
+    var lugar = dialogo.querySelector('[data-rol="lugar"]');
+    lugar.innerHTML = '';
+    lugar.appendChild(el('p', 'bi-lugar-mensaje', datos.mensaje + ' ¿Qué hacemos con esta?'));
+    lugar.appendChild(armarLugar(datos, urlNueva, alElegir));
+    dialogo.showModal();
+  }
+
+  dialogo.addEventListener('click', function (e) {
+    // Cerrar con la X o tocando afuera de la ventana.
+    if (e.target === dialogo || e.target.closest('[data-accion="cerrar-dialogo"]')) dialogo.close();
+  });
 
   function mostrarConfirmacion(tile, mostrar) {
     tile.querySelector('[data-rol="confirmar"]').hidden = !mostrar;
@@ -494,7 +672,8 @@
 
   function eliminar(tile, boton) {
     boton.disabled = true;
-    pedir(tile.dataset.destroyUrl, 'DELETE').then(function () {
+    // Si está en productos, ya se mostró en cuáles: se confirma sacarla de ahí.
+    pedir(tile.dataset.destroyUrl, 'DELETE', { quitar_de_productos: tile.dataset.enUso === '1' }).then(function () {
       tile.style.transition = 'opacity .2s';
       tile.style.opacity = '0';
       setTimeout(function () { tile.remove(); }, 200);

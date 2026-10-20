@@ -233,11 +233,11 @@ final class BibliotecaImagenesTest extends TestCase
             ->assertJsonPath('mensaje', 'No hay ningún producto con el código FOTO-NFSO42-FRENTE. Corregilo y se asigna sola.');
         $this->assertSame([], $this->fotos(1));
 
-        // Si el producto ya tiene principal, se sugiere su próxima foto.
+        // Si el producto ya tiene principal, se sugiere su próxima foto (o se elige el lugar).
         $this->subir('NFSO42.png')->assertCreated();
         $this->subir('NFSO42 frente.png')->assertJsonPath('sugerencia', ['producto' => 'NFSO42', 'codigo' => 'NFSO42-2']);
         $this->actingAs($this->admin, 'admin')->patchJson($respuesta->json('imagen.update_url'), ['codigo' => 'NFSO42'])
-            ->assertStatus(422)->assertJsonPath('mensaje', 'El código NFSO42 ya lo tiene otra foto de ese producto. Para sumarla como otra foto, usá NFSO42-2.');
+            ->assertStatus(409)->assertJsonPath('fotos.0.codigo', 'NFSO42');
 
         // La grilla la marca para corregirla.
         $this->actingAs($this->admin, 'admin')->get(route('dashboard.imagenes'))->assertSee('No hay ningún producto con este código');
@@ -257,25 +257,73 @@ final class BibliotecaImagenesTest extends TestCase
 
         $this->subir('NFSO42.png')->assertStatus(409)
             ->assertJsonPath('resultado', 'conflicto')
-            ->assertJsonPath('mensaje', 'Ya hay una imagen con el código NFSO42 (es la foto principal de NFSO42).')
-            ->assertJsonPath('existente.codigo', 'NFSO42');
+            ->assertJsonPath('mensaje', 'Ya hay una foto con el código NFSO42 (es la foto principal de NFSO42).')
+            ->assertJsonPath('existente.codigo', 'NFSO42')
+            // Las fotos del producto, para elegir el lugar.
+            ->assertJsonPath('producto.codigo', 'NFSO42')
+            ->assertJsonPath('fotos.0.path', 'actual.png')
+            ->assertJsonPath('objetivo', 'actual.png');
         $this->assertSame(1, ImagenBiblioteca::query()->count(), 'no se guardó nada');
         $this->assertSame([['actual.png', 'portada']], $this->fotos(1));
 
         // Reemplazar: misma posición y mismo código; el archivo anterior queda.
         $this->subir('NFSO42.png', 'reemplazar')->assertCreated()
             ->assertJsonPath('resultado', 'reemplazada')
-            ->assertJsonPath('mensaje', 'Reemplazó a la anterior: es la foto principal de NFSO42.');
+            ->assertJsonPath('mensaje', 'Reemplazó a la foto principal de NFSO42.');
         $nueva = ImagenBiblioteca::query()->where('codigo', 'NFSO42')->value('path');
         $this->assertNotSame('actual.png', $nueva);
         $this->assertSame([[$nueva, 'portada']], $this->fotos(1));
         $this->assertFileExists($this->dir.'/actual.png');
 
-        // Agregar como otra foto: la próxima libre.
+        // Agregar en un lugar elegido: al final, y después como principal.
         $this->subir('NFSO42.png', 'agregar')->assertCreated()
             ->assertJsonPath('imagen.codigo', 'NFSO42-2')
             ->assertJsonPath('mensaje', 'Es la foto 2 de NFSO42.');
-        $this->assertCount(2, $this->fotos(1));
+        $this->actingAs($this->admin, 'admin')->post(route('dashboard.imagenes.store'), ['imagen' => $this->foto('NFSO42.png'), 'modo' => 'agregar', 'posicion' => 1], ['Accept' => 'application/json'])
+            ->assertCreated()->assertJsonPath('mensaje', 'Es la foto principal de NFSO42.');
+        $this->assertCount(3, $this->fotos(1));
+        $this->assertSame($nueva, $this->fotos(1)[1][0], 'la que era principal pasó a ser la segunda');
+        // Los códigos siguen el orden: la principal NFSO42, la segunda NFSO42-2…
+        $this->assertSame(['NFSO42', 'NFSO42-2', 'NFSO42-3'], array_column(app(BibliotecaImagenes::class)->fotosDe(1), 'codigo'));
+    }
+
+    public function test_al_corregir_con_un_codigo_ocupado_se_elige_reemplazar_o_el_lugar(): void
+    {
+        $this->archivo('principal.png');
+        $this->archivo('segunda.png');
+        $this->producto(1, 'NFSO42', ['principal.png', 'segunda.png']);
+        app(BibliotecaImagenes::class)->sincronizar();
+        $suelta = fn () => $this->subir('foto suelta '.uniqid().'.png')->json('imagen.update_url');
+
+        // Pregunta, con las fotos del producto en orden.
+        $url = $suelta();
+        $this->actingAs($this->admin, 'admin')->patchJson($url, ['codigo' => 'NFSO42'])
+            ->assertStatus(409)
+            ->assertJsonPath('mensaje', 'El código NFSO42 ya lo tiene otra foto (es la foto principal de NFSO42).')
+            ->assertJsonPath('fotos.0.codigo', 'NFSO42')
+            ->assertJsonPath('fotos.1.codigo', 'NFSO42-2')
+            ->assertJsonPath('objetivo', 'principal.png');
+        $this->assertCount(2, $this->fotos(1), 'sin elegir no cambia nada');
+
+        // Ponerla entre las dos.
+        $this->actingAs($this->admin, 'admin')->patchJson($url, ['codigo' => 'NFSO42', 'modo' => 'agregar', 'posicion' => 2])
+            ->assertOk()->assertJsonPath('mensaje', 'Es la foto 2 de NFSO42.');
+        $this->assertSame(['principal.png', 'segunda.png'], [$this->fotos(1)[0][0], $this->fotos(1)[2][0]]);
+        $this->assertSame(['NFSO42', 'NFSO42-2', 'NFSO42-3'], array_column(app(BibliotecaImagenes::class)->fotosDe(1), 'codigo'));
+        $this->assertSame('NFSO42-3', ImagenBiblioteca::query()->where('path', 'segunda.png')->value('codigo'), 'la que se corrió cambió de código');
+
+        // Reemplazar la principal: la anterior sale del producto y le deja el código.
+        $url = $suelta();
+        $this->actingAs($this->admin, 'admin')->patchJson($url, ['codigo' => 'NFSO42', 'modo' => 'reemplazar', 'objetivo' => 'principal.png'])
+            ->assertOk()->assertJsonPath('mensaje', 'Reemplazó a la foto principal de NFSO42.')->assertJsonPath('imagen.codigo', 'NFSO42');
+        $this->assertNotContains('principal.png', array_column($this->fotos(1), 0));
+        $this->assertSame('portada', $this->fotos(1)[0][1]);
+        $this->assertNull(ImagenBiblioteca::query()->where('path', 'principal.png')->first());
+        $this->assertFileExists($this->dir.'/principal.png', 'el archivo no se borra');
+
+        // Una foto que ya no está en el producto no se puede reemplazar.
+        $this->actingAs($this->admin, 'admin')->patchJson($suelta(), ['codigo' => 'NFSO42', 'modo' => 'reemplazar', 'objetivo' => 'principal.png'])
+            ->assertStatus(422)->assertJsonPath('mensaje', 'Esa foto ya no está en el producto. Recargá la página y probá de nuevo.');
     }
 
     public function test_renombrar_valida_el_formato_y_que_no_se_repita(): void
@@ -292,21 +340,36 @@ final class BibliotecaImagenesTest extends TestCase
             ->assertOk()->assertJsonPath('imagen.codigo', 'NFSO42-FRENTE');
     }
 
-    public function test_solo_se_elimina_una_imagen_que_no_se_usa(): void
+    public function test_eliminar_una_imagen_en_uso_pide_confirmar_y_la_saca_del_producto(): void
     {
         $this->archivo('usada.png');
+        $this->archivo('segunda.png');
         $this->archivo('libre.png');
-        $this->producto(1, 'NFSO42', ['usada.png']);
+        $this->archivo('logo-sitio.png');
+        $this->producto(1, 'NFSO42', ['usada.png', 'segunda.png']);
         $usada = ImagenBiblioteca::query()->create(['codigo' => 'NFSO42', 'path' => 'usada.png']);
         $libre = ImagenBiblioteca::query()->create(['codigo' => 'IMG-0001', 'path' => 'libre.png']);
 
+        // Sin confirmar que se saca de los productos, no se toca.
         $this->actingAs($this->admin, 'admin')->deleteJson(route('dashboard.imagenes.destroy', $usada))
-            ->assertStatus(422)->assertJsonFragment(['mensaje' => 'No se puede eliminar: la usa 1 producto(s).']);
+            ->assertStatus(422)->assertJsonFragment(['mensaje' => 'Está en 1 producto(s): confirmá que querés sacarla de ahí.']);
         $this->assertFileExists($this->dir.'/usada.png');
+
+        // Confirmado: sale del producto y la siguiente pasa a ser la principal.
+        $this->actingAs($this->admin, 'admin')->deleteJson(route('dashboard.imagenes.destroy', $usada), ['quitar_de_productos' => true])->assertOk();
+        $this->assertSame([['segunda.png', 'portada']], $this->fotos(1));
+        $this->assertFileDoesNotExist($this->dir.'/usada.png');
+        $this->assertNull(ImagenBiblioteca::query()->find($usada->id));
 
         $this->actingAs($this->admin, 'admin')->deleteJson(route('dashboard.imagenes.destroy', $libre))->assertOk();
         $this->assertFileDoesNotExist($this->dir.'/libre.png');
-        $this->assertNull(ImagenBiblioteca::query()->find($libre->id));
+
+        // Lo que usa otra parte del sitio no se elimina.
+        DB::table('imagenes')->insert(['path' => 'logo-sitio.png', 'sector' => 'slider', 'tipo' => 'imagen', 'orden' => 'aa']);
+        $slider = ImagenBiblioteca::query()->create(['codigo' => 'IMG-0002', 'path' => 'logo-sitio.png']);
+        $this->actingAs($this->admin, 'admin')->deleteJson(route('dashboard.imagenes.destroy', $slider), ['quitar_de_productos' => true])
+            ->assertStatus(422)->assertJsonFragment(['mensaje' => 'No se puede eliminar: la usa otra parte del sitio (slider, logos, novedades…).']);
+        $this->assertFileExists($this->dir.'/logo-sitio.png');
     }
 
     public function test_la_pagina_muestra_las_imagenes_con_su_codigo_y_donde_se_usan(): void

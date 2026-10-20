@@ -1,7 +1,7 @@
 @extends('layouts.plantilla-back')
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/biblioteca-imagenes.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/biblioteca-imagenes.css') }}?v=3">
 @endsection
 
 @section('content')
@@ -168,14 +168,16 @@
                     </div>
                     <div class="bi-fila">
                         <span class="bi-tile-nombre" title="Archivo: {{ $imagen->nombre_original }}">{{ $imagen->ancho && $imagen->alto ? $imagen->ancho.' × '.$imagen->alto.' px' : $imagen->nombre_original }}</span>
-                        @if ($usosImagen)
-                            <span class="bi-btn bi-btn-fantasma bi-btn-icono is-deshabilitado" title="No se puede eliminar porque está en uso" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>
-                        @else
-                            <button type="button" class="bi-btn bi-btn-fantasma bi-btn-icono" data-accion="eliminar" title="Eliminar imagen" aria-label="Eliminar {{ $imagen->codigo }}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
-                        @endif
+                        <button type="button" class="bi-btn bi-btn-fantasma bi-btn-icono" data-accion="eliminar" title="Eliminar imagen" aria-label="Eliminar {{ $imagen->codigo }}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
                     </div>
                     <div class="bi-confirmar" data-rol="confirmar" hidden>
-                        ¿Eliminar la imagen? No se puede deshacer.
+                        <span data-rol="pregunta">
+                            @if ($usosImagen)
+                                Está en {{ implode(', ', array_unique(array_column($usosImagen, 'codigo'))) }}: se va a sacar de {{ count(array_unique(array_column($usosImagen, 'id'))) === 1 ? 'ese producto' : 'esos productos' }} y, si era la principal, la siguiente foto pasa a serlo. No se puede deshacer.
+                            @else
+                                ¿Eliminar la imagen? No se puede deshacer.
+                            @endif
+                        </span>
                         <button type="button" class="bi-btn bi-btn-peligro bi-btn-chico" data-accion="confirmar-eliminar">Sí, eliminar</button>
                         <button type="button" class="bi-btn bi-btn-chico" data-accion="no-eliminar">No</button>
                     </div>
@@ -203,6 +205,17 @@
             {{ $imagenes->links('pagination::bootstrap-5') }}
         </div>
     @endif
+
+    {{-- Al corregir el código desde la grilla: elegir el lugar de la foto (lo arma biblioteca-imagenes.js) --}}
+    <dialog class="bi-dialogo" id="dialogo-lugar" aria-labelledby="dialogo-lugar-titulo">
+        <div class="bi-dialogo-interior">
+            <div class="bi-dialogo-cabecera">
+                <h2 class="bi-card-titulo" id="dialogo-lugar-titulo">¿Dónde va esta foto?</h2>
+                <button type="button" class="bi-btn bi-btn-fantasma bi-btn-icono" data-accion="cerrar-dialogo" aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <div data-rol="lugar"></div>
+        </div>
+    </dialog>
 </div>
 
 {{-- Corregir el código de una subida sin producto --}}
@@ -262,7 +275,7 @@
                 <button type="button" class="bi-btn bi-btn-fantasma bi-btn-icono" data-accion="eliminar" title="Eliminar imagen" aria-label="Eliminar imagen"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
             </div>
             <div class="bi-confirmar" data-rol="confirmar" hidden>
-                ¿Eliminar la imagen? No se puede deshacer.
+                <span data-rol="pregunta">¿Eliminar la imagen? No se puede deshacer.</span>
                 <button type="button" class="bi-btn bi-btn-peligro bi-btn-chico" data-accion="confirmar-eliminar">Sí, eliminar</button>
                 <button type="button" class="bi-btn bi-btn-chico" data-accion="no-eliminar">No</button>
             </div>
@@ -277,5 +290,5 @@
             data-lado-maximo="{{ (int) config('imagenes.lado_maximo', 2000) }}"
             data-lado-sugerido="{{ $ladoSugerido }}"
             data-lado-minimo="{{ (int) config('imagenes.tamano_sugerido.minimo', 800) }}"></script>
-    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=2"></script>
+    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=3"></script>
 @endsection

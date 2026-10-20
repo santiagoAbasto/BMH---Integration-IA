@@ -119,16 +119,16 @@ final class BibliotecaImagenes
      *  - «NFSO42-2.jpg» → su segunda foto (NFSO42-3 la tercera…).
      *
      * Si ya hay una imagen con ese código no se guarda nada y se avisa
-     * (CONFLICTO), salvo que se elija qué hacer:
-     *  - $modo «reemplazar»: la nueva ocupa el lugar de la anterior en todos
-     *    los productos que la usaban (el archivo anterior queda en el disco);
-     *  - $modo «agregar»: se guarda como la próxima foto libre del producto.
+     * (CONFLICTO), salvo que se elija qué hacer (ver colocar()):
+     *  - $modo «reemplazar»: la nueva ocupa el lugar de la foto $objetivo
+     *    (por defecto, la que tiene el código). El archivo anterior queda en el disco;
+     *  - $modo «agregar»: se agrega en la $posicion elegida (por defecto, al final).
      *
      * @param  'reemplazar'|'agregar'|null  $modo
      * @return array{resultado: string, imagen: ImagenBiblioteca|null, destino: array|null, existente: ImagenBiblioteca|null, sugerencia: string|null}
      *         resultado: ASIGNADA, SIN_PRODUCTO, CONFLICTO o REEMPLAZADA
      */
-    public function subir(UploadedFile $archivo, ?string $modo = null): array
+    public function subir(UploadedFile $archivo, ?string $modo = null, ?string $objetivo = null, ?int $posicion = null): array
     {
         $nombreOriginal = $archivo->getClientOriginalName();
         $base = CodigoImagen::normalizar(pathinfo($nombreOriginal, PATHINFO_FILENAME));
@@ -136,7 +136,16 @@ final class BibliotecaImagenes
         $resultado = ['resultado' => self::ASIGNADA, 'imagen' => null, 'destino' => null, 'existente' => $existente, 'sugerencia' => null];
 
         if ($existente !== null && $modo === null) {
-            return ['resultado' => self::CONFLICTO] + $resultado;
+            return ['resultado' => self::CONFLICTO, 'destino' => $this->destinoDe($base)] + $resultado;
+        }
+
+        // El código es de un producto: se elige el lugar entre sus fotos.
+        $destinoBase = $existente !== null ? $this->destinoDe($base) : null;
+        if ($destinoBase !== null) {
+            $imagen = ImagenBiblioteca::query()->create(['codigo' => $this->codigoLibre($destinoBase['codigo'])] + $this->guardarArchivo($archivo));
+            $destino = $this->colocar($imagen, $destinoBase, (string) $modo, $objetivo ?? $existente->path, $posicion);
+
+            return ['resultado' => $destino['reemplazo'] ? self::REEMPLAZADA : self::ASIGNADA, 'imagen' => $imagen, 'destino' => $destino] + $resultado;
         }
 
         if ($existente !== null && $modo === 'reemplazar') {
@@ -204,9 +213,91 @@ final class BibliotecaImagenes
             foreach ($destino['productos'] as $producto) {
                 $this->ponerFoto($producto['id'], $imagen->path, $destino['posicion']);
             }
+            $this->ordenarCodigos($destino['productos'][0]['id'], $destino['codigo']);
         });
+        $imagen->refresh();
+        $destino['posicion'] = $this->posicionEn($destino['productos'][0]['id'], $imagen->path) ?? $destino['posicion'];
 
         return $destino;
+    }
+
+    /**
+     * Pone la imagen entre las fotos del producto del destino, como se eligió:
+     *  - «reemplazar»: ocupa el lugar de la foto $objetivo (un path de sus
+     *    fotos), que sale del producto; su archivo queda en el disco;
+     *  - «agregar»: va en la $posicion (1 = principal; null = al final) y
+     *    las demás se corren.
+     * El código pasa a ser el de su lugar (NFSO42, NFSO42-2…) si está libre.
+     *
+     * @return array{codigo: string, posicion: int, productos: list<array{id: int, codigo: string, nombre: string}>, reemplazo: bool}
+     *
+     * @throws RuntimeException si la foto a reemplazar ya no está en el producto
+     */
+    public function colocar(ImagenBiblioteca $imagen, array $destino, string $modo, ?string $objetivo, ?int $posicion): array
+    {
+        $fotos = array_column($this->fotosDe($destino['productos'][0]['id']), 'path');
+
+        if ($modo === 'reemplazar') {
+            $indice = $objetivo !== null ? array_search($objetivo, $fotos, true) : false;
+            if ($indice === false) {
+                throw new RuntimeException('Esa foto ya no está en el producto. Recargá la página y probá de nuevo.');
+            }
+            $posicion = $indice + 1;
+
+            DB::transaction(function () use ($imagen, $destino, $objetivo, $posicion): void {
+                foreach ($destino['productos'] as $producto) {
+                    DB::table('imagenes')->where('sector', 'producto')->where('producto_id', $producto['id'])->where('path', $objetivo)
+                        ->update(['path' => $imagen->path, 'updated_at' => now()]);
+                }
+                // Si ya nadie la usa, la anterior deja la biblioteca y le pasa el código.
+                $anterior = ImagenBiblioteca::query()->where('path', $objetivo)->first();
+                $codigo = null;
+                if ($anterior !== null && ! DB::table('imagenes')->where('path', $objetivo)->exists()) {
+                    $codigo = $anterior->codigo;
+                    $anterior->delete();
+                }
+                $imagen->codigo = $codigo ?? $this->codigoPara($imagen, $destino['codigo'], $posicion);
+                $imagen->save();
+                $this->ordenarCodigos($destino['productos'][0]['id'], $destino['codigo']);
+            });
+            $imagen->refresh();
+
+            return ['posicion' => $posicion, 'reemplazo' => true] + $destino;
+        }
+
+        $posicion = $posicion === null ? count($fotos) + 1 : max(1, min($posicion, count($fotos) + 1));
+
+        DB::transaction(function () use ($imagen, $destino, $posicion): void {
+            $imagen->codigo = $this->codigoPara($imagen, $destino['codigo'], $posicion);
+            $imagen->save();
+            foreach ($destino['productos'] as $producto) {
+                $this->ponerFoto($producto['id'], $imagen->path, $posicion);
+            }
+            $this->ordenarCodigos($destino['productos'][0]['id'], $destino['codigo']);
+        });
+        $imagen->refresh();
+
+        return ['posicion' => $posicion, 'reemplazo' => false] + $destino;
+    }
+
+    /**
+     * Las fotos de un producto en orden (la principal primero), con su código.
+     *
+     * @return list<array{path: string, codigo: string|null, url: string, posicion: int}>
+     */
+    public function fotosDe(int $productoId): array
+    {
+        $paths = DB::table('imagenes')->where('sector', 'producto')->where('producto_id', $productoId)
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")->orderBy('orden')->orderBy('id')
+            ->pluck('path')->all();
+        $codigos = ImagenBiblioteca::query()->whereIn('path', $paths)->pluck('codigo', 'path')->all();
+
+        return array_map(fn (string $path, int $i) => [
+            'path' => $path,
+            'codigo' => $codigos[$path] ?? null,
+            'url' => asset('imagenes/'.$path),
+            'posicion' => $i + 1,
+        ], $paths, array_keys($paths));
     }
 
     /** El código mismo si nadie lo tiene; si no, el siguiente libre: NFSO42-2, NFSO42-3… */
@@ -249,7 +340,7 @@ final class BibliotecaImagenes
      *
      * @throws RuntimeException con un mensaje para mostrar
      */
-    public function renombrar(ImagenBiblioteca $imagen, string $nuevo): ?array
+    public function renombrar(ImagenBiblioteca $imagen, string $nuevo, ?string $modo = null, ?string $objetivo = null, ?int $posicion = null): ?array
     {
         $nuevo = trim($nuevo);
         $normalizado = CodigoImagen::normalizar($nuevo);
@@ -260,8 +351,20 @@ final class BibliotecaImagenes
         if ($normalizado !== $nuevo) {
             throw new RuntimeException("Sólo letras, números, guion (-), guion bajo (_) y punto, sin espacios. Por ejemplo: {$normalizado}");
         }
-        if ($normalizado !== $imagen->codigo && ImagenBiblioteca::query()->where('codigo', $normalizado)->where('id', '<>', $imagen->id)->exists()) {
+        $ocupante = $normalizado !== $imagen->codigo
+            ? ImagenBiblioteca::query()->where('codigo', $normalizado)->where('id', '<>', $imagen->id)->first()
+            : null;
+        if ($ocupante !== null) {
             $destino = $this->destinoDe($normalizado);
+            // Una imagen sin asignar puede ir a cualquier lugar del producto:
+            // se pregunta si reemplazar esa foto o dónde agregarla.
+            if ($destino !== null && $this->usosDe($imagen->path) === []) {
+                if ($modo === null) {
+                    throw new CodigoOcupado($normalizado, $destino, $ocupante->path);
+                }
+
+                return $this->colocar($imagen, $destino, $modo, $objetivo ?? $ocupante->path, $posicion);
+            }
             throw new RuntimeException($destino === null
                 ? "El código {$normalizado} ya lo tiene otra imagen."
                 : "El código {$normalizado} ya lo tiene otra foto de ese producto. Para sumarla como otra foto, usá {$this->codigoLibre($destino['codigo'])}.");
@@ -274,23 +377,37 @@ final class BibliotecaImagenes
     }
 
     /**
-     * Saca la imagen de la biblioteca y borra el archivo. Sólo si nada la usa:
-     * ningún producto ni otra parte del sitio (slider, logos, novedades…).
+     * Saca la imagen de la biblioteca y borra el archivo.
      *
-     * @throws RuntimeException si está en uso
+     * Si está en productos, sólo con $quitarDeProductos (quien la elimina ya
+     * vio en cuáles): se saca de esos productos y la foto siguiente pasa a
+     * ser la principal. Si la usa otra parte del sitio (slider, logos,
+     * novedades…) no se elimina.
+     *
+     * @throws RuntimeException si no se puede eliminar
      */
-    public function eliminar(ImagenBiblioteca $imagen): void
+    public function eliminar(ImagenBiblioteca $imagen, bool $quitarDeProductos = false): void
     {
         $usos = $this->usosDe($imagen->path);
-        if ($usos !== []) {
-            throw new RuntimeException('No se puede eliminar: la usa '.count($usos).' producto(s).');
+        if ($usos !== [] && ! $quitarDeProductos) {
+            throw new RuntimeException('Está en '.count($usos).' producto(s): confirmá que querés sacarla de ahí.');
         }
-        if (DB::table('imagenes')->where('path', $imagen->path)->exists()) {
-            throw new RuntimeException('No se puede eliminar: la usa otra parte del sitio.');
+        $otrasPartes = DB::table('imagenes')->where('path', $imagen->path)
+            ->where(fn ($q) => $q->whereNull('sector')->orWhere('sector', '<>', 'producto'))->exists();
+        if ($otrasPartes) {
+            throw new RuntimeException('No se puede eliminar: la usa otra parte del sitio (slider, logos, novedades…).');
         }
 
+        DB::transaction(function () use ($imagen, $usos): void {
+            DB::table('imagenes')->where('sector', 'producto')->where('path', $imagen->path)->delete();
+            $imagen->delete();
+            foreach ($usos as $uso) {
+                $this->renumerar($uso['id']);
+                $this->ordenarCodigos($uso['id'], CodigoImagen::normalizar($uso['codigo']));
+            }
+        });
+
         $ruta = $this->directorio().DIRECTORY_SEPARATOR.$imagen->path;
-        $imagen->delete();
         if (is_file($ruta)) {
             @unlink($ruta);
         }
@@ -411,6 +528,82 @@ final class BibliotecaImagenes
         }
 
         return array_map(fn (array $codigos) => implode(', ', array_unique($codigos)), $celdas);
+    }
+
+    /**
+     * Que el código diga el lugar: la principal NFSO42, la segunda NFSO42-2…
+     * Sólo cambia las fotos que ya tienen un código de este producto y que no
+     * usa otro producto; si el código que le tocaría lo tiene otra imagen, la deja.
+     */
+    private function ordenarCodigos(int $productoId, string $codigoProducto): void
+    {
+        $usos = $this->usos();
+        $cambios = [];
+        foreach ($this->fotosDe($productoId) as $foto) {
+            if ($foto['codigo'] === null || ($this->destinoDe($foto['codigo'])['codigo'] ?? null) !== $codigoProducto) {
+                continue;
+            }
+            $deOtros = array_filter($usos[mb_strtolower($foto['path'])] ?? [], fn (array $u) => $u['id'] !== $productoId);
+            $deSuLugar = $foto['posicion'] === 1 ? $codigoProducto : $codigoProducto.'-'.$foto['posicion'];
+            if ($deOtros === [] && $deSuLugar !== $foto['codigo']) {
+                $cambios[$foto['path']] = $deSuLugar;
+            }
+        }
+        if ($cambios === []) {
+            return;
+        }
+
+        $ocupadosPorOtras = ImagenBiblioteca::query()->whereIn('codigo', array_values($cambios))
+            ->whereNotIn('path', array_keys($cambios))->pluck('codigo')->all();
+        $cambios = array_filter($cambios, fn (string $codigo) => ! in_array($codigo, $ocupadosPorOtras, true));
+
+        // En dos pasos, para poder intercambiar códigos sin chocar con el índice único.
+        foreach (array_keys($cambios) as $i => $path) {
+            ImagenBiblioteca::query()->where('path', $path)->update(['codigo' => '~'.$i.'~'.uniqid()]);
+        }
+        foreach ($cambios as $path => $codigo) {
+            ImagenBiblioteca::query()->where('path', $path)->update(['codigo' => $codigo, 'updated_at' => now()]);
+        }
+    }
+
+    private function posicionEn(int $productoId, string $path): ?int
+    {
+        foreach ($this->fotosDe($productoId) as $foto) {
+            if ($foto['path'] === $path) {
+                return $foto['posicion'];
+            }
+        }
+
+        return null;
+    }
+
+    /** Vuelve a numerar las fotos del producto: la primera es la principal. */
+    private function renumerar(int $productoId): void
+    {
+        $fotos = DB::table('imagenes')->where('sector', 'producto')->where('producto_id', $productoId)
+            ->orderByRaw("CASE WHEN tipo = 'portada' THEN 0 ELSE 1 END")->orderBy('orden')->orderBy('id')
+            ->pluck('id');
+        foreach ($fotos as $i => $id) {
+            DB::table('imagenes')->where('id', $id)->update(['tipo' => $i === 0 ? 'portada' : 'imagen', 'orden' => self::orden($i), 'updated_at' => now()]);
+        }
+    }
+
+    /**
+     * El código de una foto en la posición de un producto: el de su lugar
+     * (NFSO42, NFSO42-3) si está libre, el que ya tenía si ya era de ese
+     * producto, o el próximo libre.
+     */
+    private function codigoPara(ImagenBiblioteca $imagen, string $codigoProducto, int $posicion): string
+    {
+        $ocupados = $this->codigosOcupados();
+        unset($ocupados[$imagen->codigo]);
+        $deSuLugar = $posicion === 1 ? $codigoProducto : $codigoProducto.'-'.$posicion;
+
+        return match (true) {
+            ! isset($ocupados[$deSuLugar]) => $deSuLugar,
+            ($this->destinoDe($imagen->codigo)['codigo'] ?? null) === $codigoProducto => $imagen->codigo,
+            default => $this->libreDesde($codigoProducto, $ocupados),
+        };
     }
 
     /** El valor de imagenes.orden para cada posición: aa, ab, ac… */

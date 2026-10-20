@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ImagenBiblioteca;
 use App\Services\Imagenes\BibliotecaImagenes;
+use App\Services\Imagenes\CodigoOcupado;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,13 @@ use RuntimeException;
 class BibliotecaImagenesController extends Controller
 {
     private const POR_PAGINA = 48;
+
+    /** Al elegir el lugar de una foto: reemplazar una (objetivo = su path) o agregarla en una posición. */
+    private const REGLAS_LUGAR = [
+        'modo' => ['nullable', 'in:reemplazar,agregar'],
+        'objetivo' => ['nullable', 'string', 'max:255'],
+        'posicion' => ['nullable', 'integer', 'min:1', 'max:99'],
+    ];
 
     public function __construct(private readonly BibliotecaImagenes $biblioteca)
     {
@@ -82,7 +90,7 @@ class BibliotecaImagenesController extends Controller
     {
         $request->validate([
             'imagen' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:15360'],
-            'modo' => ['nullable', 'in:reemplazar,agregar'],
+            ...self::REGLAS_LUGAR,
         ], [
             'imagen.mimes' => 'Tiene que ser una imagen JPG, PNG o WEBP.',
             'imagen.max' => 'Pesa más de 15 MB.',
@@ -90,7 +98,11 @@ class BibliotecaImagenesController extends Controller
             'imagen.file' => 'No llegó ninguna imagen.',
         ]);
 
-        $subida = $this->biblioteca->subir($request->file('imagen'), $request->input('modo'));
+        try {
+            $subida = $this->biblioteca->subir($request->file('imagen'), $request->input('modo'), $request->input('objetivo'), $request->integer('posicion') ?: null);
+        } catch (RuntimeException $e) {
+            return response()->json(['mensaje' => $e->getMessage()], 422);
+        }
 
         if ($subida['resultado'] === BibliotecaImagenes::CONFLICTO) {
             // No se guardó nada: el navegador conserva el archivo y pregunta qué hacer.
@@ -98,9 +110,9 @@ class BibliotecaImagenesController extends Controller
 
             return response()->json([
                 'resultado' => $subida['resultado'],
-                'mensaje' => "Ya hay una imagen con el código {$existente->codigo} ".$this->dondeSeUsa($existente).'.',
+                'mensaje' => "Ya hay una foto con el código {$existente->codigo} ".$this->dondeSeUsa($existente).'.',
                 'existente' => $this->datos($existente),
-            ], 409);
+            ] + $this->lugares($subida['destino'], $existente->path), 409);
         }
 
         $imagen = $subida['imagen'];
@@ -108,7 +120,7 @@ class BibliotecaImagenesController extends Controller
         $mensaje = match ($subida['resultado']) {
             BibliotecaImagenes::SIN_PRODUCTO => "No hay ningún producto con el código {$imagen->codigo}. Corregilo y se asigna sola.",
             BibliotecaImagenes::REEMPLAZADA => $destino !== null
-                ? 'Reemplazó a la anterior: es la '.self::foto($destino).'.'
+                ? 'Reemplazó a la '.self::foto($destino).'.'
                 : "Reemplazó a la imagen anterior con el código {$imagen->codigo}.",
             default => 'Es la '.self::foto($destino).'.',
         };
@@ -118,14 +130,26 @@ class BibliotecaImagenesController extends Controller
             'mensaje' => $mensaje,
             'imagen' => $this->datos($imagen),
             'productos' => $this->productos($destino),
+            'donde' => $destino !== null ? ucfirst(self::foto($destino)) : null,
             'sugerencia' => $this->sugerencia($subida['sugerencia']),
         ], 201);
     }
 
     public function update(Request $request, ImagenBiblioteca $imagen): JsonResponse
     {
+        $request->validate(self::REGLAS_LUGAR);
+
         try {
-            $destino = $this->biblioteca->renombrar($imagen, (string) $request->input('codigo'));
+            $destino = $this->biblioteca->renombrar($imagen, (string) $request->input('codigo'), $request->input('modo'), $request->input('objetivo'), $request->integer('posicion') ?: null);
+        } catch (CodigoOcupado $e) {
+            // Sin asignar y con el código de otra foto del producto: se elige el lugar.
+            $ocupante = ImagenBiblioteca::query()->where('path', $e->objetivo)->first();
+
+            return response()->json([
+                'resultado' => BibliotecaImagenes::CONFLICTO,
+                'mensaje' => "El código {$e->codigo} ya lo tiene otra foto ".($ocupante ? $this->dondeSeUsa($ocupante) : 'del producto').'.',
+                'codigo' => $e->codigo,
+            ] + $this->lugares($e->destino, $e->objetivo), 409);
         } catch (RuntimeException $e) {
             return response()->json(['mensaje' => $e->getMessage()], 422);
         }
@@ -135,25 +159,47 @@ class BibliotecaImagenesController extends Controller
         return response()->json([
             'resultado' => $destino !== null || $enUso ? BibliotecaImagenes::ASIGNADA : BibliotecaImagenes::SIN_PRODUCTO,
             'mensaje' => match (true) {
+                ($destino['reemplazo'] ?? false) => 'Reemplazó a la '.self::foto($destino).'.',
                 $destino !== null => 'Es la '.self::foto($destino).'.',
                 $enUso => 'Código cambiado.',
                 default => "No hay ningún producto con el código {$imagen->codigo}.",
             },
             'imagen' => $this->datos($imagen),
             'productos' => $this->productos($destino),
+            'donde' => $destino !== null ? ucfirst(self::foto($destino)) : null,
             'sugerencia' => $destino === null && ! $enUso ? $this->sugerencia($this->biblioteca->sugerencia($imagen->codigo)) : null,
         ]);
     }
 
-    public function destroy(ImagenBiblioteca $imagen): JsonResponse
+    public function destroy(Request $request, ImagenBiblioteca $imagen): JsonResponse
     {
         try {
-            $this->biblioteca->eliminar($imagen);
+            $this->biblioteca->eliminar($imagen, $request->boolean('quitar_de_productos'));
         } catch (RuntimeException $e) {
             return response()->json(['mensaje' => $e->getMessage()], 422);
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Las fotos del producto, para elegir cuál reemplazar o en qué lugar
+     * poner la nueva; «objetivo» es la que tiene el código pedido.
+     *
+     * @return array{producto?: array{codigo: string, nombre: string}, fotos?: list<array{path: string, codigo: string|null, url: string, posicion: int}>, objetivo?: string}
+     */
+    private function lugares(?array $destino, string $objetivo): array
+    {
+        if ($destino === null) {
+            return [];
+        }
+        $producto = $destino['productos'][0];
+
+        return [
+            'producto' => ['codigo' => $producto['codigo'], 'nombre' => $producto['nombre']],
+            'fotos' => $this->biblioteca->fotosDe($producto['id']),
+            'objetivo' => $objetivo,
+        ];
     }
 
     /** «foto principal de NFSO42», «foto 2 de NFSO42 (y de 1 producto más con ese código)». */
