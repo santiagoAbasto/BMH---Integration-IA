@@ -366,6 +366,8 @@
       if (carga === 'pendiente' || carga === 'error') cargarOpciones();
       else filtrar('');
       control.focus({ preventScroll: true });
+      // Dentro del sidebar (que tiene su propio scroll), que el panel abierto se vea entero.
+      if (caja.closest('.filtros__cuerpo')) panel.scrollIntoView({ block: 'nearest' });
       panel.scrollIntoView({ block: 'nearest' });
     }
 
@@ -714,6 +716,12 @@
 
   window.addEventListener('scroll', alHacerScroll, { passive: true });
   window.addEventListener('resize', alHacerScroll);
+  // El header cambia de alto con una transición al pasar a fijo: sin esto el
+  // sidebar se quedaba con el tope viejo hasta el próximo scroll.
+  if (header) {
+    header.addEventListener('transitionend', alHacerScroll);
+    if (window.ResizeObserver) new ResizeObserver(alHacerScroll).observe(header);
+  }
 
   // ----------------------------------------------------------------- inicio
 

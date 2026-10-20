@@ -41,6 +41,8 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - var(--catalogo-tope, 0px) - 40px);
+  /* dvh: el alto real visible (sin las barras del navegador que aparecen y desaparecen). */
+  max-height: calc(100dvh - var(--catalogo-tope, 0px) - 40px);
   background: #fff;
   border: 1px solid #E6EBEF;
   border-radius: 16px;
@@ -107,9 +109,25 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* El scroll del sidebar no arrastra al de la página al llegar al final. */
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: #D5DCE1 transparent;
+  scrollbar-color: #B9C4CC transparent;
+  /* Sombras arriba/abajo sólo cuando hay más filtros para ver con scroll. */
+  background:
+    linear-gradient(#fff 30%, rgba(255, 255, 255, 0)) top / 100% 28px no-repeat local,
+    linear-gradient(rgba(255, 255, 255, 0), #fff 70%) bottom / 100% 28px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(15, 35, 52, .14), transparent) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(15, 35, 52, .14), transparent) bottom / 100% 10px no-repeat scroll;
+}
+
+/* Pantallas bajas: filtros más compactos para que entren sin scroll la mayor parte del tiempo. */
+@media (min-width: 992px) and (max-height: 820px) {
+  .filtros__cabecera { padding-top: 12px; padding-bottom: 12px; }
+  .filtros__grupo { padding-top: 12px; padding-bottom: 13px; }
+  .filtros__titulo { margin-bottom: 8px; }
+  .catalogo__sidebar .desplegable__boton { height: 40px; }
 }
 
 .filtros__grupo {
