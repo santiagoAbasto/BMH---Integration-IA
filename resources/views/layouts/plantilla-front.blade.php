@@ -33,7 +33,7 @@ $cart = Cart::content();
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/styles2.css?v=77">
-  <link rel="stylesheet" href="{{ asset('css/layout.css') }}?v=2">
+  <link rel="stylesheet" href="{{ asset('css/layout.css') }}?v=3">
   <link rel="stylesheet" href="{{ asset('css/buscador-header.css') }}?v=2">
   <link rel="stylesheet" href="{{ asset('css/menu-productos.css') }}?v=1">
   <link rel="stylesheet" href="{{ asset('css/galeria-producto.css') }}?v=1">

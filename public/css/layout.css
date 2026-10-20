@@ -8,10 +8,15 @@
  *
  * Entre 1400 y ~1480px queda en 1320px como antes; a partir de ahí crece
  * hasta 1600px (pantallas de 1760px o más).
+ *
+ * Más allá de 1920px el tope deja de ser fijo y pasa a ser el 83,33% del
+ * ancho (1600px de 1920): con el zoom alejado (o en una pantalla muy ancha)
+ * los márgenes quedan en la misma proporción en vez de agrandarse. En una
+ * pantalla de 1920px o menos se ve igual que antes.
  */
 @media (min-width: 1400px) {
   .container {
-    max-width: clamp(1320px, calc(100vw - 160px), 1600px);
+    max-width: clamp(1320px, calc(100vw - 160px), max(1600px, 83.333vw));
   }
 }
 
