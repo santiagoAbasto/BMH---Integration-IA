@@ -1338,32 +1338,11 @@ public function dash_productos(Request $request)
     {
         $busqueda = (string) $request->input('valor', '');
         $categoriaId = $request->input('categoria_id');
-        $textoNormalizado = strtolower(trim($busqueda));
 
-        $crearConsulta = function () use ($textoNormalizado) {
-            $query = Producto::with(['categoria', 'portadaImagen'])
-                ->where(function ($query) use ($textoNormalizado) {
-                    $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%'])
-                        ->orWhereRaw('LOWER(codigo) LIKE ?', ['%' . $textoNormalizado . '%'])
-                        ->orWhereRaw('LOWER(descripcion) LIKE ?', ['%' . $textoNormalizado . '%'])
-                        ->orWhereHas('categoria', function ($query) use ($textoNormalizado) {
-                            $query->whereRaw('LOWER(nombre) LIKE ?', ['%' . $textoNormalizado . '%']);
-                        });
-                });
-
-            // El código tiene prioridad sobre nombre, descripción y categoría,
-            // incluso antes de paginar y al buscar alternativas de otra categoría.
-            if ($textoNormalizado !== '') {
-                $query->orderByRaw(
-                    'CASE WHEN LOWER(codigo) = ? THEN 0 '
-                    . 'WHEN LOWER(codigo) LIKE ? THEN 1 '
-                    . 'WHEN LOWER(codigo) LIKE ? THEN 2 ELSE 3 END',
-                    [$textoNormalizado, $textoNormalizado . '%', '%' . $textoNormalizado . '%']
-                );
-            }
-
-            return $query;
-        };
+        // El código tiene prioridad sobre nombre, descripción y categoría,
+        // incluso antes de paginar y al buscar alternativas de otra categoría.
+        // Es la misma búsqueda que usa el Excel (ExcelProductos::exportar).
+        $crearConsulta = fn () => Producto::with(['categoria', 'portadaImagen'])->busquedaAdmin($busqueda);
 
         $query = $crearConsulta();
         $sinResultadosCategoria = false;

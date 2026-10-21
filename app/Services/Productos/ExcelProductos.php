@@ -47,12 +47,19 @@ final class ExcelProductos
 
     // ------------------------------------------------------------ exportar
 
-    public function exportar(?int $categoriaId): Spreadsheet
+    /**
+     * Los productos como están filtrados en el listado del admin: la categoría
+     * elegida y el texto del buscador (con el mismo orden: los códigos que
+     * coinciden primero).
+     */
+    public function exportar(?int $categoriaId, string $busqueda = ''): Spreadsheet
     {
         $this->biblioteca->sincronizar();
         $celdas = $this->biblioteca->celdasPorProducto();
 
-        $productos = Producto::with('categoria')->ordenado()
+        $productos = Producto::with('categoria')
+            ->busquedaAdmin($busqueda)
+            ->ordenado()
             ->when($categoriaId !== null, fn ($q) => $q->where('categoria_id', $categoriaId))
             ->get(['id', 'codigo', 'nombre', 'categoria_id', 'precio']);
 

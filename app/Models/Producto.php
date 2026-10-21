@@ -41,6 +41,32 @@ class Producto extends Model
         return $query->orderBy('orden')->orderBy('nombre')->orderBy('id');
     }
 
+    /**
+     * El buscador del listado del admin (y el Excel que descarga lo mismo):
+     * el texto en el código, nombre, descripción o categoría, con los códigos
+     * que coinciden primero (exacto, empieza con, contiene).
+     */
+    public function scopeBusquedaAdmin($query, string $texto)
+    {
+        $texto = strtolower(trim($texto));
+        if ($texto === '') {
+            return $query;
+        }
+        $like = '%'.$texto.'%';
+
+        return $query
+            ->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(nombre) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(codigo) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(descripcion) LIKE ?', [$like])
+                    ->orWhereHas('categoria', fn ($c) => $c->whereRaw('LOWER(nombre) LIKE ?', [$like]));
+            })
+            ->orderByRaw(
+                'CASE WHEN LOWER(codigo) = ? THEN 0 WHEN LOWER(codigo) LIKE ? THEN 1 WHEN LOWER(codigo) LIKE ? THEN 2 ELSE 3 END',
+                [$texto, $texto.'%', $like]
+            );
+    }
+
     protected $fillable = [
         'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 
         'columna_7', 'columna_8', 'columna_9', 'columna_10', 'columna_11', 'columna_12',

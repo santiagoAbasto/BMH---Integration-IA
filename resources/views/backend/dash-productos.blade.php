@@ -51,9 +51,11 @@
     </form>
 
     <div class="productos-descargas">
-    <a href="{{ route('dashboard.productos.exportar', ['categoria_id' => $categoria_id ?? 'todos']) }}" id="btn-exportar-excel" class="btn btn-outline-success" title="Descargar Excel{{ $catLabel }}">
+    {{-- Descarga lo que se ve filtrado: la categoría y, si hay, el texto del buscador (lo agrega el script de abajo). --}}
+    <a href="{{ route('dashboard.productos.exportar', ['categoria_id' => $categoria_id ?? 'todos']) }}" id="btn-exportar-excel" class="btn btn-outline-success"
+       title="Descargar Excel{{ $catLabel }}" data-titulo="Descargar Excel{{ $catLabel }}">
       <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-      <span>Descargar Excel</span>
+      <span data-rol="texto">Descargar Excel</span>
     </a>
     <a href="{{ route('dashboard.productos.excel.importar') }}" class="btn btn-outline-primary" title="Actualizar precio e imágenes de muchos productos con el Excel, con vista previa antes de aplicar">
       <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
@@ -319,7 +321,25 @@
         }
     }
 
+    // El Excel descarga lo mismo que muestra el listado: categoría + texto buscado.
+    function actualizarExcel(valor) {
+        var boton = document.getElementById('btn-exportar-excel');
+        var url = new URL(boton.href, window.location.origin);
+        var texto = (valor || '').trim();
+        if (texto) {
+            url.searchParams.set('q', texto);
+        } else {
+            url.searchParams.delete('q');
+        }
+        boton.href = url.toString();
+        boton.querySelector('[data-rol="texto"]').textContent = texto ? 'Descargar Excel filtrado' : 'Descargar Excel';
+        boton.title = texto
+            ? boton.dataset.titulo + ' que coinciden con «' + texto + '»'
+            : boton.dataset.titulo;
+    }
+
     function buscarProductos(valor, pagina) {
+        actualizarExcel(valor);
         clearTimeout(esperaBusqueda);
         if (solicitudProductos) {
             solicitudProductos.abort();

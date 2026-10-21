@@ -207,6 +207,22 @@ final class ExcelProductosTest extends TestCase
         $this->assertSame('Cómo usar', IOFactory::load($ruta)->getSheet(1)->getTitle());
     }
 
+    public function test_exportar_con_una_busqueda_trae_solo_lo_que_se_ve_filtrado(): void
+    {
+        $respuesta = $this->actingAs($this->admin, 'admin')
+            ->get(route('dashboard.productos.exportar', ['categoria_id' => 1, 'q' => 'z']))
+            ->assertOk();
+        $filas = IOFactory::load($respuesta->baseResponse->getFile()->getPathname())->getSheet(0)->toArray(null, true, false, false);
+
+        // Lo mismo que el buscador del listado, con los códigos que coinciden primero.
+        $this->assertSame(['Z300', 'Z400'], array_column(array_slice($filas, 1), 0));
+        $this->assertStringContainsString('_busqueda_z_', (string) $respuesta->headers->get('content-disposition'));
+
+        // Sin texto, toda la categoría.
+        $todos = $this->actingAs($this->admin, 'admin')->get(route('dashboard.productos.exportar', ['categoria_id' => 1]));
+        $this->assertCount(9, IOFactory::load($todos->baseResponse->getFile()->getPathname())->getSheet(0)->toArray());
+    }
+
     public function test_la_pantalla_de_carga_explica_las_reglas_de_reemplazo(): void
     {
         $this->actingAs($this->admin, 'admin')->get(route('dashboard.productos.excel.importar'))->assertOk()

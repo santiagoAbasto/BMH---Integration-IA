@@ -70,6 +70,7 @@ final class BibliotecaImagenesTest extends TestCase
             $t->id();
             $t->string('codigo')->nullable();
             $t->string('nombre')->nullable();
+            $t->text('descripcion')->nullable();
             $t->integer('categoria_id')->nullable();
             $t->decimal('precio', 12, 2)->nullable();
             $t->string('orden')->nullable();

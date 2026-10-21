@@ -33,11 +33,16 @@ class ExcelProductosController extends Controller
     {
         $categoria = $request->input('categoria_id');
         $categoriaId = is_numeric($categoria) ? (int) $categoria : null;
+        // El texto del buscador del listado: el Excel trae lo mismo que se ve filtrado.
+        $busqueda = mb_substr(trim((string) $request->query('q', '')), 0, 100);
 
         $temporal = tempnam(sys_get_temp_dir(), 'xlsx');
-        (new Xlsx($this->excel->exportar($categoriaId)))->save($temporal);
+        (new Xlsx($this->excel->exportar($categoriaId, $busqueda)))->save($temporal);
 
-        $nombre = 'productos'.($categoriaId !== null ? '_categoria_'.$categoriaId : '_todos').'_'.now()->format('Y-m-d').'.xlsx';
+        $nombre = 'productos'
+            .($categoriaId !== null ? '_categoria_'.$categoriaId : '_todos')
+            .($busqueda !== '' ? '_busqueda_'.Str::slug($busqueda) : '')
+            .'_'.now()->format('Y-m-d').'.xlsx';
 
         return response()->download($temporal, $nombre)->deleteFileAfterSend(true);
     }
