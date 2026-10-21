@@ -116,66 +116,53 @@ class CarritoController extends Controller
         return response()->json(Cart::content());
     }
 
+    /*
+     * Sumar, quitar y eliminar reciben el renglón (rowId) que se ve en la
+     * pantalla. Puede que ya no esté en el carrito: un doble click en el
+     * tachito, u otra pestaña u otro dispositivo (el carrito del cliente es
+     * el mismo en todos) que ya lo sacó. En ese caso no se falla: se responde
+     * con el carrito como está, para que la pantalla se actualice.
+     */
+
     public function carrito_sumar(Request $request)
     {
-        $item = Cart::get($request->item_id);
-    
-        $qty = $item->qty + $request->qty;
-    
-        Cart::update($request->item_id, $qty);
-    
-        $cart = Cart::content();
-    
-        if ($request->seccion == 'public') {
-            return response()->json([
-                'view' => view('frontend/components/carrito-desplegado', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
-        } else {
-            return response()->json([
-                'view' => view('frontend/components/carrito-productos', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
+        if (Cart::content()->has($request->item_id)) {
+            $item = Cart::get($request->item_id);
+            Cart::update($request->item_id, $item->qty + $request->qty);
         }
+
+        return $this->respuestaCarrito($request);
     }
 
     public function carrito_quitar(Request $request)
     {
-        $item = Cart::get($request->item_id);
-        $qty = $item->qty - $request->qty;
-    
-        Cart::update($request->item_id, $qty);
-        $cart = Cart::content();
-    
-        if ($request->seccion == 'public') {
-            return response()->json([
-                'view' => view('frontend/components/carrito-desplegado', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
-        } else {
-            return response()->json([
-                'view' => view('frontend/components/carrito-productos', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
+        if (Cart::content()->has($request->item_id)) {
+            $item = Cart::get($request->item_id);
+            Cart::update($request->item_id, $item->qty - $request->qty);
         }
+
+        return $this->respuestaCarrito($request);
     }
 
     public function carrito_remover(Request $request)
     {
-        Cart::remove($request->item_id);
-        $cart = Cart::content();
-    
-        if ($request->seccion == 'public') {
-            return response()->json([
-                'view' => view('frontend/components/carrito-desplegado', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
-        } else {
-            return response()->json([
-                'view' => view('frontend/components/carrito-productos', compact('cart'))->render(),
-                'cart' => $cart
-            ]);
+        if (Cart::content()->has($request->item_id)) {
+            Cart::remove($request->item_id);
         }
+
+        return $this->respuestaCarrito($request);
+    }
+
+    /** El carrito actualizado, con la vista de la sección desde donde se pidió. */
+    private function respuestaCarrito(Request $request)
+    {
+        $cart = Cart::content();
+        $vista = $request->seccion == 'public' ? 'frontend/components/carrito-desplegado' : 'frontend/components/carrito-productos';
+
+        return response()->json([
+            'view' => view($vista, compact('cart'))->render(),
+            'cart' => $cart,
+        ]);
     }
 
     public function repetir_pedido(Request $request)
