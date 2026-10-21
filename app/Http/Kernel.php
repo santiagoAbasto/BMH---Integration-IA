@@ -36,6 +36,8 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            // El carrito del cliente logueado, el mismo en todos sus dispositivos.
+            \App\Http\Middleware\SincronizarCarrito::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             //\App\Http\Middleware\ContentSecurityPolicyMiddleware::class,
         ],

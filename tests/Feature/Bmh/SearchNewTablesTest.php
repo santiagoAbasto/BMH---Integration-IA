@@ -86,6 +86,14 @@ class SearchNewTablesTest extends BaseTestCase
         $this->assertContains($productoId, $ids, $msg . " Producto {$productoId} no aparecio. IDs: " . implode(',', $ids));
     }
 
+    private function assertProductoNoEnRespuesta(int $productoId, mixed $productosPaginator, string $msg = ''): void
+    {
+        $ids = collect($productosPaginator instanceof \Illuminate\Pagination\LengthAwarePaginator
+            ? $productosPaginator->getCollection()
+            : $productosPaginator->items())->pluck('id')->all();
+        $this->assertNotContains($productoId, $ids, $msg . " Producto {$productoId} aparecio y no deberia.");
+    }
+
     public function test_general_search_encuentra_por_equivalencia_nueva(): void
     {
         $uniq = 'ZZZEQ' . substr(uniqid(), -6);
@@ -162,7 +170,12 @@ class SearchNewTablesTest extends BaseTestCase
         $this->assertProductoEnRespuesta($prodId, $productos, 'Equivalencia filter deberia encontrar producto via equivalencia nueva. ');
     }
 
-    public function test_equivalencia_filter_encuentra_por_aplicacion_y_parte(): void
+    /**
+     * Aplicaciones (vehículos) y partes relacionadas no son equivalencias: el
+     * filtro «Por equivalencia» ya no las mira. Siguen alcanzables desde el
+     * buscador principal.
+     */
+    public function test_equivalencia_filter_no_busca_en_aplicaciones_ni_partes(): void
     {
         $uniqApp = 'ZZZAPPF' . substr(uniqid(), -6);
         $codigoProdApp = 'ZZZTESTAPPF' . substr(uniqid(), -4);
@@ -175,7 +188,12 @@ class SearchNewTablesTest extends BaseTestCase
         ]);
         $responseApp = $this->get(route('filtroRodamientos', ['equivalenciaFiltro' => $uniqApp]));
         $responseApp->assertStatus(200);
-        $this->assertProductoEnRespuesta($prodAppId, $responseApp->viewData('productos'), 'Equivalencia filter deberia encontrar via aplicacion. ');
+        $this->assertProductoNoEnRespuesta($prodAppId, $responseApp->viewData('productos'), 'Equivalencia filter no deberia buscar en aplicaciones. ');
+        $this->assertProductoEnRespuesta(
+            $prodAppId,
+            $this->get(route('filtroRodamientos', ['buscadorPrincipal' => $uniqApp]))->viewData('productos'),
+            'El buscador principal sigue encontrando por aplicacion. '
+        );
         $uniqParte = 'ZZZPARTEF' . substr(uniqid(), -6);
         $codigoParte = $uniqParte;
         $codigoOwner = 'ZZZOWNF' . substr(uniqid(), -4);
@@ -190,7 +208,12 @@ class SearchNewTablesTest extends BaseTestCase
         ]);
         $responseParte = $this->get(route('filtroRodamientos', ['equivalenciaFiltro' => $codigoParte]));
         $responseParte->assertStatus(200);
-        $this->assertProductoEnRespuesta($ownerId, $responseParte->viewData('productos'), 'Equivalencia filter deberia encontrar owner via parte. ');
+        $this->assertProductoNoEnRespuesta($ownerId, $responseParte->viewData('productos'), 'Equivalencia filter no deberia buscar en partes relacionadas. ');
+        $this->assertProductoEnRespuesta(
+            $ownerId,
+            $this->get(route('filtroRodamientos', ['buscadorPrincipal' => $codigoParte]))->viewData('productos'),
+            'El buscador principal sigue encontrando el owner via parte. '
+        );
     }
 
     public function test_legacy_sigue_funcionando(): void

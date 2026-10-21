@@ -39,9 +39,15 @@ final readonly class AttributeValue implements \JsonSerializable
 
     public function displayValue(): string
     {
-        if ($this->unit !== null && $this->numeric() !== null
-            && ! str_contains(mb_strtolower($this->value), mb_strtolower($this->unit))) {
-            return trim($this->value) . ' ' . $this->unit;
+        if ($this->unit !== null && $this->numeric() !== null) {
+            // «125», «125MM» (formato del admin) y «125 mm» se muestran igual: «125 mm».
+            $patron = '/^\s*(\d+(?:[.,]\d+)?)\s*(?:' . preg_quote($this->unit, '/') . ')?\s*$/i';
+            if (preg_match($patron, $this->value, $m) === 1) {
+                return $m[1] . ' ' . $this->unit;
+            }
+            if (! str_contains(mb_strtolower($this->value), mb_strtolower($this->unit))) {
+                return trim($this->value) . ' ' . $this->unit;
+            }
         }
 
         return trim($this->value);

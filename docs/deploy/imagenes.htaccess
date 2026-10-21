@@ -1,0 +1,15 @@
+# Imágenes optimizadas a WebP (php artisan imagenes:optimizar y subidas del admin).
+#
+# Si alguien pide un nombre viejo (media_x.png, media_x.jpg) que ya no existe
+# porque se convirtió, y existe media_x.webp, se sirve el WebP. Cubre enlaces
+# externos, buscadores, mails enviados y páginas cacheadas.
+#
+# Se copia a public_html/imagenes/.htaccess en producción (public/imagenes es
+# un symlink a esa carpeta y no se versiona).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} ^(.+)\.(png|jpe?g)$ [NC]
+    RewriteCond %1.webp -f
+    RewriteRule ^(.+)\.(png|jpe?g)$ $1.webp [NC,L]
+</IfModule>

@@ -3,6 +3,13 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\BuscadorController;
+use App\Http\Controllers\CatalogoController;
+use App\Http\Controllers\BibliotecaImagenesController;
+use App\Http\Controllers\DescargaImagenesCategoriaController;
+use App\Http\Controllers\ExcelProductosController;
+use App\Http\Controllers\HomeSliderController;
+use App\Http\Controllers\ImagenPorDefectoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImagenController;
 use App\Http\Controllers\NosotrosController;
@@ -22,6 +29,7 @@ use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ImpuestoController;
 use App\Http\Controllers\AnuncioController;
 use App\Http\Controllers\CaracteristicaController;
+use App\Http\Controllers\AparienciaController;
 use App\Http\Controllers\DimensionController;
 use App\Http\Controllers\DescargaController;
 use App\Http\Controllers\NovedadController;
@@ -62,7 +70,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 Route::controller(HomeController::class)->group(function () {
     Route::get('/', 'home')->name('home');
-    Route::get('buscar', 'search')->name('search');
     
     Route::middleware('admin')->group(function(){
         Route::put('dashboard/logo-update', 'updateLogo')->name('logo.update');
@@ -72,6 +79,16 @@ Route::controller(HomeController::class)->group(function () {
 
     
 });
+
+// Catálogo con filtros: por categoría (/productos) y desde el buscador del
+// header (/buscar) es la misma pantalla.
+Route::get('productos', [CatalogoController::class, 'index'])->name('productos');
+Route::get('buscar', [CatalogoController::class, 'index'])->name('search');
+
+// Sugerencias del buscador del header mientras se escribe.
+Route::get('buscar/sugerencias', [BuscadorController::class, 'sugerencias'])
+    ->middleware('throttle:buscador')
+    ->name('search.sugerencias');
 
 Route::controller(NosotrosController::class)->group(function () {
     Route::get('nosotros', 'index')->name('nosotros');
@@ -119,7 +136,7 @@ Route::controller(RepuestosController::class)->group(function () {
 
 Route::controller(ProductoController::class)->group(function () {
     
-    Route::get('productos', 'index')->name('productos');
+    Route::get('productos/imagen-predeterminada.svg', 'imagen_predeterminada')->name('producto.placeholder');
 Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::get('productos-filtrar', 'filtrar_productos')->name('productos.filtrar');
     Route::get('ofertas', 'ofertas')->name('ofertas');
@@ -141,7 +158,8 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
-        Route::get('dashboard/productos/exportar-excel', 'exportarExcel')->name('dashboard.productos.exportar');
+        // dashboard/productos/exportar-excel: ver ExcelProductosController, más abajo.
+        Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');
         Route::get('dashboard/productos/crear', 'create')->name('producto.create');
         Route::post('dashboard/producto/store', 'store')->name('producto.store');
         Route::get('dashboard/productos/editar', 'edit')->name('producto.edit');
@@ -149,6 +167,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::delete('dashboard/producto/delete', 'delete')->name('producto.delete');
         Route::put('dashboard/producto-imagen-update', 'imagen_update')->name('producto.imagen.update');
         Route::put('dashboard/producto-portada-update', 'portada_update')->name('producto.portada');
+        Route::delete('dashboard/producto-portada', 'portada_delete')->name('producto.portada.delete');
         Route::post('dashboard/buscar-producto', 'dash_buscar_producto')->name('dashboard.buscar.producto');
         Route::get('dashboard/productos/buscar-partes', 'buscarPartes')->name('producto.buscar.partes');
         Route::post('dashboard/buscar-producto-oferta', 'dash_buscar_producto_oferta')->name('dashboard.buscar.producto.oferta');
@@ -161,6 +180,20 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
 
 
     });
+});
+
+// Biblioteca de imágenes (subida masiva con códigos) y Excel de productos (precio e imágenes).
+Route::middleware('admin')->group(function () {
+    Route::get('dashboard/imagenes', [BibliotecaImagenesController::class, 'index'])->name('dashboard.imagenes');
+    Route::post('dashboard/imagenes', [BibliotecaImagenesController::class, 'store'])->name('dashboard.imagenes.store');
+    Route::patch('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'update'])->name('dashboard.imagenes.update');
+    Route::delete('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'destroy'])->name('dashboard.imagenes.destroy');
+
+    Route::get('dashboard/productos/exportar-excel', [ExcelProductosController::class, 'exportar'])->name('dashboard.productos.exportar');
+    Route::get('dashboard/productos/importar-excel', [ExcelProductosController::class, 'importar'])->name('dashboard.productos.excel.importar');
+    Route::post('dashboard/productos/importar-excel', [ExcelProductosController::class, 'previsualizar'])->name('dashboard.productos.excel.previsualizar');
+    Route::get('dashboard/productos/importar-excel/{token}', [ExcelProductosController::class, 'preview'])->name('dashboard.productos.excel.preview');
+    Route::post('dashboard/productos/importar-excel/{token}/confirmar', [ExcelProductosController::class, 'confirmar'])->name('dashboard.productos.excel.confirmar');
 });
 
 Route::controller(DimensionController::class)->middleware('admin')->group(function () {
@@ -190,6 +223,25 @@ Route::controller(CaracteristicaController::class)->group(function () {
         Route::put('dashboard/caracteristicas-update', 'update')->name('caracteristicas.update');
         Route::delete('dashboard/caracteristicas-delete', 'delete')->name('caracteristicas.delete');
     });
+});
+
+// Extras: favicon, logos y colores del header y el footer.
+Route::controller(AparienciaController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/extras/favicon', 'favicon')->name('dashboard.extras.favicon');
+    Route::put('dashboard/extras/favicon', 'updateFavicon')->name('extras.favicon.update');
+    Route::get('dashboard/extras/barra-superior', 'barraSuperior')->name('dashboard.extras.barra-superior');
+    Route::put('dashboard/extras/barra-superior', 'updateBarraSuperior')->name('extras.barra-superior.update');
+    Route::get('dashboard/extras/header', 'header')->name('dashboard.extras.header');
+    Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
+    Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');
+    Route::put('dashboard/extras/footer', 'updateFooter')->name('extras.footer.update');
+});
+
+// Extras: imagen que muestran los productos sin portada.
+Route::controller(ImagenPorDefectoController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/extras/imagen-por-defecto', 'edit')->name('dashboard.extras.imagen-por-defecto');
+    Route::put('dashboard/extras/imagen-por-defecto', 'update')->name('extras.imagen-por-defecto.update');
+    Route::delete('dashboard/extras/imagen-por-defecto', 'destroy')->name('extras.imagen-por-defecto.destroy');
 });
 
 Route::controller(NovedadController::class)->group(function () {
@@ -391,6 +443,11 @@ Route::controller(DashboardController::class)->middleware(['admin'])->group(func
 Route::controller(ImagenController::class)->middleware('admin')->group(function () {
     Route::post('dashboard/home-slider', 'store')->name('imagen.store');
     Route::delete('dashboard/home-slider', 'delete')->name('imagen.delete');
+});
+
+Route::controller(HomeSliderController::class)->middleware('admin')->group(function () {
+    Route::post('dashboard/home-slider/media', 'store')->name('home-slider.store');
+    Route::put('dashboard/home-slider/{imagen}/media', 'update')->name('home-slider.update');
 });
 
 Route::middleware('auth')->group(function () {

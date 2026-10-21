@@ -103,7 +103,11 @@
     {{-- Lista --}}
     .app-lista { display:flex; flex-direction:column; gap:7px; margin-top:14px; }
     .app-item { display:flex; align-items:center; gap:8px; padding:7px 8px; border:1px solid #eef0f2;
-        border-radius:10px; background:#fbfcfd; animation:app-flash .8s ease-out; }
+        border-radius:10px; background:#fbfcfd; }
+    {{-- Sólo las filas recién agregadas destellan. Si la animación viviera en
+         .app-item, cualquier reordenamiento la volvería a disparar y taparía
+         el marcado de duplicados. --}}
+    .app-item.app-nueva { animation:app-flash .8s ease-out; }
     @keyframes app-flash { 0% { background:#e7f1ff; border-color:#bcd7ff; } 100% { background:#fbfcfd; } }
     .app-item.app-arrastrando { opacity:.45; }
     .app-item .app-orden { width:64px; flex:0 0 64px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
@@ -127,10 +131,12 @@
     .app-in-nombre { flex:0 0 clamp(90px, 22%, 220px); color:#0b5ed7; font-weight:600; font-size:12.5px; }
     .app-in-nombre:not(:placeholder-shown):not(:focus) { color:#495057; font-weight:500; }
     .app-in-valor { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing:.01em; }
-    {{-- Valor duplicado --}}
-    .app-item.app-dup { border-color:#ffe08a; background:#fffbeb; }
-    .app-item.app-dup .app-in-valor { color:#92400e; }
-    .app-item.app-dup .app-in-valor::placeholder { color:#d3a04c; }
+    {{-- Valor duplicado: rojo fijo, sin animación que lo tape ni al agregar ni
+         al reordenar. --}}
+    .app-item.app-dup { border-color:#dc2626; background:#fee2e2; box-shadow:0 0 0 1px #dc2626;
+        animation:none; }
+    .app-item.app-dup .app-in-valor { color:#b91c1c; font-weight:600; border-color:#fca5a5; }
+    .app-item.app-dup .app-in-valor::placeholder { color:#e9a3a3; }
 
     .app-actions { display:flex; gap:3px; opacity:.5; transition:opacity .15s; flex-shrink:0; }
     .app-item:hover .app-actions, .app-item:focus-within .app-actions { opacity:1; }
@@ -245,6 +251,7 @@
         var sel = document.querySelector('[data-app-orden-mode]');
         var modo = sel ? sel.value : 'manual';
         var nodos = Array.prototype.slice.call(lista.querySelectorAll('.app-item'));
+        var orden0 = nodos.slice();
         nodos.forEach(function (n, i) { n.dataset.__ordenIdx = i; });
 
         nodos.sort(function (a, b) {
@@ -268,7 +275,11 @@
 
         if (modo === 'alfa_desc') nodos.reverse();
 
-        nodos.forEach(function (n) { lista.appendChild(n); });
+        // Mover nodos que ya están en su lugar reinicia sus animaciones y le
+        // roba el foco al input que se está editando: sólo reubicar si el
+        // orden calculado difiere del actual.
+        var cambio = nodos.some(function (n, i) { return orden0[i] !== n; });
+        if (cambio) nodos.forEach(function (n) { lista.appendChild(n); });
 
         var deshabilitar = (modo !== 'manual');
         nodos.forEach(function (n) {
@@ -307,8 +318,11 @@
     function agregarFila(nombre, valor, enfocar) {
         quitarVacio();
         var fila = document.createElement('div');
-        fila.className = 'app-item';
+        fila.className = 'app-item app-nueva';
         fila.setAttribute('role', 'listitem');
+        fila.addEventListener('animationend', function () {
+            fila.classList.remove('app-nueva');
+        }, { once: true });
         fila.innerHTML =
             '<input type="text" class="app-in app-orden" name="aplic_orden[]" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">' +
             '<input type="text" class="app-in app-in-nombre" name="aplic_nombre[]" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">' +

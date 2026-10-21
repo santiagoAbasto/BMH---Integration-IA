@@ -16,6 +16,10 @@
         <div>
             <h2 class="prt-title">Partes relacionadas</h2>
             <p class="prt-subtitle">Asociá repuestos o accesorios que complementan este producto.</p>
+            <p class="prt-reciproca">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/></svg>
+                <span>La relación va en los dos sentidos: al guardar, cada parte que agregues también va a tener a este producto entre sus partes relacionadas, y si la quitás, se quita de las dos.</span>
+            </p>
         </div>
         <span class="prt-count-badge"><span data-prt-count>{{ $partesRelacionadas->count() }}</span> agregadas</span>
     </div>
@@ -64,7 +68,7 @@
         @forelse ($partesRelacionadas as $parte)
             <div class="prt-item" data-id="{{ $parte->id }}" data-nombre="{{ $parte->nombre }}">
                 <input type="text" class="prt-orden" name="parte_orden[]" value="{{ $parte->pivot->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
-                <img class="prt-thumb" src="{{ $parte->portadaUrl() ?? asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}" alt="">
+                <img class="prt-thumb" src="{{ $parte->portadaUrl() }}" alt="">
                 <div class="prt-info">
                     <span class="prt-code">{{ $parte->codigo }}</span>
                     <span class="prt-name">{{ $parte->nombre }}</span>
@@ -88,6 +92,9 @@
     .prt-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .prt-title { font-size:17px; font-weight:600; color:#212529; margin:0; }
     .prt-subtitle { font-size:13px; color:#6c757d; margin:2px 0 0; }
+    .prt-reciproca { display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:1.4; color:#00699A;
+        background:#EAF6FC; border:1px solid #CDE8F6; border-radius:8px; padding:6px 10px; margin:8px 0 0; max-width:640px; }
+    .prt-reciproca svg { flex:none; margin-top:2px; }
     .prt-count-badge { flex-shrink:0; background:#e7f1ff; color:#0b5ed7; font-size:12px; font-weight:600;
         border-radius:999px; padding:4px 10px; }
     .prt-search-wrap { position:relative; }
@@ -252,7 +259,7 @@
 
     function agregarParte(p) {
         if (lista.querySelector('.prt-item[data-id="' + p.id + '"]')) return;
-        var placeholder = 'imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg';
+        var placeholder = '{{ App\Models\Producto::imagenPredeterminadaUrl() }}';
         var fila = document.createElement('div');
         fila.className = 'prt-item';
         fila.dataset.id = p.id;
@@ -299,7 +306,7 @@
         if (!items.length) {
             resultados.innerHTML = '<li class="prt-sin-resultados">Sin resultados para &ldquo;' + escapar(q) + '&rdquo;</li>';
         } else {
-            var placeholder = 'imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg';
+            var placeholder = '{{ App\Models\Producto::imagenPredeterminadaUrl() }}';
             items.forEach(function (p) {
                 var li = document.createElement('li');
                 li.className = 'prt-opcion';

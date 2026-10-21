@@ -15,9 +15,10 @@
 
     <section style='padding-top:78px;padding-bottom:82px;'>
         <div class='container'>            
-            <div class='row'>
+            <div class='row categorias-grilla'>
                 @foreach($categorias as $categoria)
-                    <div class='col-lg-3' style='margin-bottom:24px;' data-aos="fade-up">
+                    {{-- 6 por fila en pantallas grandes, 4 / 3 / 2 al achicarse. --}}
+                    <div class='col-6 col-md-4 col-lg-3 col-xl-2' style='margin-bottom:24px;' data-aos="fade-up">
                         @include('components/categoria')
                     </div>
                 @endforeach

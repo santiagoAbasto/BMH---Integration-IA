@@ -1,0 +1,591 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Catalogo;
+
+use App\Models\Categoria;
+use App\Models\Producto;
+use App\Services\BuscadorCatalogo;
+use App\Services\BusquedaPorEquivalencia;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * El catálogo filtrado: qué productos se muestran y cuántos quedarían con
+ * cada opción de cada filtro del sidebar.
+ *
+ * Se arma en dos pasos:
+ *
+ *  1. Un «pool» liviano (sólo las columnas que se filtran): el resultado de
+ *     la búsqueda de texto si la hay, o el catálogo publicado entero. Son a lo
+ *     sumo ~5.000 filas chicas.
+ *  2. Los filtros se aplican en PHP sobre ese pool. Así cada contador del
+ *     sidebar sale de aplicar todos los filtros menos el propio («si además
+ *     elegís Bosch quedan 12»), sin una consulta por opción.
+ *
+ * La búsqueda de texto, que es lo caro, corre una sola vez por pedido.
+ */
+final class CatalogoFiltrado
+{
+    /** Lo que necesita la card de producto (frontend.components.productoBmh). */
+    public const RELACIONES_CARD = [
+        'categoria',
+        'portadaImagen',
+        'imagenesGaleria',
+        'productCaracteristicas.caracteristica',
+        'partesRelacionadas.portadaImagen',
+        'partesRelacionadas.imagenesGaleria',
+        'equivalencias',
+        'aplicaciones',
+    ];
+
+    private const COLUMNAS = ['productos.id', 'codigo', 'nombre', 'marca', 'modelo', 'categoria_id', 'orden', 'estado'];
+
+    /** Campos de la categoría que no sirven como filtro de medidas. */
+    private const ATRIBUTOS_EXCLUIDOS = ['MARCA', 'APLICACION'];
+
+    /**
+     * Cuánto pesa no cumplir cada filtro al elegir los parecidos: más pesa,
+     * más se parece a lo pedido. La categoría vale más que todo lo demás junto.
+     */
+    private const PESOS_PARECIDOS = [
+        'categoria' => 30,
+        'equivalencia' => 8,
+        'modelo' => 6,
+        'vehiculo' => 5,
+        'marca' => 4,
+        'atributo' => 2,
+        'estado' => 1,
+    ];
+
+    /** Valores que en la base significan «sin dato». */
+    private const SIN_DATO = ['', '-', '--', '.', 'N/A', 'S/D'];
+
+    /** @var array{0: string, 1: Collection<int, Producto>}|null */
+    private ?array $ultimaBusqueda = null;
+
+    public function __construct(
+        private readonly BuscadorCatalogo $buscador,
+        private readonly BusquedaPorEquivalencia $equivalencias,
+    ) {
+    }
+
+    /**
+     * @param  bool  $modelosDeTodasLasMarcas  sin marca elegida, calcular también
+     *         los modelos de todas las marcas: pueden ser miles, así que no van en
+     *         la página y el desplegable los pide al abrirse (?parcial=modelos)
+     */
+    public function filtrar(FiltrosCatalogo $filtros, bool $modelosDeTodasLasMarcas = false): ResultadoCatalogo
+    {
+        $columnasAtributo = $filtros->categoria !== null ? $this->atributosFiltrables($filtros->categoria) : [];
+        // Objetos planos: los filtros leen estos campos miles de veces y el
+        // acceso a atributos de Eloquent pesa.
+        $pool = $this->pool($filtros, array_keys($columnasAtributo))
+            ->map(fn (Producto $p) => (object) $p->getAttributes());
+        $aplicaciones = $this->aplicacionesDe($pool);
+
+        $gradosEquivalencia = $filtros->equivalencia !== null
+            ? $this->equivalencias->coincidencias($filtros->equivalencia)
+            : [];
+
+        $predicados = $this->predicados($filtros, $aplicaciones, $gradosEquivalencia, $columnasAtributo);
+        $cumple = fn (object $p, ?string $salvo = null): bool => $this->cumple($p, $predicados, $salvo);
+
+        $resultado = $pool->filter(fn (object $p) => $cumple($p))->values();
+
+        // Con el filtro de equivalencia y sin texto, las exactas primero.
+        if ($filtros->equivalencia !== null && ! $filtros->hayBusqueda()) {
+            $resultado = $resultado->sortBy(fn (object $p) => $gradosEquivalencia[$p->id] ?? 9)->values();
+        }
+
+        if ($filtros->orden !== null) {
+            $resultado = self::ordenarPorCodigo($resultado, $filtros->orden);
+        }
+
+        $sinCategoria = $pool->filter(fn (object $p) => $cumple($p, 'categoria'));
+
+        $conModelo = $pool->filter(fn (object $p) => $cumple($p, 'modelo'));
+        $modelos = [];
+        $marcasDeModelos = [];
+        if ($filtros->vehiculo !== null) {
+            $modelos = $this->contar($conModelo, fn (object $p) => $aplicaciones[$p->id][$filtros->vehiculo] ?? []);
+        } elseif ($modelosDeTodasLasMarcas) {
+            $modelos = $this->contar($conModelo, fn (object $p) => self::modelosDe($aplicaciones[$p->id] ?? []));
+            $marcasDeModelos = self::marcasDeModelos($conModelo, $aplicaciones);
+        }
+
+        return new ResultadoCatalogo(
+            ids: $resultado->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            totalSinCategoria: $sinCategoria->count(),
+            categorias: $this->contar($sinCategoria, fn (object $p) => [$p->categoria_id]),
+            estados: $this->contar(
+                $pool->filter(fn (object $p) => $cumple($p, 'estado')),
+                fn (object $p) => [(int) $p->estado]
+            ),
+            marcas: $this->contar(
+                $pool->filter(fn (object $p) => $cumple($p, 'marca')),
+                fn (object $p) => [self::normalizar($p->marca)]
+            ),
+            // Con un modelo elegido, cada producto cuenta sólo en las marcas en
+            // que tiene ese modelo: uno que va en Ford Falcon y Fiat 147 no
+            // ofrece Fiat para el Falcon (daría cero resultados).
+            vehiculos: $this->contar(
+                $pool->filter(fn (object $p) => $cumple($p, 'vehiculo')),
+                fn (object $p) => array_keys($filtros->modelo === null
+                    ? $aplicaciones[$p->id] ?? []
+                    : array_filter($aplicaciones[$p->id] ?? [], fn (array $modelos) => in_array($filtros->modelo, $modelos, true)))
+            ),
+            modelos: $modelos,
+            atributos: $this->opcionesDeAtributos($pool, $columnasAtributo, $cumple, $filtros->atributos),
+            marcasDeModelos: $marcasDeModelos,
+        );
+    }
+
+    /**
+     * Cuando nada cumple todo: los productos que cumplen la mayor parte.
+     *
+     * Si el texto buscado no encontró nada, primero se busca lo parecido
+     * (BuscadorCatalogo::buscarParecidos: errores de tipeo, palabras sueltas).
+     * Después cada producto se agrupa según qué filtros no cumple y ganan los
+     * que dejan afuera lo menos importante (PESOS_PARECIDOS): una medida
+     * antes que la marca, la marca antes que la categoría.
+     *
+     * Sin texto, un producto que no cumple ningún filtro no se parece en nada:
+     * no se ofrece.
+     */
+    public function parecidos(FiltrosCatalogo $filtros, int $limite): ?ParecidosCatalogo
+    {
+        $columnasAtributo = $filtros->categoria !== null ? $this->atributosFiltrables($filtros->categoria) : [];
+        $termino = null;
+        $parcial = false;
+
+        $pool = $this->pool($filtros, array_keys($columnasAtributo));
+        if ($pool->isEmpty() && $filtros->hayBusqueda()) {
+            $alternativa = $this->buscador->buscarParecidos($filtros->q, array_keys($columnasAtributo));
+            [$pool, $termino, $parcial] = [$alternativa['productos'], $alternativa['termino'], $alternativa['parcial']];
+        }
+        $pool = $pool->map(fn (Producto $p) => (object) $p->getAttributes());
+
+        $aplicaciones = $this->aplicacionesDe($pool);
+        $gradosEquivalencia = $filtros->equivalencia !== null
+            ? $this->equivalencias->coincidencias($filtros->equivalencia)
+            : [];
+        $predicados = $this->predicados($filtros, $aplicaciones, $gradosEquivalencia, $columnasAtributo);
+
+        /** @var array<string, array{faltan: list<string>, peso: int, productos: list<object>}> $grupos */
+        $grupos = [];
+        foreach ($pool as $producto) {
+            $faltan = array_keys(array_filter($predicados, fn (\Closure $cumple) => ! $cumple($producto)));
+            if (! $filtros->hayBusqueda() && $predicados !== [] && count($faltan) === count($predicados)) {
+                continue;
+            }
+            $clave = implode('|', $faltan);
+            $grupos[$clave] ??= [
+                'faltan' => $faltan,
+                'peso' => array_sum(array_map(fn (string $f) => self::PESOS_PARECIDOS[explode(':', $f)[0]] ?? 1, $faltan)),
+                'productos' => [],
+            ];
+            $grupos[$clave]['productos'][] = $producto;
+        }
+
+        if ($grupos === []) {
+            return null;
+        }
+
+        // Gana el que menos deja afuera; a igual peso, el grupo más grande. Se
+        // muestra sólo ese: así el aviso dice exactamente qué no cumplen.
+        uasort($grupos, fn (array $a, array $b) => [$a['peso'], count($b['productos'])] <=> [$b['peso'], count($a['productos'])]);
+        $elegido = reset($grupos);
+
+        $productos = collect($elegido['productos']);
+        if ($filtros->orden !== null) {
+            $productos = self::ordenarPorCodigo($productos, $filtros->orden);
+        }
+
+        return new ParecidosCatalogo(
+            ids: $productos->take($limite)->map(fn (object $p) => (int) $p->id)->values()->all(),
+            sinFiltros: $elegido['faltan'],
+            total: $productos->count(),
+            termino: $termino,
+            parcial: $parcial,
+        );
+    }
+
+    /**
+     * Los modelos de un producto en todas sus marcas, sin repetir (un mismo
+     * producto que va en el Corsa de Chevrolet y de Opel cuenta una vez).
+     *
+     * @param  array<string, list<string>>  $porMarca  vehículo => [modelos]
+     * @return list<string>
+     */
+    private static function modelosDe(array $porMarca): array
+    {
+        return $porMarca === [] ? [] : array_values(array_unique(array_merge(...array_values($porMarca))));
+    }
+
+    /**
+     * De qué marcas es cada modelo, para distinguir en la lista los que se
+     * llaman igual (Corsa: Chevrolet, Opel).
+     *
+     * @param  Collection<int, object>  $productos
+     * @param  array<int, array<string, list<string>>>  $aplicaciones
+     * @return array<string, list<string>>  modelo => [marcas]
+     */
+    private static function marcasDeModelos(Collection $productos, array $aplicaciones): array
+    {
+        $marcas = [];
+        foreach ($productos as $producto) {
+            foreach ($aplicaciones[$producto->id] ?? [] as $marca => $modelos) {
+                foreach ($modelos as $modelo) {
+                    $marcas[$modelo][$marca] = true;
+                }
+            }
+        }
+
+        return array_map(function (array $porMarca): array {
+            $lista = array_keys($porMarca);
+            sort($lista, SORT_NATURAL | SORT_FLAG_CASE);
+
+            return $lista;
+        }, $marcas);
+    }
+
+    /**
+     * Los productos de una página, con todo lo que muestra la card.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Producto>
+     */
+    public function productos(array $ids): Collection
+    {
+        if ($ids === []) {
+            return collect();
+        }
+
+        $orden = array_flip($ids);
+
+        return Producto::with(self::RELACIONES_CARD)
+            ->whereIn('id', $ids)
+            ->get()
+            ->sortBy(fn (Producto $p) => $orden[$p->id])
+            ->values();
+    }
+
+    /**
+     * Medidas y atributos por los que se puede filtrar una categoría: sus
+     * columnas con nombre, salvo las de equivalencias (tienen su propio
+     * filtro) y las que repiten otro filtro.
+     *
+     * @return array<string, string> columna_N => nombre
+     */
+    public function atributosFiltrables(int $categoriaId): array
+    {
+        $categoria = Categoria::find($categoriaId);
+
+        if ($categoria === null) {
+            return [];
+        }
+
+        $columnas = [];
+        foreach ($categoria->getAttributes() as $columna => $nombre) {
+            $nombre = trim((string) $nombre);
+            $clave = strtoupper(Str::ascii($nombre));
+
+            if (preg_match('/^columna_\d+$/', $columna)
+                && $nombre !== ''
+                && ! in_array($clave, self::ATRIBUTOS_EXCLUIDOS, true)
+                && ! BusquedaPorEquivalencia::esCampoDeEquivalencia($nombre)) {
+                $columnas[$columna] = $nombre;
+            }
+        }
+
+        return $columnas;
+    }
+
+    /** Mayúsculas, sin espacios de más: así «Bosch » y «BOSCH» son lo mismo. */
+    public static function normalizar(?string $valor): string
+    {
+        $valor = trim((string) preg_replace('/\s+/u', ' ', (string) $valor));
+
+        return in_array(mb_strtoupper($valor), self::SIN_DATO, true) ? '' : mb_strtoupper($valor);
+    }
+
+    /** «MERCEDES BENZ (MB)» y «Mercedes Benz» son el mismo vehículo. */
+    public static function normalizarVehiculo(?string $valor): string
+    {
+        return self::normalizar(preg_replace('/\s*\([^)]*\)\s*$/u', '', (string) $valor));
+    }
+
+    // ------------------------------------------------------------------ pool
+
+    /**
+     * @param  list<string>  $columnasAtributo
+     * @return Collection<int, Producto>
+     */
+    private function pool(FiltrosCatalogo $filtros, array $columnasAtributo): Collection
+    {
+        if ($filtros->hayBusqueda()) {
+            // Sin resultados, parecidos() vuelve a pedir la misma búsqueda.
+            $clave = $filtros->q.'|'.implode(',', $columnasAtributo);
+            if ($this->ultimaBusqueda === null || $this->ultimaBusqueda[0] !== $clave) {
+                $this->ultimaBusqueda = [$clave, $this->buscador->buscar($filtros->q, $columnasAtributo)];
+            }
+
+            return $this->ultimaBusqueda[1];
+        }
+
+        $consulta = Producto::query()
+            ->select([...self::COLUMNAS, ...$columnasAtributo])
+            // Los ocultos (estado = 0) no se le ofrecen al visitante.
+            ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0));
+
+        return $consulta->ordenado()->get();
+    }
+
+    /**
+     * Orden por código.
+     *
+     * «Numérico»: por el número del código, sin importar las letras de
+     * adelante (0094, IMPO100, A192, PND841, 1060). Con varios números
+     * (LASX 43-48) cuenta el primero; a igual número desempatan las letras
+     * (IMPO100 antes que REG100); los códigos sin número van al final.
+     *
+     * «Alfabético»: por la palabra de adelante y después el número como
+     * número (A192, IMPO100, IMPO1746, PND841); los que empiezan con un
+     * número van después, ordenados por ese número.
+     *
+     * @param  Collection<int, object>  $productos
+     * @return Collection<int, object>
+     */
+    private static function ordenarPorCodigo(Collection $productos, string $orden): Collection
+    {
+        $numerico = $orden === FiltrosCatalogo::ORDEN_NUMERICO;
+
+        return $productos->sort(function (object $a, object $b) use ($numerico): int {
+            $codigoA = trim((string) $a->codigo);
+            $codigoB = trim((string) $b->codigo);
+
+            $comparacion = $numerico
+                ? self::compararPorNumero($codigoA, $codigoB)
+                : self::compararPorLetras($codigoA, $codigoB);
+
+            return $comparacion ?: (int) $a->id <=> (int) $b->id;
+        })->values();
+    }
+
+    private static function compararPorNumero(string $a, string $b): int
+    {
+        $numeroA = self::primerNumero($a);
+        $numeroB = self::primerNumero($b);
+
+        if ($numeroA === null || $numeroB === null) {
+            return ($numeroA === null) <=> ($numeroB === null) ?: strnatcasecmp($a, $b);
+        }
+
+        // Como cantidad y no como texto: 192 antes que 1060. Comparar largo y
+        // después dígitos sirve para cualquier largo, sin pasar por int.
+        return [strlen($numeroA), $numeroA] <=> [strlen($numeroB), $numeroB] ?: strnatcasecmp($a, $b);
+    }
+
+    private static function compararPorLetras(string $a, string $b): int
+    {
+        $empiezaConNumeroA = ctype_digit(substr($a, 0, 1));
+        $empiezaConNumeroB = ctype_digit(substr($b, 0, 1));
+
+        if ($empiezaConNumeroA || $empiezaConNumeroB) {
+            return $empiezaConNumeroA <=> $empiezaConNumeroB ?: self::compararPorNumero($a, $b);
+        }
+
+        // No strnatcasecmp: con ceros a la izquierda pondría CZB090 antes que CZB33.
+        return strcasecmp(self::palabra($a), self::palabra($b)) ?: self::compararPorNumero($a, $b);
+    }
+
+    /** Las letras de adelante del código, hasta el primer número ("LASX 43-48" → "LASX"). */
+    private static function palabra(string $codigo): string
+    {
+        return trim((string) preg_replace('/\d.*$/s', '', $codigo), " -_./");
+    }
+
+    /** El primer número del código sin ceros a la izquierda ("0094" → "94"), o null si no tiene. */
+    private static function primerNumero(string $codigo): ?string
+    {
+        if (! preg_match('/\d+/', $codigo, $m)) {
+            return null;
+        }
+
+        return ltrim($m[0], '0') ?: '0';
+    }
+
+    /**
+     * Vehículos (marca → modelos) de cada producto del pool.
+     *
+     * @param  Collection<int, Producto>  $pool
+     * @return array<int, array<string, list<string>>> producto_id => [vehículo => [modelos]]
+     */
+    private function aplicacionesDe(Collection $pool): array
+    {
+        if ($pool->isEmpty()) {
+            return [];
+        }
+
+        $ids = $pool->pluck('id')->flip();
+        $consulta = DB::table('aplicaciones')->select(['producto_id', 'nombre', 'valor']);
+
+        // Con medio catálogo, traer la tabla entera es más barato que un IN enorme.
+        $filas = $ids->count() > 1500
+            ? $consulta->get()
+            : $consulta->whereIn('producto_id', $ids->keys())->get();
+
+        $mapa = [];
+        foreach ($filas as $fila) {
+            if (! isset($ids[$fila->producto_id])) {
+                continue;
+            }
+            $vehiculo = self::normalizarVehiculo($fila->nombre);
+            if ($vehiculo === '') {
+                continue;
+            }
+            $modelos = $mapa[$fila->producto_id][$vehiculo] ?? [];
+            $modelo = self::normalizar($fila->valor);
+            if ($modelo !== '' && ! in_array($modelo, $modelos, true)) {
+                $modelos[] = $modelo;
+            }
+            $mapa[$fila->producto_id][$vehiculo] = $modelos;
+        }
+
+        return $mapa;
+    }
+
+    // ------------------------------------------------------------- filtros
+
+    /**
+     * Un predicado por filtro activo, con el nombre de la faceta que lo omite
+     * al contar sus propias opciones.
+     *
+     * @param  array<int, array<string, list<string>>>  $aplicaciones
+     * @param  array<int, int>  $gradosEquivalencia
+     * @param  array<string, string>  $columnasAtributo
+     * @return array<string, \Closure(object): bool>
+     */
+    private function predicados(FiltrosCatalogo $f, array $aplicaciones, array $gradosEquivalencia, array $columnasAtributo): array
+    {
+        $predicados = [];
+
+        if ($f->categoria !== null) {
+            $predicados['categoria'] = fn (object $p) => (int) $p->categoria_id === $f->categoria;
+        }
+        if ($f->estados !== []) {
+            $predicados['estado'] = fn (object $p) => in_array((int) $p->estado, $f->estados, true);
+        }
+        if ($f->marca !== null) {
+            $predicados['marca'] = fn (object $p) => self::normalizar($p->marca) === $f->marca;
+        }
+        if ($f->vehiculo !== null) {
+            $predicados['vehiculo'] = fn (object $p) => isset($aplicaciones[$p->id][$f->vehiculo]);
+        }
+        if ($f->modelo !== null) {
+            // Con marca, el modelo de esa marca; sin marca, el modelo en cualquiera.
+            $predicados['modelo'] = $f->vehiculo !== null
+                ? fn (object $p) => in_array($f->modelo, $aplicaciones[$p->id][$f->vehiculo] ?? [], true)
+                : fn (object $p) => in_array($f->modelo, self::modelosDe($aplicaciones[$p->id] ?? []), true);
+        }
+        if ($f->equivalencia !== null) {
+            $predicados['equivalencia'] = fn (object $p) => isset($gradosEquivalencia[$p->id]);
+        }
+        foreach ($f->atributos as $columna => $valor) {
+            if (isset($columnasAtributo[$columna])) {
+                $predicados['atributo:'.$columna] = fn (object $p) => self::normalizar($p->{$columna}) === $valor;
+            }
+        }
+
+        return $predicados;
+    }
+
+    /** @param  array<string, \Closure(object): bool>  $predicados */
+    private function cumple(object $producto, array $predicados, ?string $salvo): bool
+    {
+        foreach ($predicados as $nombre => $predicado) {
+            if ($nombre !== $salvo && ! $predicado($producto)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  Collection<int, object>  $productos
+     * @param  callable(object): array<int|string>  $claves
+     * @return array<int|string, int>
+     */
+    private function contar(Collection $productos, callable $claves): array
+    {
+        $conteo = [];
+        foreach ($productos as $producto) {
+            foreach ($claves($producto) as $clave) {
+                if ($clave === '' || $clave === null) {
+                    continue;
+                }
+                $conteo[$clave] = ($conteo[$clave] ?? 0) + 1;
+            }
+        }
+
+        return $conteo;
+    }
+
+    /**
+     * Las opciones de cada medida, ordenadas como números cuando lo son
+     * (12, 24, 125 y no 12, 125, 24). Una medida con un solo valor no filtra
+     * nada y no se ofrece, salvo que ya esté elegida (hay que poder sacarla).
+     *
+     * @param  Collection<int, Producto>  $pool
+     * @param  array<string, string>  $columnas
+     * @param  array<string, string>  $elegidos
+     * @return array<string, array{etiqueta: string, opciones: array<string, int>}>
+     */
+    /**
+     * Por el número de adelante y después como texto: 4MM, 4.4MM, 4.7MM, 12MM,
+     * 125MM. Con la unidad pegada, el orden natural solo ponía 4.4MM antes que
+     * 4MM (compara el punto con la M).
+     */
+    private static function compararMedidas(string $a, string $b): int
+    {
+        $numeroA = preg_match('/^\d+(?:\.\d+)?/', $a, $ma) === 1 ? (float) $ma[0] : null;
+        $numeroB = preg_match('/^\d+(?:\.\d+)?/', $b, $mb) === 1 ? (float) $mb[0] : null;
+
+        // Primero las medidas con número; los textos sueltos al final.
+        if (($numeroA === null) !== ($numeroB === null)) {
+            return $numeroA === null ? 1 : -1;
+        }
+        if ($numeroA !== null && $numeroB !== null && $numeroA !== $numeroB) {
+            return $numeroA <=> $numeroB;
+        }
+        // Mismo número: primero el valor simple (12V antes que 12/24V).
+        if ($numeroA !== null && $numeroB !== null && strlen($a) !== strlen($b)) {
+            return strlen($a) <=> strlen($b);
+        }
+
+        return strnatcasecmp($a, $b);
+    }
+
+    private function opcionesDeAtributos(Collection $pool, array $columnas, callable $cumple, array $elegidos): array
+    {
+        $atributos = [];
+
+        foreach ($columnas as $columna => $etiqueta) {
+            $opciones = $this->contar(
+                $pool->filter(fn (object $p) => $cumple($p, 'atributo:'.$columna)),
+                fn (object $p) => [self::normalizar($p->{$columna})]
+            );
+            uksort($opciones, fn ($a, $b) => self::compararMedidas((string) $a, (string) $b));
+
+            if (count($opciones) > 1 || isset($elegidos[$columna])) {
+                $atributos[$columna] = ['etiqueta' => $etiqueta, 'opciones' => $opciones];
+            }
+        }
+
+        return $atributos;
+    }
+}

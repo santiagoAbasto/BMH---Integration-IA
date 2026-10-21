@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Image;
+use App\Services\LogosSitio;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Impuesto;
 
@@ -29,6 +30,41 @@ class Producto extends Model
     public static function normalizarModoOrden($valor): string
     {
         return in_array($valor, self::MODOS_ORDEN, true) ? (string) $valor : self::ORDEN_MANUAL;
+    }
+
+    /**
+     * Orden de los productos: el manual (campo `orden`), y por nombre entre
+     * los que lo comparten.
+     */
+    public function scopeOrdenado($query)
+    {
+        return $query->orderBy('orden')->orderBy('nombre')->orderBy('id');
+    }
+
+    /**
+     * El buscador del listado del admin (y el Excel que descarga lo mismo):
+     * el texto en el código, nombre, descripción o categoría, con los códigos
+     * que coinciden primero (exacto, empieza con, contiene).
+     */
+    public function scopeBusquedaAdmin($query, string $texto)
+    {
+        $texto = strtolower(trim($texto));
+        if ($texto === '') {
+            return $query;
+        }
+        $like = '%'.$texto.'%';
+
+        return $query
+            ->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(nombre) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(codigo) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(descripcion) LIKE ?', [$like])
+                    ->orWhereHas('categoria', fn ($c) => $c->whereRaw('LOWER(nombre) LIKE ?', [$like]));
+            })
+            ->orderByRaw(
+                'CASE WHEN LOWER(codigo) = ? THEN 0 WHEN LOWER(codigo) LIKE ? THEN 1 WHEN LOWER(codigo) LIKE ? THEN 2 ELSE 3 END',
+                [$texto, $texto.'%', $like]
+            );
     }
 
     protected $fillable = [
@@ -82,12 +118,18 @@ class Producto extends Model
      */
     public function galeriaUrls(): array
     {
+        $portadaUrl = $this->portadaUrl();
+        if ($portadaUrl === self::imagenPredeterminadaUrl()) {
+            return [$portadaUrl];
+        }
+
         $imagenes = $this->relationLoaded('imagenesGaleria')
             ? $this->imagenesGaleria
             : $this->imagenesGaleria()->get();
 
-        $urls = [];
+        $urls = [$portadaUrl];
         foreach ($imagenes as $img) {
+            if ($img->tipo === 'portada') continue;
             if (empty($img->path)) continue;
             $abs = public_path('imagenes/' . $img->path);
             if (is_file($abs)) {
@@ -95,20 +137,31 @@ class Producto extends Model
             }
         }
         $urls = array_values(array_unique($urls));
-        if (empty($urls)) {
-            $placeholder = asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg');
-            // Incluir placeholder como única imagen si no hay válidas
-            $urls = [$placeholder];
-        }
         return $urls;
+    }
+
+    /**
+     * La imagen que muestra un producto sin portada: la que se cargó en
+     * admin → Extras → Imagen por defecto, o si no hay, la de BMH.
+     */
+    public static function imagenPredeterminadaUrl(): string
+    {
+        return app(LogosSitio::class)->urlSiExiste(LogosSitio::PRODUCTO_DEFECTO)
+            ?? self::imagenPredeterminadaBmhUrl();
+    }
+
+    /** El SVG con el logo del sitio que se usa cuando no se cargó una propia. */
+    public static function imagenPredeterminadaBmhUrl(): string
+    {
+        return route('producto.placeholder');
     }
 
     /**
      * URL de la portada sólo si el archivo existe en disco. La base tiene
      * referencias a imágenes que no están en el filesystem (ver
-     * docs/data-quality-report.md §6): preferimos el placeholder a un 404.
+     * docs/data-quality-report.md §6): devolvemos el placeholder en vez de un 404.
      */
-    public function portadaUrl(): ?string
+    public function portadaUrl(): string
     {
         $path = $this->portadaImagen?->path;
 
@@ -116,7 +169,7 @@ class Producto extends Model
             return asset('imagenes/' . $path);
         }
 
-        return null;
+        return self::imagenPredeterminadaUrl();
     }
 
     public function usos(){
@@ -141,6 +194,17 @@ class Producto extends Model
     // public function caracteristicas(){
     //     return $this->belongsToMany('App\Models\Caracteristica');
     // }
+    /**
+     * Características con valor del producto, tal como se muestran en el sitio.
+     *
+     * La categoría es la que manda: sólo salen las que están tildadas en
+     * dashboard → Categorías. Al destildar una característica su fila de
+     * `producto_caracteristica` no se borra (así el valor vuelve si se la
+     * vuelve a tildar), por eso el filtro va acá y no en cada vista.
+     *
+     * Vienen ordenadas por el `orden` de la característica, único criterio
+     * para todas las vistas.
+     */
     public function productCaracteristicas()
     {
         return $this->hasMany(ProductCaracteristica::class, 'producto_id')
@@ -155,7 +219,19 @@ class Producto extends Model
                     ->whereColumn('pc_latest.producto_id', 'producto_caracteristica.producto_id')
                     ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
                     ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
-            });
+            })
+            // Sólo las características que la categoría del producto declara.
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('categoria_caracteristica as cc')
+                    ->join('productos as p', 'p.categoria_id', '=', 'cc.categoria_id')
+                    ->whereColumn('p.id', 'producto_caracteristica.producto_id')
+                    ->whereColumn('cc.caracteristica_id', 'producto_caracteristica.caracteristica_id')
+                    ->whereNull('cc.deleted_at');
+            })
+            // Las que no tienen `orden` van al final, como hacía cada vista.
+            ->orderByRaw('COALESCE((SELECT c.orden FROM caracteristicas c WHERE c.id = producto_caracteristica.caracteristica_id), 2147483647)')
+            ->orderBy('producto_caracteristica.id');
     }
 
 

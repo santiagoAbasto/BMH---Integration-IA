@@ -8,7 +8,7 @@
 
     <title inertia>{{ config('app.name', 'BMH') }}</title>
 
-    <link rel="icon" href="/favicon.ico">
+    @include('layouts.partials.favicon')
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|jetbrains-mono:400,500" rel="stylesheet">
 

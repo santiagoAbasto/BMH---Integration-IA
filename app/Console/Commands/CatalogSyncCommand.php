@@ -68,7 +68,7 @@ final class CatalogSyncCommand extends Command
                 $this->collectAnomalies($product, $stats['anomalies']);
 
                 $payload = $this->toDocument($product);
-                $hash    = hash('sha256', $payload['searchable_text'] . '|' . ($payload['list_price'] ?? ''));
+                $hash    = hash('sha256', $payload['searchable_text'] . '|' . ($payload['list_price'] ?? '') . '|' . (int) $payload['has_image']);
 
                 $existing = CatalogSearchDocument::query()
                     ->where('product_id', $product->id)

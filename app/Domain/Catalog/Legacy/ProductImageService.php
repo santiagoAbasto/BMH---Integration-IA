@@ -43,9 +43,9 @@ final class ProductImageService
         $grouped = [];
 
         foreach ($rows as $row) {
-            $path = trim((string) $row->path);
+            $path = $this->current(trim((string) $row->path));
 
-            if ($path === '' || ! $this->exists($path)) {
+            if ($path === null) {
                 continue;
             }
 
@@ -58,6 +58,25 @@ final class ProductImageService
     public function exists(string $filename): bool
     {
         return $this->existsCache[$filename] ??= is_file(public_path(self::PUBLIC_DIR . '/' . $filename));
+    }
+
+    /**
+     * Nombre con el que el archivo está hoy en disco, o null si no está.
+     * `imagenes:optimizar` pasa los PNG/JPG a WebP con el mismo nombre base;
+     * si esta conexión todavía guarda el nombre viejo, se usa el WebP.
+     */
+    public function current(string $filename): ?string
+    {
+        if ($filename === '') {
+            return null;
+        }
+        if ($this->exists($filename)) {
+            return $filename;
+        }
+
+        $webp = preg_replace('/\.(png|jpe?g)$/i', '.webp', $filename);
+
+        return $webp !== $filename && $this->exists($webp) ? $webp : null;
     }
 
     public function url(string $filename): string
@@ -85,7 +104,7 @@ final class ProductImageService
 
         foreach ($paths as $path) {
             $path = trim((string) $path);
-            if ($path !== '' && ! $this->exists($path)) {
+            if ($path !== '' && $this->current($path) === null) {
                 $missing[] = $path;
             }
         }

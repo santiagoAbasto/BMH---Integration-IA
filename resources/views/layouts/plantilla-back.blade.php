@@ -14,7 +14,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Administrador</title>
-  <link rel="icon" href="{{asset('imagenes/'.$logo2->path)}}" type="image/x-icon">
+  @include('layouts.partials.favicon')
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
   {{-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"> --}}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
@@ -322,7 +322,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
     }
   </style>
 </head>
-<body>
+<body class="@yield('body-class')">
   <div class="wrapper">
 
     <div class='container-fluid' style='max-width:100%;'>
@@ -330,7 +330,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
       <div class='row d-flex'>
         
         <!-- Barra lateral izquierda -->
-        <nav class="sidebar col-3 collapse show">
+        <nav id="sidebar" class="sidebar col-3 collapse @unless(View::hasSection('sidebar-collapsed')) show @endunless" aria-label="Menú de administración">
           <div style='padding:30px;height:150px;width:100%;'>
             <div style='background-image: url("{{asset('imagenes/'.$logo2->path)}}"); background-size: contain; background-position: center;background-repeat:no-repeat;
             width:100%;
@@ -374,6 +374,7 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
                 <div class="accordion-body">
                   <a class='nav-link menu-item' href="{{route('dashboard.categorias')}}">Categorías</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.productos')}}">Productos</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.imagenes')}}">Imágenes</a>
                   <a class='nav-link menu-item' href="{{route('dashboard.caracteristicas')}}">Caracteristicas</a>
 
                   {{-- <a class='nav-link menu-item' href="{{route('dashboard.medidas')}}">Medidas</a>
@@ -412,6 +413,23 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
                   </button>
                 </a>
               </h2>
+            </div>
+
+            <div class="accordion-item multiple">
+              <h2 class="accordion-header" id="extras">
+                <button class="accordion-button collapsed nav-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExtras" aria-expanded="false" aria-controls="collapseExtras">
+                  <i class="fa-solid fa-palette"></i> Extras
+                </button>
+              </h2>
+              <div id="collapseExtras" class="accordion-collapse collapse {{ request()->routeIs('dashboard.extras.*') ? 'show' : '' }}" aria-labelledby="extras">
+                <div class="accordion-body">
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.favicon')}}">Favicon</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.barra-superior')}}">Barra superior</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.header')}}">Header</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.footer')}}">Footer</a>
+                  <a class='nav-link menu-item' href="{{route('dashboard.extras.imagen-por-defecto')}}">Imagen por defecto</a>
+                </div>
+              </div>
             </div>
 
             <hr>

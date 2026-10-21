@@ -29,7 +29,8 @@
 
         </div>
         @endif
-        <div class="p-4 hoverGradient">
+        <div class="p-4 hoverGradient" data-gallery-open role="button" tabindex="0" aria-haspopup="dialog" aria-label="Ver fotos de {{ $producto->nombre }}"
+             @include('frontend.components.galeria-datos', ['productoGaleria' => $producto])>
             
             @if ($portadaUrl)
             <div class='producto-portada' style='position: relative; background-image: url("{{ $portadaUrl }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>
@@ -41,7 +42,7 @@
                 </div>
             </div>
             @else
-            <div class='producto-portada' style='position: relative; background-image: url("{{ asset('imagenes/WhatsApp-Image-2020-11-11-at-15.25.09.jpeg') }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>
+            <div class='producto-portada' style='position: relative; background-image: url("{{ $portadaUrl }}"); background-size: contain; background-position: center; background-repeat: no-repeat;'>
                 <div class="overlayThree">
                     <svg xmlns="http://www.w3.org/2000/svg" width="39" height="37" viewBox="0 0 39 37" fill="none">
                         <rect width="39" height="37" fill="#FCFCFC" fill-opacity="0.8"/>

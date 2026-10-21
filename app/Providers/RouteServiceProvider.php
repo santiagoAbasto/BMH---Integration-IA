@@ -42,6 +42,15 @@ class RouteServiceProvider extends ServiceProvider
             );
         });
 
+        /*
+        | Sugerencias del buscador del header. El JS ya espera a que se deje de
+        | tipear (debounce) y cancela lo viejo, así que un visitante normal
+        | queda muy lejos del techo; esto corta scrapers del catálogo.
+        */
+        RateLimiter::for('buscador', function (Request $request) {
+            return Limit::perMinute(120)->by('buscador:' . $request->ip());
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
