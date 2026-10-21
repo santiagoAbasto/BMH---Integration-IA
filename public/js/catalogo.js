@@ -701,6 +701,14 @@
     window.requestAnimationFrame(function () {
       pendiente = false;
       document.documentElement.style.setProperty('--catalogo-tope', tope() + 'px');
+      // El sidebar nunca pasa del borde de abajo de la pantalla: su alto es lo
+      // que queda desde donde empieza (debajo del breadcrumb mientras no quedó
+      // fijo, debajo del header cuando ya está fijo). Lo que no entra, scrollea adentro.
+      var sidebar = contenedor.querySelector('.catalogo__sidebar');
+      if (sidebar && !esCelular()) {
+        var desde = Math.max(sidebar.getBoundingClientRect().top, tope() + 20);
+        document.documentElement.style.setProperty('--catalogo-sidebar-alto', Math.max(200, Math.floor(window.innerHeight - desde - 20)) + 'px');
+      }
       arriba.classList.toggle('is-visible', window.scrollY > window.innerHeight * 1.5);
     });
   }
@@ -722,6 +730,10 @@
     header.addEventListener('transitionend', alHacerScroll);
     if (window.ResizeObserver) new ResizeObserver(alHacerScroll).observe(header);
   }
+  // Al cargar estilos, fuentes e imágenes la página se reacomoda sin que haya
+  // scroll: el sidebar se vuelve a medir para no pasarse de la pantalla.
+  window.addEventListener('load', alHacerScroll);
+  if (window.ResizeObserver) new ResizeObserver(alHacerScroll).observe(document.body);
 
   // ----------------------------------------------------------------- inicio
 

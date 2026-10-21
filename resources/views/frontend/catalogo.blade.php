@@ -18,7 +18,7 @@
 @endsection
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=6">
 @endsection
 
 @section('content')
@@ -33,5 +33,5 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('js/catalogo.js') }}?v=5"></script>
+    <script src="{{ asset('js/catalogo.js') }}?v=6"></script>
 @endsection

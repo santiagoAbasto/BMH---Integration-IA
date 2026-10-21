@@ -43,6 +43,8 @@
   max-height: calc(100vh - var(--catalogo-tope, 0px) - 40px);
   /* dvh: el alto real visible (sin las barras del navegador que aparecen y desaparecen). */
   max-height: calc(100dvh - var(--catalogo-tope, 0px) - 40px);
+  /* Con JS (catalogo.js): lo que queda de pantalla desde donde empieza, también antes de quedar fijo. */
+  max-height: var(--catalogo-sidebar-alto, calc(100dvh - var(--catalogo-tope, 0px) - 40px));
   background: #fff;
   border: 1px solid #E6EBEF;
   border-radius: 16px;
