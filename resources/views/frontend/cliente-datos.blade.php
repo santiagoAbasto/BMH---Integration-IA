@@ -196,7 +196,7 @@
                 </span>
                 <div>
                     <h2>Margen de reventa</h2>
-                    <p>El margen por categoría tiene prioridad sobre el general.</p>
+                    <p>Se suma a tu costo (el precio con tu descuento) y da el precio de reventa. El margen por categoría tiene prioridad sobre el general.</p>
                 </div>
             </div>
 

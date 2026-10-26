@@ -12,11 +12,9 @@
     $descuentoCliente = $clienteLogueado ? (float) ($cliente->descuento ?? 0) : 0;
     $precioListaF = number_format($producto->precio(), 2, ',', '.');
     $precioConDescF = number_format($producto->precio_unitario_descontado(), 2, ',', '.');
-    $margenReventa = $clienteLogueado
-        ? (float) $cliente->margenReventaParaCategoria($producto->categoria_id)
-        : 0.0;
-    $tieneMargenReventa = abs($margenReventa) > 0.00001;
-    $precioReventaF = $tieneMargenReventa ? $producto->precio_reventa() : $precioListaF;
+    // El margen de reventa del cliente se aplica sobre su costo (el precio con
+    // su descuento), no sobre el de lista: sin margen cargado, es su costo.
+    $precioReventaF = $clienteLogueado ? $producto->precio_reventa() : $precioListaF;
     $tienePartes = $producto->partesRelacionadas->isNotEmpty();
     $tieneEquivalencias = $producto->equivalencias->isNotEmpty();
     $tieneAplicaciones = $producto->aplicaciones->isNotEmpty();
