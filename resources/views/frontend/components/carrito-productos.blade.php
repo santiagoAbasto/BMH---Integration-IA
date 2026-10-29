@@ -21,10 +21,10 @@ background: #EBEBEB !important; height: 60px !important;">
         </thead>
         <tbody>
             @foreach ($cart as $item)
+                {{-- Un producto borrado del admin no rompe el carrito (CarritoCompartido lo saca). --}}
+                @php($producto = App\Models\Producto::find($item->id))
+                @continue(! $producto)
                 <tr class="contenidoTablaTwo">
-                    <?php
-                    $producto = App\Models\Producto::find($item->id);
-                    ?>
 
                     <td style="cursor: pointer">
                         @if ($producto->portada() && $producto->portada()->path)

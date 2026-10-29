@@ -27,6 +27,12 @@ class SincronizarCarrito
     {
         $userId = Auth::guard('web')->id();
         if ($userId === null) {
+            try {
+                $this->carrito->quitarProductosInexistentes();
+            } catch (QueryException $e) {
+                report($e);
+            }
+
             return $next($request);
         }
 
@@ -34,6 +40,10 @@ class SincronizarCarrito
         // y el error queda en el log: esto no puede tirar abajo la página.
         try {
             $this->carrito->cargar((int) $userId);
+            // Un producto que se borró del admin sale también del carrito guardado.
+            if ($this->carrito->quitarProductosInexistentes()) {
+                $this->carrito->guardar((int) $userId);
+            }
         } catch (QueryException $e) {
             report($e);
 

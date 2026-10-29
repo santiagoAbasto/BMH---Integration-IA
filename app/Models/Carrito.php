@@ -20,6 +20,9 @@ class Carrito extends Model
 
         foreach (Cart::content() as $item) {
             $producto = Producto::find($item->id);
+            if (! $producto) {
+                continue; // borrado del admin mientras estaba en el carrito
+            }
             $descuento = Auth::guard('web')->user()->descuento;
             $precioConDescuento = $producto->precio_unitario_descontado();
 

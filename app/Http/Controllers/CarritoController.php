@@ -157,7 +157,9 @@ class CarritoController extends Controller
     private function respuestaCarrito(Request $request)
     {
         $cart = Cart::content();
-        $vista = $request->seccion == 'public' ? 'frontend/components/carrito-desplegado' : 'frontend/components/carrito-productos';
+        // La vista de la Zona de Clientes necesita un cliente logueado (sesión vencida → la pública).
+        $publica = $request->seccion == 'public' || ! Auth::guard('web')->check();
+        $vista = $publica ? 'frontend/components/carrito-desplegado' : 'frontend/components/carrito-productos';
 
         return response()->json([
             'view' => view($vista, compact('cart'))->render(),
@@ -293,6 +295,10 @@ class CarritoController extends Controller
         // Asociar productos
         foreach (Cart::content()  as $item) {
             $producto = Producto::find($item->id);
+            // Un producto que se borró mientras estaba en el carrito no corta el pedido a la mitad.
+            if (! $producto) {
+                continue;
+            }
 
             $relacion = new PedidoProducto();
             $relacion->pedido_id = $pedido->id;
