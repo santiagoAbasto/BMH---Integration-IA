@@ -82,6 +82,36 @@ final class CarritoCompartido
         $this->guardar($userId);
     }
 
+    /**
+     * Saca del carrito los productos que ya no existen. Si un producto se
+     * borra desde el admin, quedaba en el carrito guardado del cliente y
+     * rompía la página del carrito y el pedido en todos sus dispositivos.
+     *
+     * @return bool si sacó alguno
+     */
+    public function quitarProductosInexistentes(): bool
+    {
+        $contenido = Cart::content();
+        if ($contenido->isEmpty()) {
+            return false;
+        }
+
+        $existentes = DB::table('productos')
+            ->whereIn('id', $contenido->pluck('id')->unique()->values()->all())
+            ->pluck('id')
+            ->mapWithKeys(fn ($id) => [(string) $id => true]);
+
+        $quitados = false;
+        foreach ($contenido as $item) {
+            if (! $existentes->has((string) $item->id)) {
+                Cart::remove($item->rowId);
+                $quitados = true;
+            }
+        }
+
+        return $quitados;
+    }
+
     /** Para saber si un request cambió el carrito. */
     public function huella(): string
     {

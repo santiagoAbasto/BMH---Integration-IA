@@ -43,6 +43,12 @@ final class CarritoCompartidoTest extends TestCase
             $t->timestamps();
         });
         (require base_path('database/migrations/2026_10_19_000001_create_carritos_clientes_table.php'))->up();
+        Schema::create('productos', function (Blueprint $t): void {
+            $t->id();
+            $t->string('nombre')->nullable();
+        });
+        // Los productos que usan los tests (el carrito saca los que no existen).
+        DB::table('productos')->insert(array_map(fn (int $id) => ['id' => $id, 'nombre' => 'Producto '.$id], range(1, 100)));
 
         $this->cliente = User::query()->forceCreate(['name' => 'Cliente', 'email' => 'c@x.com', 'rol' => 'cliente']);
 
@@ -172,6 +178,21 @@ final class CarritoCompartidoTest extends TestCase
         $this->post('/_carrito/agregar', ['id' => 10, 'qty' => 2])->assertOk();
 
         $this->assertEquals([10 => 2], $this->carrito());
+    }
+
+    public function test_un_producto_borrado_del_admin_sale_del_carrito_guardado(): void
+    {
+        // Antes rompía la página del carrito y el pedido en todos sus dispositivos.
+        $this->actingAs($this->cliente, 'web');
+        $this->post('/_carrito/agregar', ['id' => 10, 'qty' => 2]);
+        $this->post('/_carrito/agregar', ['id' => 11, 'qty' => 1]);
+
+        DB::table('productos')->where('id', 11)->delete();
+
+        $this->otroDispositivo();
+        $this->assertEquals([10 => 2], $this->carrito());
+        $guardado = json_decode((string) DB::table('carritos_clientes')->where('user_id', $this->cliente->id)->value('contenido'), true);
+        $this->assertSame([10], array_column($guardado, 'id'), 'también sale del carrito guardado');
     }
 
     public function test_cada_cliente_tiene_su_carrito(): void

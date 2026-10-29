@@ -29,7 +29,8 @@
     </thead>
     <tbody>
         @foreach($cart as $item)
-        <?php $producto = App\Models\Producto::find($item->id) ?>
+        @php($producto = App\Models\Producto::find($item->id))
+        @continue(! $producto)
         <tr>
             <td>
                 <div style='width:96px;height:85px;border:1px solid #dfdfdf;border-radius:10px;background-image:url("{{ $producto->portadaUrl() }}");background-size:contain;background-position:center;background-repeat:no-repeat;'>
