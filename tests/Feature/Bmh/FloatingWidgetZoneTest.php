@@ -130,6 +130,17 @@ final class FloatingWidgetZoneTest extends TestCase
             ->assertSee('window.bmhCerrarModal', false);
     }
 
+    public function test_el_carrito_publico_abre_aunque_se_entre_directo(): void
+    {
+        $this->customer(); // sólo para configurar la conexión
+
+        // Sin página de origen fallaba (usaba $_SERVER['HTTP_REFERER'] sin más).
+        $this->get('/carrito-publico')->assertOk()->assertSee("href='".route('productos')."'", false);
+
+        $desde = url('/productos?categoria=48');
+        $this->get('/carrito-publico', ['referer' => $desde])->assertOk()->assertSee("href='".$desde."'", false);
+    }
+
     public function test_el_carrito_no_tiene_caracteres_rotos(): void
     {
         $response = $this->actingAs($this->customer())->get('/carrito');
