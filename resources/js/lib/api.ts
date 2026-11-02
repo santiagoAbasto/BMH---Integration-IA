@@ -37,9 +37,16 @@ async function parse<T>(response: Response): Promise<T> {
     }
 
     if (!response.ok) {
-        const payload = body as { message?: string; code?: string } | null;
+        const payload = body as {
+            message?: string;
+            code?: string;
+            errors?: Record<string, string[]>;
+        } | null;
+        const validationMessage = payload?.errors
+            ? Object.values(payload.errors).flat().find((message) => message.trim() !== '')
+            : undefined;
         throw new ApiError(
-            payload?.message ?? 'No pudimos completar la operación.',
+            validationMessage ?? payload?.message ?? 'No pudimos completar la operación.',
             response.status,
             payload?.code,
         );

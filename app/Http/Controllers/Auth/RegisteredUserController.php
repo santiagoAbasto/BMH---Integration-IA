@@ -34,7 +34,12 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {   
-        
+        // Sin sesión de administrador sólo se puede hacer el registro público de
+        // clientes (el formulario de la home). Vendedores, clientes cargados por
+        // BMH y usuarios del panel los crea un administrador: antes cualquiera
+        // podía mandar rol=administrador y crearse un acceso al panel.
+        abort_unless($request->rol === 'cliente' || Auth::guard('admin')->check(), 403);
+
         switch($request->rol){
             
             case 'cliente':
@@ -129,6 +134,8 @@ class RegisteredUserController extends Controller
                 break;
 
             default:
+                // Usuarios del panel (dash-nuevo-usuario): sólo estos dos roles.
+                abort_unless(in_array($request->rol, ['usuario', 'administrador'], true), 422);
                 $user = Admin::create([
                     'name' => $request->name,
                     'username' => $request->username,

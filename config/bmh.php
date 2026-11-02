@@ -20,12 +20,35 @@ return [
     | apagado. Ver docs/ai-architecture.md §"Fallback sin AI".
     */
     'features' => [
-        'ai'               => env('AI_ENABLED', true),
-        'vision'           => env('AI_VISION_ENABLED', true),
-        'semantic_search'  => env('SEMANTIC_SEARCH_ENABLED', false),
+        'ai' => env('AI_ENABLED', true),
+        'vision' => env('AI_VISION_ENABLED', true),
+        'semantic_search' => env('SEMANTIC_SEARCH_ENABLED', false),
         'customer_history' => env('CUSTOMER_HISTORY_ENABLED', true),
-        'debug'            => env('AI_DEBUG', false),
-        'fallback'         => env('AI_FALLBACK_ENABLED', false),
+        'debug' => env('AI_DEBUG', false),
+        'fallback' => env('AI_FALLBACK_ENABLED', false),
+    ],
+
+    /* Cliente de contexto usado por el laboratorio interno de IA. */
+    'testing' => [
+        'customer_id' => env('AI_TEST_CUSTOMER_ID'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lanzamiento gradual del asesor
+    |--------------------------------------------------------------------------
+    |
+    | En `allowlist` sólo los IDs declarados pueden abrir la pantalla y las
+    | APIs del asesor. Es el modo seguro para una beta con el usuario demo.
+    | Al terminar las pruebas, cambiar explícitamente a `all`.
+    |
+    */
+    'assistant_access' => [
+        'mode' => env('AI_ACCESS_MODE', 'allowlist'), // allowlist | all
+        'customer_ids' => array_values(array_filter(
+            array_map('intval', explode(',', (string) env('AI_ALLOWED_CUSTOMER_IDS', ''))),
+            static fn (int $id): bool => $id > 0,
+        )),
     ],
 
     /*
@@ -35,27 +58,28 @@ return [
     | Sin AI_API_KEY el manager cae solo a `mock`. La demo funciona igual.
     */
     'ai' => [
-        'provider'          => env('AI_PROVIDER', 'mock'),
+        'provider' => env('AI_PROVIDER', 'mock'),
         'fallback_provider' => env('AI_FALLBACK_PROVIDER', 'mock'),
-        'api_key'           => env('AI_API_KEY'),
-        'timeout'           => (int) env('AI_TIMEOUT', 30),
-        'prompt_version'    => 'bmh-sales-advisor-v1',
+        'api_key' => env('AI_API_KEY'),
+        'timeout' => (int) env('AI_TIMEOUT', 30),
+        'prompt_version' => 'bmh-sales-advisor-v2',
+        'prompt_file' => 'v2.md',
 
         'providers' => [
             'gemini' => [
-                'base_url'        => env('AI_GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
-                'api_key'         => env('AI_API_KEY'),
-                'chat_model'      => env('AI_CHAT_MODEL', 'gemini-2.5-flash'),
-                'vision_model'    => env('AI_VISION_MODEL', 'gemini-2.5-flash'),
-                'fast_model'      => env('AI_FAST_MODEL', 'gemini-2.5-flash-lite'),
+                'base_url' => env('AI_GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+                'api_key' => env('AI_API_KEY'),
+                'chat_model' => env('AI_CHAT_MODEL', 'gemini-2.5-flash'),
+                'vision_model' => env('AI_VISION_MODEL', 'gemini-2.5-flash'),
+                'fast_model' => env('AI_FAST_MODEL', 'gemini-2.5-flash-lite'),
                 'embedding_model' => env('AI_EMBEDDING_MODEL', 'text-embedding-004'),
             ],
             'openai' => [
-                'base_url'        => env('AI_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
-                'api_key'         => env('AI_API_KEY'),
-                'chat_model'      => env('AI_CHAT_MODEL', 'gpt-4.1'),
-                'vision_model'    => env('AI_VISION_MODEL', 'gpt-4.1'),
-                'fast_model'      => env('AI_FAST_MODEL', 'gpt-4.1-mini'),
+                'base_url' => env('AI_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+                'api_key' => env('AI_API_KEY'),
+                'chat_model' => env('AI_CHAT_MODEL', 'gpt-4.1'),
+                'vision_model' => env('AI_VISION_MODEL', 'gpt-4.1'),
+                'fast_model' => env('AI_FAST_MODEL', 'gpt-4.1-mini'),
                 'embedding_model' => env('AI_EMBEDDING_MODEL', 'text-embedding-3-small'),
             ],
         ],
@@ -65,17 +89,17 @@ return [
         | modelo caro. Ver docs/ai-architecture.md §"AI Router".
         */
         'routing' => [
-            'intent'      => 'fast',
-            'extraction'  => 'fast',
-            'vision'      => 'vision',
-            'conversation'=> 'chat',
+            'intent' => 'fast',
+            'extraction' => 'fast',
+            'vision' => 'vision',
+            'conversation' => 'chat',
         ],
 
         // Techo por conversación. Si se supera, se deriva a humano.
         'limits' => [
             'max_images_per_message' => 3,
-            'max_tool_calls_per_turn'=> 8,
-            'max_tokens_per_convo'   => (int) env('AI_MAX_TOKENS_PER_CONVO', 200000),
+            'max_tool_calls_per_turn' => 8,
+            'max_tokens_per_convo' => (int) env('AI_MAX_TOKENS_PER_CONVO', 200000),
         ],
     ],
 
@@ -88,26 +112,32 @@ return [
     */
     'confidence' => [
         'very_high' => 0.90, // "Encontré esta pieza."
-        'high'      => 0.75, // "Encontré una coincidencia muy probable."
+        'high' => 0.75, // "Encontré una coincidencia muy probable."
         'ambiguous' => 0.50, // Pedir otro dato.
         // < ambiguous  → "No tengo información suficiente para asegurarlo."
 
         // Etiqueta completa: la que usa el asistente al hablar y el tooltip.
         'labels' => [
             'very_high' => 'Coincidencia muy alta',
-            'high'      => 'Coincidencia alta',
+            'high' => 'Coincidencia alta',
             'ambiguous' => 'Coincidencia parcial',
-            'low'       => 'Coincidencia baja',
+            'low' => 'Coincidencia baja',
         ],
 
         // Versión corta para el badge de la card. "Coincidencia" es redundante
         // dentro de una tarjeta de resultado y se come el ancho del rubro.
         'short_labels' => [
             'very_high' => 'Muy alta',
-            'high'      => 'Alta',
+            'high' => 'Alta',
             'ambiguous' => 'Parcial',
-            'low'       => 'Baja',
+            'low' => 'Baja',
         ],
+    ],
+
+    /* La comparación visual sólo puntúa si supera esta evidencia mínima. */
+    'vision' => [
+        'min_similarity_signal' => (float) env('AI_VISION_MIN_SIMILARITY_SIGNAL', 0.60),
+        'min_code_assertion_confidence' => (float) env('AI_VISION_MIN_CODE_ASSERTION_CONFIDENCE', 0.85),
     ],
 
     /*
@@ -119,24 +149,24 @@ return [
     */
     'ranking' => [
         'weights' => [
-            'exact_code'          => 100.0,
-            'normalized_code'     => 80.0,
-            'equivalence'         => 60.0,
-            'partial_code'        => 35.0,
-            'attribute_match'     => 12.0,
-            'brand_match'         => 10.0,
-            'model_match'         => 8.0,
-            'category_match'      => 6.0,
-            'text_similarity'     => 5.0,
+            'exact_code' => 100.0,
+            'normalized_code' => 80.0,
+            'equivalence' => 60.0,
+            'partial_code' => 35.0,
+            'attribute_match' => 12.0,
+            'brand_match' => 10.0,
+            'model_match' => 8.0,
+            'category_match' => 6.0,
+            'text_similarity' => 5.0,
             'semantic_similarity' => 4.0,
-            'vision_similarity'   => 3.0,   // deliberadamente bajo
-            'customer_history'    => 7.0,
-            'popularity'          => 2.0,
+            'vision_similarity' => 3.0,   // deliberadamente bajo
+            'customer_history' => 7.0,
+            'popularity' => 2.0,
         ],
 
         // Cuántos candidatos se devuelven / se muestran.
-        'max_candidates'   => 24,
-        'max_presented'    => 3,
+        'max_candidates' => 24,
+        'max_presented' => 3,
         'comparable_limit' => 4,
     ],
 
@@ -149,9 +179,9 @@ return [
         // Si un atributo no parte el conjunto de candidatos, no se pregunta.
         'min_information_gain' => 0.15,
         // Con esta cantidad o menos de candidatos, mostramos en vez de preguntar.
-        'present_threshold'    => 3,
+        'present_threshold' => 3,
         // Atributos que nunca conviene preguntar (el cliente no los sabe).
-        'never_ask'            => ['PESO', 'MEDIDAS', 'TERMINACION'],
+        'never_ask' => ['PESO', 'MEDIDAS', 'TERMINACION'],
     ],
 
     /*
@@ -164,7 +194,7 @@ return [
     */
     'inventory' => [
         'semantics_verified' => env('BMH_STOCK_SEMANTICS_VERIFIED', false),
-        'unverified_source'  => 'stock_semantics_unverified',
+        'unverified_source' => 'stock_semantics_unverified',
     ],
 
     /*
@@ -174,19 +204,19 @@ return [
     | Fórmula reconstruida del código de producción. Ver docs/pricing-rules.md.
     */
     'pricing' => [
-        'currency'  => 'ARS',
-        'iva_id'    => 1,
+        'currency' => 'ARS',
+        'iva_id' => 1,
         // La categoría tiene aumento/descuento en la base pero el código de
         // producción los tiene COMENTADOS. Replicamos producción.
         'apply_category_modifiers' => false,
         // productos.aumento está cargado (1.024 filas con 10) pero tampoco se
         // aplica en producción.
-        'apply_product_aumento'    => false,
+        'apply_product_aumento' => false,
         // La bonificación por volumen se muestra como escala pero no se
         // descuenta del total en producción. La informamos, no la aplicamos.
-        'apply_bonificacion'       => false,
+        'apply_bonificacion' => false,
         // Precio de lista sin IVA; el IVA se suma al cerrar el carrito.
-        'prices_include_tax'       => false,
+        'prices_include_tax' => false,
     ],
 
     /*
@@ -195,14 +225,14 @@ return [
     |----------------------------------------------------------------------
     */
     'attachments' => [
-        'disk'           => 'ai_private',
-        'max_size_kb'    => 12288, // 12 MB de entrada…
-        'allowed_mimes'  => ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
+        'disk' => 'ai_private',
+        'max_size_kb' => 12288, // 12 MB de entrada…
+        'allowed_mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
         // …pero al proveedor va una versión optimizada.
-        'analysis_max_px'=> 1280,
-        'analysis_quality'=> 82,
-        'thumbnail_px'   => 320,
-        'strip_exif'     => true,
+        'analysis_max_px' => 1280,
+        'analysis_quality' => 82,
+        'thumbnail_px' => 320,
+        'strip_exif' => true,
     ],
 
     /*
@@ -229,9 +259,9 @@ return [
     |----------------------------------------------------------------------
     */
     'search' => [
-        'index_table'      => 'catalog_search_documents',
-        'sync_chunk'       => 500,
+        'index_table' => 'catalog_search_documents',
+        'sync_chunk' => 500,
         'fulltext_min_len' => 3,
-        'cache_ttl'        => 600,
+        'cache_ttl' => 600,
     ],
 ];

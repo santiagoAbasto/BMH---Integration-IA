@@ -4,7 +4,7 @@
 use App\Models\Contacto;
 use App\Models\Imagen;
 use App\Models\Carrito;
-$contacto = Contacto::find(1);
+$contacto = Contacto::find(1) ?? new Contacto();
 // Logos y colores del header/footer: se editan en admin → Extras.
 $logosSitio = app(\App\Services\LogosSitio::class);
 $apariencia = \App\Models\Apariencia::actual();
@@ -77,6 +77,37 @@ $cart = Cart::content();
   
   @yield('styles')
   @include('layouts.partials.apariencia')
+  <script>
+    // Abre o cierra un modal de Bootstrap por id (carrito, home, listados).
+    // Bootstrap se carga al final de la página: se busca recién al llamarla.
+    window.bmhAbrirModal = function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (window.bootstrap && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(el).show();
+      else if (window.jQuery && jQuery.fn.modal) jQuery(el).modal('show');
+    };
+    window.bmhCerrarModal = function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (window.bootstrap && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(el).hide();
+      else if (window.jQuery && jQuery.fn.modal) jQuery(el).modal('hide');
+    };
+  </script>
+  <style>
+    .bmh-advisor-nav { font-weight: 700; }
+    .bmh-advisor-nav:hover { opacity: .82; }
+    .bmh-advisor-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 6px;
+      border-radius: 999px;
+      background: #ABD430;
+      vertical-align: middle;
+      box-shadow: 0 0 0 0 rgba(171, 212, 48, .7);
+      animation: bmhDot 2.6s infinite;
+    }
+  </style>
 </head>
 
 <body>
@@ -146,6 +177,15 @@ $cart = Cart::content();
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'cliente.datos' ? 'selectUrl' : '' }}" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
                   </li>
 
+                  {{-- Asesor IA: sólo para los clientes de la beta (AssistantAccess). --}}
+                  @if (app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
+                  <li class="nav-item">
+                    <a class="nav-link under cartNav active bmh-advisor-nav" href="#" data-bmh-advisor>
+                      <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
+                    </a>
+                  </li>
+                  @endif
+
                   @if(Auth::guard('web')->user()->rol == 'vendedor')
                   <li class="nav-item">
                     <a class="nav-link under active clientes-nav" href="{{route('vendedor.clientes')}}">Clientes</a>
@@ -207,6 +247,13 @@ $cart = Cart::content();
             <li class="nav-item nav-mobile datos-nav px-2">
               <a class="nav-link active" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
             </li>
+            @if (app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
+            <li class="nav-item nav-mobile px-2">
+              <a class="nav-link active bmh-advisor-nav" href="#" data-bmh-advisor>
+                <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
+              </a>
+            </li>
+            @endif
 
             <li class="mb-3">
               @if(isset($zonaclientes) && Auth::guard('web')->check())
@@ -483,18 +530,15 @@ $cart = Cart::content();
         · Zona Clientes → Asesor IA (ya está autenticado, así que el asesor puede
           cotizarle con su condición comercial).
 
-        `shouldRender()` es true sólo para clientes/vendedores autenticados, así
-        que alcanza con negarlo para elegir cuál se muestra.
+        La zona la define la página con `$zonaclientes`; `shouldRender()` agrega
+        el requisito de una sesión de cliente o vendedor autenticada.
     --}}
-    @php($bmhEnZonaClientes = app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
+    @php($bmhEnZonaClientes = isset($zonaclientes) && app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
 
     @if ($bmhEnZonaClientes)
-    @elseif (isset($contacto->whatsapp))
-      <div class="whatsapp-container">
-        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $contacto->whatsapp) }}" class="whatsapp-btn" target="_blank" rel="noopener">
-          <img class='img-fluid' src="{{ asset('imagenes/wp-logo.png') }}" alt="WhatsApp">
-        </a>
-      </div>
+      @include('components.bmh-advisor')
+    @else
+      @include('components.whatsapp-float')
     @endif
 
   </footer>

@@ -494,7 +494,7 @@ $producto->categoria()->first()->columna_78
             }
 
 
-            $('#productoModal').modal('show');
+            bmhAbrirModal('productoModal');
         }
 
 
@@ -522,7 +522,7 @@ $producto->categoria()->first()->columna_78
 
 
         function cerrarModal() {
-            $('#productoModal').modal('hide');
+            bmhCerrarModal('productoModal');
 
         }
 

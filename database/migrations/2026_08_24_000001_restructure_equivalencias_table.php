@@ -18,6 +18,28 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Algunos despliegues legacy tenían esta tabla creada manualmente y no
+        // una migración base versionada. En una instalación nueva se crea ya
+        // con el esquema normalizado; en una existente se conserva el camino
+        // de conversión de abajo.
+        if (! Schema::hasTable('equivalencias')) {
+            Schema::create('equivalencias', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('producto_id');
+                $table->string('nombre')->nullable();
+                $table->string('valor');
+                $table->unsignedInteger('orden')->default(0);
+                $table->timestamps();
+
+                $table->index(['producto_id', 'orden']);
+                $table->foreign('producto_id')
+                    ->references('id')->on('productos')
+                    ->onDelete('cascade');
+            });
+
+            return;
+        }
+
         Schema::table('equivalencias', function (Blueprint $table): void {
             $table->dropColumn('descripcion');
         });
@@ -34,6 +56,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasTable('equivalencias')) {
+            return;
+        }
+
         Schema::table('equivalencias', function (Blueprint $table): void {
             $table->dropIndex(['producto_id', 'orden']);
             $table->dropColumn(['nombre', 'valor', 'orden']);

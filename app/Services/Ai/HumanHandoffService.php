@@ -17,12 +17,18 @@ use App\Models\Ai\AiHandoff;
  */
 final class HumanHandoffService
 {
-    public const LOW_CONFIDENCE     = 'low_confidence';
-    public const TOO_MANY           = 'too_many_candidates';
-    public const PRICING            = 'pricing_requires_validation';
-    public const DATA_CONFLICT      = 'data_conflict';
-    public const NOT_FOUND          = 'product_not_found';
-    public const AI_ERROR           = 'ai_error';
+    public const LOW_CONFIDENCE = 'low_confidence';
+
+    public const TOO_MANY = 'too_many_candidates';
+
+    public const PRICING = 'pricing_requires_validation';
+
+    public const DATA_CONFLICT = 'data_conflict';
+
+    public const NOT_FOUND = 'product_not_found';
+
+    public const AI_ERROR = 'ai_error';
+
     public const CUSTOMER_REQUESTED = 'customer_requested';
 
     public function __construct(
@@ -33,9 +39,9 @@ final class HumanHandoffService
     /**
      * ¿Corresponde derivar automáticamente?
      *
-     * @param list<Candidate> $candidates
-     * @param bool            $askedAlready      ya se le pidió al menos un dato
-     * @param bool            $hasUsefulQuestion queda alguna pregunta que reduzca
+     * @param  list<Candidate>  $candidates
+     * @param  bool  $askedAlready  ya se le pidió al menos un dato
+     * @param  bool  $hasUsefulQuestion  queda alguna pregunta que reduzca
      */
     public function shouldHandoff(
         array $candidates,
@@ -82,7 +88,7 @@ final class HumanHandoffService
      * El resumen incluye lo que se sabe y lo que falta, para que la persona no
      * tenga que releer toda la conversación.
      *
-     * @param list<Candidate> $candidates
+     * @param  list<Candidate>  $candidates
      */
     public function open(
         AiConversation $conversation,
@@ -94,24 +100,27 @@ final class HumanHandoffService
 
         $handoff = AiHandoff::query()->create([
             'conversation_id' => $conversation->id,
-            'customer_id'     => $customer->id,
-            'seller_id'       => $customer->sellerId,
-            'reason'          => $reason,
-            'summary'         => $this->summarize($reason, $facts, $candidates),
-            'context'         => [
-                'facts'      => $facts,
+            'customer_id' => $customer->id,
+            // Las pruebas internas se conservan para diagnóstico, pero nunca
+            // entran como trabajo pendiente de un vendedor.
+            'seller_id' => $conversation->isTest() ? null : $customer->sellerId,
+            'reason' => $reason,
+            'summary' => $this->summarize($reason, $facts, $candidates),
+            'context' => [
+                'facts' => $facts,
                 'candidates' => array_map(
                     static fn (Candidate $c): array => [
                         'product_id' => $c->product->id,
-                        'code'       => $c->product->code,
-                        'name'       => $c->product->name,
+                        'code' => $c->product->code,
+                        'name' => $c->product->name,
                         'confidence' => round($c->confidence(), 3),
                     ],
                     array_slice($candidates, 0, 5)
                 ),
                 'commercial_segment' => $customer->commercialSegment(),
+                'test' => $conversation->isTest(),
             ],
-            'status' => 'pending',
+            'status' => $conversation->isTest() ? 'test' : 'pending',
         ]);
 
         $conversation->update(['status' => 'handed_off']);
@@ -127,7 +136,7 @@ final class HumanHandoffService
     /** @param list<Candidate> $candidates */
     private function summarize(string $reason, array $facts, array $candidates): string
     {
-        $lines = ['Motivo: ' . $this->reasonLabel($reason)];
+        $lines = ['Motivo: '.$this->reasonLabel($reason)];
 
         if ($facts !== []) {
             $lines[] = 'Datos conocidos:';
@@ -161,14 +170,14 @@ final class HumanHandoffService
     private function reasonLabel(string $reason): string
     {
         return match ($reason) {
-            self::LOW_CONFIDENCE     => 'no se pudo identificar la pieza con confianza suficiente',
-            self::TOO_MANY           => 'demasiados candidatos y ninguna pregunta los reduce',
-            self::PRICING            => 'el precio necesita validación comercial',
-            self::DATA_CONFLICT      => 'hay datos inconsistentes en el catálogo',
-            self::NOT_FOUND          => 'la pieza no aparece en el catálogo',
-            self::AI_ERROR           => 'error del servicio de IA',
+            self::LOW_CONFIDENCE => 'no se pudo identificar la pieza con confianza suficiente',
+            self::TOO_MANY => 'demasiados candidatos y ninguna pregunta los reduce',
+            self::PRICING => 'el precio necesita validación comercial',
+            self::DATA_CONFLICT => 'hay datos inconsistentes en el catálogo',
+            self::NOT_FOUND => 'la pieza no aparece en el catálogo',
+            self::AI_ERROR => 'error del servicio de IA',
             self::CUSTOMER_REQUESTED => 'lo pidió el cliente',
-            default                  => $reason,
+            default => $reason,
         };
     }
 }

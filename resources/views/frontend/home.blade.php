@@ -1,8 +1,9 @@
 @extends('layouts.plantilla-front')
 
 @section('metadatos')
-    <meta name='keyword' content='{{ App\Models\Metadatos::all()[0]->keyword }}'>
-    <meta name='descripcion' content='{{ App\Models\Metadatos::all()[0]->descripcion }}'>
+    @php($metadatos = App\Models\Metadatos::query()->first())
+    <meta name='keyword' content='{{ $metadatos?->keyword ?? '' }}'>
+    <meta name='descripcion' content='{{ $metadatos?->descripcion ?? '' }}'>
 @endsection
 
 @section('styles')
@@ -133,6 +134,7 @@
         </div>
     </section>
 
+    @if ($nosotros_slider)
     <section style="padding-top: 20px">
         <div class="container">
             <div class="d-flex panelHome" style="height:422px;">
@@ -158,6 +160,7 @@
 
         </div>
     </section>
+    @endif
 
 
     <section class="services" style='padding-top:63px; padding-bottom:40px;'>
@@ -294,7 +297,21 @@
             toastr.warning('Un producto de tu carrito ha sido modificado por falta de stock')
         }
 
-        $('#registro').modal('show');
+        $('#anuncio').on('shown.bs.modal', function() {
+            var modal = $(this);
+            var modalContent = modal.find('.modal-content');
+            var modalBody = modal.find('.modal-body');
+
+            // Obtiene el ancho del contenido del modal
+            var contentWidth = modalBody.outerWidth();
+
+            // Ajusta el ancho del modal para que se ajuste al contenido
+            modalContent.css('width', contentWidth + 'px');
+        });
+
+        bmhAbrirModal('anuncio');
+
+        bmhAbrirModal('registro');
 
         // POPOVER initialization
         const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')

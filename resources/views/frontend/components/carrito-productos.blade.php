@@ -482,11 +482,11 @@ background: #EBEBEB !important; height: 60px !important;">
             }
 
 
-            $('#productoModal').modal('show');
+            bmhAbrirModal('productoModal');
         }
 
         function cerrarModal() {
-            $('#productoModal').modal('hide');
+            bmhCerrarModal('productoModal');
 
         }
     </script>

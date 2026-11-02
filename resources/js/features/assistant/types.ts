@@ -90,6 +90,9 @@ export interface NextQuestion {
     label: string;
     options: string[];
     gain: number;
+    question: string | null;
+    question_id: string | null;
+    question_bank_version: string;
 }
 
 export interface ContextPanelData {
@@ -104,6 +107,7 @@ export interface VisionAnalysis {
     confidence: number;
     visible_codes: string[];
     detected_text: string[];
+    text_confidence: number;
     attributes: Record<string, string>;
     category_hints: string[];
     brand_guess: string | null;
@@ -139,6 +143,8 @@ export interface TurnResult {
     conflicts: { key: string; confirmed: string; observed: string }[];
     context: ContextPanelData;
     vision: VisionAnalysis[];
+    /** Qué hizo el embudo visual, en palabras: código leído, rubro, comparación. */
+    vision_notes: string[];
     debug?: DebugInfo;
 }
 
@@ -160,9 +166,29 @@ export interface ChatMessage {
     handoff?: { id: number; reason: string } | null;
     conflicts?: { key: string; confirmed: string; observed: string }[];
     vision?: VisionAnalysis[];
+    visionNotes?: string[];
     attachments?: ChatAttachment[];
     debug?: DebugInfo;
     feedbackGiven?: boolean;
+    confirmedProductId?: number | null;
+    cartAddedProductIds?: number[];
+}
+
+export interface CartAddResult {
+    ok: boolean;
+    idempotent: boolean;
+    item: {
+        row_id: string;
+        product_id: number;
+        code: string;
+        name: string;
+        quantity: number;
+        unit_price: number;
+        currency: string;
+    };
+    cart_count: number;
+    cart_url: string;
+    availability_note: string;
 }
 
 export interface ConversationSummary {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ChevronDown, ImageOff, Package } from 'lucide-react';
+import { Check, ChevronDown, ImageOff, Maximize2, Minus, Package, Plus, ShoppingCart, X } from 'lucide-react';
 import { formatArs } from '@/lib/api';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import type { Candidate, PriceQuote } from '../types';
@@ -11,6 +11,9 @@ interface Props {
     /** Atributos que difieren entre candidatos: son los que vale la pena mostrar. */
     highlightKeys?: string[];
     onConfirm?: (productId: number) => void;
+    onAddToCart?: (productId: number, quantity: number) => Promise<void>;
+    confirmed?: boolean;
+    added?: boolean;
     showDebug?: boolean;
     index?: number;
 }
@@ -25,8 +28,21 @@ function imageUrl(images: Candidate['product']['images']): string | null {
     return typeof first === 'string' ? `/imagenes/${first}` : first.url;
 }
 
-export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDebug, index = 0 }: Props) {
+export function ProductCard({
+    candidate,
+    price,
+    highlightKeys,
+    onConfirm,
+    onAddToCart,
+    confirmed = false,
+    added = false,
+    showDebug,
+    index = 0,
+}: Props) {
     const [expanded, setExpanded] = useState(false);
+    const [zoomed, setZoomed] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+    const [adding, setAdding] = useState(false);
     const { product } = candidate;
 
     const url = imageUrl(product.images);
@@ -48,22 +64,36 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
             style={{ animationDelay: `${index * 60}ms` }}
         >
             <div className="flex gap-3 p-3">
-                <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-edge-subtle bg-surface-sunken">
+                <div className="h-28 w-28 shrink-0 overflow-hidden rounded border border-edge-subtle bg-white">
                     {url === null ? (
                         <div
-                            className="flex h-full w-full flex-col items-center justify-center gap-1 text-ink-tertiary"
+                            className="flex h-full w-full flex-col items-center justify-center gap-1 bg-surface-sunken text-ink-tertiary"
                             title="Sin imagen en el catálogo"
                         >
                             <ImageOff aria-hidden className="h-5 w-5" strokeWidth={1.75} />
                             <span className="text-micro">Sin foto</span>
                         </div>
                     ) : (
-                        <img
-                            src={url}
-                            alt={`${product.name} — código ${product.code}`}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                        />
+                        <button
+                            type="button"
+                            onClick={() => setZoomed(true)}
+                            className="group relative block h-full w-full"
+                            title="Ampliar la foto"
+                            aria-label={`Ampliar la foto de ${product.name}`}
+                        >
+                            {/* `contain`, no `cover`: la pieza se compara por su
+                                forma completa y recortarla es justamente perder
+                                lo que el cliente está mirando. */}
+                            <img
+                                src={url}
+                                alt={`${product.name} — código ${product.code}`}
+                                loading="lazy"
+                                className="h-full w-full object-contain p-1"
+                            />
+                            <span className="absolute bottom-1 right-1 rounded bg-ink-primary/70 p-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                                <Maximize2 aria-hidden className="h-3 w-3 text-white" strokeWidth={2} />
+                            </span>
+                        </button>
                     )}
                 </div>
 
@@ -82,7 +112,10 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                         />
                     </div>
 
-                    <h3 className="mt-0.5 truncate text-subtitle text-ink-primary" title={product.name}>
+                    {/* El nombre es lo que identifica la pieza: "TIPO BOSCH 5P"
+                        y "TIPO BOSCH 2P" sólo se distinguen por el final, que es
+                        exactamente lo que un `truncate` se come. */}
+                    <h3 className="mt-0.5 line-clamp-2 text-subtitle text-ink-primary" title={product.name}>
                         {product.name}
                     </h3>
 
@@ -115,6 +148,24 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                             </span>
                         )}
                     </div>
+
+                    {/* Por qué está esta pieza acá. Un listado sin motivo obliga
+                        al cliente a confiar a ciegas; decir "coincide el código"
+                        o "por el parecido de la foto" es la diferencia entre una
+                        lista y un asesor. */}
+                    {candidate.matched_on.length > 0 && (
+                        <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-caption text-ink-secondary">
+                            <span className="text-ink-tertiary">Coincide por</span>
+                            {candidate.matched_on.slice(0, 3).map((motivo) => (
+                                <span
+                                    key={motivo}
+                                    className="rounded bg-brand-50 px-1.5 py-0.5 font-medium text-brand-700"
+                                >
+                                    {motivo}
+                                </span>
+                            ))}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -177,7 +228,48 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                     )}
                 </div>
 
-                {onConfirm !== undefined && (
+                {confirmed && onAddToCart !== undefined ? (
+                    <div className="flex items-center gap-1.5">
+                        {!added && (
+                            <div className="flex items-center rounded-card border border-edge">
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                                    aria-label="Restar una unidad"
+                                    className="flex h-9 w-8 items-center justify-center text-ink-secondary hover:bg-surface-sunken"
+                                >
+                                    <Minus aria-hidden className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="min-w-7 text-center text-caption font-semibold text-ink-primary">{quantity}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((current) => Math.min(99, current + 1))}
+                                    aria-label="Sumar una unidad"
+                                    className="flex h-9 w-8 items-center justify-center text-ink-secondary hover:bg-surface-sunken"
+                                >
+                                    <Plus aria-hidden className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            type="button"
+                            disabled={added || adding}
+                            onClick={() => {
+                                setAdding(true);
+                                void onAddToCart(product.id, quantity).finally(() => setAdding(false));
+                            }}
+                            className={clsx(
+                                'inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-card px-3 text-caption font-semibold transition-colors duration-150 ease-bmh',
+                                added
+                                    ? 'bg-signal-500/15 text-signal-700'
+                                    : 'bg-brand-500 text-white hover:bg-brand-600',
+                            )}
+                        >
+                            {added ? <Check aria-hidden className="h-4 w-4" /> : <ShoppingCart aria-hidden className="h-4 w-4" />}
+                            {added ? 'Agregado' : adding ? 'Agregando…' : 'Agregar'}
+                        </button>
+                    </div>
+                ) : onConfirm !== undefined ? (
                     <button
                         type="button"
                         onClick={() => onConfirm(product.id)}
@@ -186,8 +278,39 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                         <Package aria-hidden className="h-4 w-4" strokeWidth={1.75} />
                         Es este
                     </button>
-                )}
+                ) : null}
             </div>
+
+            {zoomed && url !== null && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Foto de ${product.name}`}
+                    className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-ink-primary/80 p-6"
+                    onClick={() => setZoomed(false)}
+                >
+                    <figure className="max-h-full max-w-2xl" onClick={(event) => event.stopPropagation()}>
+                        <img
+                            src={url}
+                            alt={`${product.name} — código ${product.code}`}
+                            className="max-h-[70vh] w-full rounded-card bg-white object-contain"
+                        />
+                        <figcaption className="mt-2 flex items-start justify-between gap-3 text-caption text-white">
+                            <span>
+                                <span className="font-mono font-semibold">{product.code}</span> — {product.name}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setZoomed(false)}
+                                className="shrink-0 rounded p-1 hover:bg-white/15"
+                                aria-label="Cerrar la foto"
+                            >
+                                <X aria-hidden className="h-4 w-4" strokeWidth={2} />
+                            </button>
+                        </figcaption>
+                    </figure>
+                </div>
+            )}
 
             {showDebug && candidate.debug !== undefined && (
                 <details className="border-t border-dashed border-edge-subtle px-3 py-2">

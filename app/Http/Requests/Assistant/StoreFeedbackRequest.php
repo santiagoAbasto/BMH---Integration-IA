@@ -18,9 +18,9 @@ final class StoreFeedbackRequest extends FormRequest
     {
         return [
             'was_correct' => ['required', 'boolean'],
-            'message_id'  => ['nullable', 'integer', 'min:1'],
-            'product_id'  => ['nullable', 'integer', 'min:1'],
-            'comment'     => ['nullable', 'string', 'max:500'],
+            'message_id' => ['required', 'integer', 'min:1'],
+            'product_id' => ['nullable', 'integer', 'min:1'],
+            'comment' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

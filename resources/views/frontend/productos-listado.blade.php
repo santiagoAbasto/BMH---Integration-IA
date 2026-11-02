@@ -3,3 +3,9 @@
     @include('frontend.components.productoBmh')
 </div>
 @endforeach
+
+@if ($productos instanceof \Illuminate\Contracts\Pagination\Paginator)
+    <div class="col-12 mt-4">
+        {{ $productos->links() }}
+    </div>
+@endif

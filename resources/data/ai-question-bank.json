@@ -1,0 +1,1512 @@
+{
+  "version": "2026-10-21",
+  "families": [
+    {
+      "id": "starter_motors",
+      "source_group": "MOTOR DE ARRANQUE",
+      "category_id": 47,
+      "category_name": "MOTORES DE ARRANQUE",
+      "label": "Motor de arranque",
+      "questions": [
+        {
+          "id": "starter_motors.q01",
+          "priority": 1,
+          "question": "¿Podés ver alguna marca escrita en el motor de arranque, como Bosch, Valeo, Denso u otra?",
+          "fact_keys": [
+            "brand"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_motors.q02",
+          "priority": 2,
+          "question": "¿Tiene algún número o código grabado en el cuerpo o en una etiqueta?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "starter_motors.q03",
+          "priority": 3,
+          "question": "¿En alguna parte del motor de arranque aparece escrito 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_motors.q04",
+          "priority": 4,
+          "question": "¿Podés contar cuántos dientes tiene el piñón?",
+          "fact_keys": [
+            "teeth"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_motors.q05",
+          "priority": 5,
+          "question": "¿En qué auto está colocado?",
+          "fact_keys": [
+            "application"
+          ],
+          "kind": "application",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_motors.q06",
+          "priority": 6,
+          "question": "¿Podés medir la distancia entre los centros de los agujeros de fijación?",
+          "fact_keys": [
+            "mounting_hole_distance"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_motors.q07",
+          "priority": 7,
+          "question": "¿Podés medir el diámetro del encastre delantero?",
+          "fact_keys": [
+            "mounting_diameter"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "starter_motors.q08",
+          "priority": 8,
+          "question": "¿Sabés cuántos kW tiene?",
+          "fact_keys": [
+            "power_kw"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "kW",
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "starter_motors.q09",
+          "priority": 9,
+          "question": "¿Tiene cubre impulsor?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "boolean",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "starter_motors.q10",
+          "priority": 10,
+          "question": "¿Podés medir el arranque completo de punta a punta?",
+          "fact_keys": [
+            "total_length"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "alternators",
+      "source_group": "ALTERNADOR",
+      "category_id": 48,
+      "category_name": "ALTERNADORES",
+      "label": "Alternador",
+      "questions": [
+        {
+          "id": "alternators.q01",
+          "priority": 1,
+          "question": "¿Podés ver alguna marca escrita en el alternador, como Bosch, Valeo, Denso u otra?",
+          "fact_keys": [
+            "brand"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q02",
+          "priority": 2,
+          "question": "¿Tiene algún número o código grabado en el cuerpo o en una etiqueta?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q03",
+          "priority": 3,
+          "question": "¿De qué vehículo sacaste el alternador? ¿Sabés la marca, modelo y año?",
+          "fact_keys": [
+            "application"
+          ],
+          "kind": "application",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q04",
+          "priority": 4,
+          "question": "¿En alguna parte del alternador aparece escrito 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q05",
+          "priority": 5,
+          "question": "¿En la etiqueta aparece algún número seguido de la letra A, por ejemplo 90A o 120A?",
+          "fact_keys": [
+            "amperes"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "A",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q06",
+          "priority": 6,
+          "question": "¿Cuántas patas o puntos de sujeción tiene el alternador?",
+          "fact_keys": [
+            "quantity"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q07",
+          "priority": 6,
+          "question": "¿Podés medir la distancia entre los centros de los agujeros donde se atornilla?",
+          "fact_keys": [
+            "mounting_hole_distance"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q08",
+          "priority": 7,
+          "question": "Si tiene una ficha plástica, ¿cuántos contactos metálicos ves adentro (pines)?",
+          "fact_keys": [
+            "pins"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q09",
+          "priority": 8,
+          "question": "¿Tenés el código del alternador original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "alternators.q10",
+          "priority": 9,
+          "question": "¿Podés enviarme una foto de la parte trasera, donde se conectan los cables?",
+          "fact_keys": [
+            "photo_rear"
+          ],
+          "kind": "visual_evidence",
+          "answer_type": "photo",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q11",
+          "priority": 10,
+          "question": "¿El regulador está incorporado al alternador o tiene una caja reguladora separada?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q12",
+          "priority": 11,
+          "question": "¿Tiene una hélice o ventilador visible detrás de la polea o está dentro del alternador?",
+          "fact_keys": [
+            "series_type"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q13",
+          "priority": 12,
+          "question": "¿Los cables se conectan con tornillos, una ficha plástica o ambas cosas?",
+          "fact_keys": [
+            "terminal_description"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "alternators.q14",
+          "priority": 13,
+          "question": "¿La polea donde va la correa tiene una ranura grande en V o varias ranuras finitas?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "bearings",
+      "source_group": "RODAMIENTOS",
+      "category_id": 24,
+      "category_name": "RODAMIENTOS",
+      "label": "Rodamientos",
+      "questions": [
+        {
+          "id": "bearings.q01",
+          "priority": 1,
+          "question": "¿Tiene algún número o letra grabado en el costado, como 6202, 6203 o 6303?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "bearings.q02",
+          "priority": 2,
+          "question": "¿Podés medir el diámetro del agujero central por donde pasa el eje?",
+          "fact_keys": [
+            "inner_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "bearings.q03",
+          "priority": 3,
+          "question": "¿Podés medir el diámetro total del rodamiento, de un extremo al otro, pasando por el centro?",
+          "fact_keys": [
+            "outer_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "bearings.q04",
+          "priority": 4,
+          "question": "¿Podés medir qué tan grueso es el rodamiento, de una cara a la otra?",
+          "fact_keys": [
+            "band_width"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "bearings.q05",
+          "priority": 5,
+          "question": "¿Las tapas de los costados son de metal o de goma?",
+          "fact_keys": [
+            "shielding"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "voltage_regulators",
+      "source_group": "REGULADOR DE VOLTAJE",
+      "category_id": 49,
+      "category_name": "REGULADOR DE VOLTAJE",
+      "label": "Regulador de voltaje",
+      "questions": [
+        {
+          "id": "voltage_regulators.q01",
+          "priority": 1,
+          "question": "¿Tiene algún número o combinación de letras y números grabados?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "voltage_regulators.q02",
+          "priority": 2,
+          "question": "¿Tenés el código del regulador anterior para buscar un reemplazo equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "voltage_regulators.q03",
+          "priority": 3,
+          "question": "¿El alternador tiene alguna etiqueta o código que puedas enviarnos?",
+          "fact_keys": [
+            "parent_code"
+          ],
+          "kind": "parent_component",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "voltage_regulators.q04",
+          "priority": 4,
+          "question": "¿De qué vehículo sacaste el regulador? ¿Sabés la marca del alternador?",
+          "fact_keys": [
+            "application",
+            "parent_brand"
+          ],
+          "kind": "application",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "voltage_regulators.q05",
+          "priority": 5,
+          "question": "¿En el regulador aparece escrito 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "voltage_regulators.q06",
+          "priority": 6,
+          "question": "¿Cuántos contactos metálicos (pines) tiene la ficha donde se conectan los cables?",
+          "fact_keys": [
+            "pins"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "rectifier_plates",
+      "source_group": "PLAQUETA RACTIFICADORA",
+      "category_id": 39,
+      "category_name": "PLAQUETA RECTIFICADORA",
+      "label": "Plaqueta rectificadora",
+      "questions": [
+        {
+          "id": "rectifier_plates.q01",
+          "priority": 1,
+          "question": "¿La plaqueta tiene algún número o código grabado?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "rectifier_plates.q02",
+          "priority": 2,
+          "question": "¿Tenés el código de la plaqueta original para buscar una equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rectifier_plates.q03",
+          "priority": 3,
+          "question": "¿Podés enviarme una foto de la etiqueta o los números del alternador?",
+          "fact_keys": [
+            "parent_code",
+            "photo_label"
+          ],
+          "kind": "visual_evidence",
+          "answer_type": "photo",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "rectifier_plates.q04",
+          "priority": 4,
+          "question": "¿De qué vehículo sacaste el alternador? ¿Sabés marca, modelo y año?",
+          "fact_keys": [
+            "application"
+          ],
+          "kind": "application",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rectifier_plates.q05",
+          "priority": 5,
+          "question": "¿En la etiqueta del alternador aparece 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rectifier_plates.q06",
+          "priority": 6,
+          "question": "¿Sabés de qué marca es el alternador o en qué vehículo está colocada?",
+          "fact_keys": [
+            "application",
+            "parent_brand"
+          ],
+          "kind": "application",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "rectifier_plates.q07",
+          "priority": 7,
+          "question": "¿Cuántas piezas redondas metálicas (diodos), parecidas a botones, podés ver en la plaqueta?",
+          "fact_keys": [
+            "diode_count"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "armatures",
+      "source_group": "INDUCIDOS",
+      "category_id": 40,
+      "category_name": "INDUCIDOS",
+      "label": "Inducidos",
+      "questions": [
+        {
+          "id": "armatures.q01",
+          "priority": 1,
+          "question": "¿Tenés el código del inducido original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q02",
+          "priority": 2,
+          "question": "¿Podés contar cuántas estrías longitudinales tiene el eje donde encastra el impulsor?",
+          "fact_keys": [
+            "splines"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q03",
+          "priority": 3,
+          "question": "¿Podés contar cuántas delgas tiene el colector?",
+          "fact_keys": [
+            "slots"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q04",
+          "priority": 4,
+          "question": "¿Podés medir el inducido completo, desde una punta del eje hasta la otra?",
+          "fact_keys": [
+            "total_length"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q05",
+          "priority": 5,
+          "question": "¿Podés medir el ancho de la parte cilíndrica de hierro del inducido, de un lado al otro, pasando por el centro?",
+          "fact_keys": [
+            "diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q06",
+          "priority": 6,
+          "question": "¿Sabés si el motor de arranque donde estaba colocado es de 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "armatures.q07",
+          "priority": 10,
+          "question": "¿Tenés el código del motor de arranque del que sacaste el inducido?",
+          "fact_keys": [
+            "parent_code"
+          ],
+          "kind": "parent_component",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "armatures.q08",
+          "priority": 11,
+          "question": "¿Sabés si el motor de arranque es Bosch, Valeo, Denso, Mitsubishi u otra marca?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "armatures.q09",
+          "priority": 12,
+          "question": "¿Cuánto mide de grosor el eje del lado del impulsor?",
+          "fact_keys": [
+            "shaft_diameter_drive"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "armatures.q10",
+          "priority": 13,
+          "question": "¿Cuánto mide de grosor el eje del lado del colector?",
+          "fact_keys": [
+            "shaft_diameter_collector"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "rotors",
+      "source_group": "ROTORES",
+      "category_id": 41,
+      "category_name": "ROTORES",
+      "label": "Rotores",
+      "questions": [
+        {
+          "id": "rotors.q01",
+          "priority": 1,
+          "question": "¿Tenés el código del rotor original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q02",
+          "priority": 2,
+          "question": "¿Podés medir el ancho de la parte redonda de hierro del rotor, de un lado al otro, pasando por el centro?",
+          "fact_keys": [
+            "diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q03",
+          "priority": 3,
+          "question": "¿Podés medir el rotor completo desde una punta del eje hasta la otra?",
+          "fact_keys": [
+            "total_length"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q04",
+          "priority": 5,
+          "question": "¿Sabés si el alternador donde estaba colocado es de 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q05",
+          "priority": 5,
+          "question": "¿Cuántas estrías tiene la punta del eje?",
+          "fact_keys": [
+            "splines"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q06",
+          "priority": 6,
+          "question": "¿Sabés si el alternador es Bosch, Valeo, Denso, Hitachi u otra marca?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "rotors.q07",
+          "priority": 7,
+          "question": "¿Sabés la marca del alternador donde está colocado el rotor?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "rotors.q08",
+          "priority": 8,
+          "question": "¿En la etiqueta del alternador figura algún valor como 70A, 90A, 120A, etc?",
+          "fact_keys": [
+            "amperes"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "A",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q09",
+          "priority": 9,
+          "question": "¿El rodamiento del lado de la polea tiene algún código grabado, como 6203 o 6303?",
+          "fact_keys": [
+            "bearing_pulley_side"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "rotors.q10",
+          "priority": 10,
+          "question": "¿El rodamiento del lado de los anillos tiene algún código grabado?",
+          "fact_keys": [
+            "bearing_collector_side"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "stators",
+      "source_group": "ESTATORES",
+      "category_id": 26,
+      "category_name": "ESTATORES",
+      "label": "Estatores",
+      "questions": [
+        {
+          "id": "stators.q01",
+          "priority": 1,
+          "question": "¿Tenés el código del estator original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q02",
+          "priority": 2,
+          "question": "¿Podés confirmar la medida del diámetro interior con un calibre?",
+          "fact_keys": [
+            "inner_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q03",
+          "priority": 3,
+          "question": "¿Podés confirmar la medida del diámetro exterior con un calibre?",
+          "fact_keys": [
+            "outer_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q04",
+          "priority": 4,
+          "question": "¿Tiene tres, cuatro, seis o más cables de conexión?",
+          "fact_keys": [
+            "outputs"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q05",
+          "priority": 5,
+          "question": "¿Podés medir con un calibre cuánto ancho tiene la parte de hierro, sin contar los cables de cobre que sobresalen?",
+          "fact_keys": [
+            "width"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q06",
+          "priority": 6,
+          "question": "¿En el alternador aparece escrito 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "stators.q07",
+          "priority": 9,
+          "question": "¿Sabés si el alternador es Bosch, Valeo, Denso, Mitsubishi u otra marca?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "stators.q08",
+          "priority": 10,
+          "question": "¿Podés enviarme una foto de la etiqueta o del código del alternador?",
+          "fact_keys": [
+            "parent_code",
+            "photo_label"
+          ],
+          "kind": "visual_evidence",
+          "answer_type": "photo",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "solenoids",
+      "source_group": "SOLENOIDES",
+      "category_id": 42,
+      "category_name": "SOLENOIDES",
+      "label": "Solenoides",
+      "questions": [
+        {
+          "id": "solenoids.q01",
+          "priority": 1,
+          "question": "¿El automático tiene algún número o código grabado en el cuerpo?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "solenoids.q02",
+          "priority": 2,
+          "question": "¿Podés ver alguna marca escrita, como Bosch, Valeo, Denso u otra?",
+          "fact_keys": [
+            "brand"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "solenoids.q03",
+          "priority": 3,
+          "question": "¿Sabés de qué marca es el motor de arranque donde estaba colocado?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "solenoids.q04",
+          "priority": 4,
+          "question": "¿De qué vehículo es? ¿Sabés marca, modelo y año?",
+          "fact_keys": [
+            "application"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "solenoids.q05",
+          "priority": 4,
+          "question": "¿En el automático o en el motor de arranque aparece escrito 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "solenoids.q06",
+          "priority": 5,
+          "question": "¿Tenés el código del automático original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "solenoids.q07",
+          "priority": 6,
+          "question": "¿Podés medir la distancia entre los centros de los agujeros donde van los tornillos?",
+          "fact_keys": [
+            "mounting_hole_distance"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "solenoids.q08",
+          "priority": 7,
+          "question": "¿Con cuántos tornillos se sujeta el automático al motor de arranque?",
+          "fact_keys": [
+            "quantity"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "solenoids.q09",
+          "priority": 9,
+          "question": "¿Podés medir solamente la parte cilíndrica, sin contar las conexiones ni el vástago?",
+          "fact_keys": [
+            "length"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "starter_brush_holders",
+      "source_group": "PORTA ESCOBILLAS",
+      "category_id": 45,
+      "category_name": "PORTAESCOBILLAS DE ARRANQUE",
+      "label": "Portaescobillas de arranque",
+      "questions": [
+        {
+          "id": "starter_brush_holders.q01",
+          "priority": 1,
+          "question": "¿Tenés el código original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_brush_holders.q02",
+          "priority": 2,
+          "question": "¿Tiene algún número o código grabado en la pieza?",
+          "fact_keys": [
+            "code"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "starter_brush_holders.q03",
+          "priority": 3,
+          "question": "¿Sabés si el motor de arranque es Bosch, Valeo, Denso, Mitsubishi u otra marca?",
+          "fact_keys": [
+            "parent_brand"
+          ],
+          "kind": "parent_component",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "starter_brush_holders.q04",
+          "priority": 4,
+          "question": "¿Podés enviarme una foto de la etiqueta o del código del motor de arranque?",
+          "fact_keys": [
+            "parent_code",
+            "photo_label"
+          ],
+          "kind": "visual_evidence",
+          "answer_type": "photo",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "starter_brush_holders.q05",
+          "priority": 5,
+          "question": "¿De qué vehículo es? ¿Sabés la marca o el modelo?",
+          "fact_keys": [
+            "application"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "vehicle",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "starter_brush_holders.q06",
+          "priority": 5,
+          "question": "¿El motor de arranque es de 12V o 24V?",
+          "fact_keys": [
+            "voltage"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "choice",
+          "unit": "V",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_brush_holders.q07",
+          "priority": 6,
+          "question": "¿Podés medir el ancho, espesor y largo de uno de los carbones?",
+          "fact_keys": [
+            "carbon"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": false
+        },
+        {
+          "id": "starter_brush_holders.q08",
+          "priority": 7,
+          "question": "¿Podés medir la distancia entre los centros de los agujeros de montaje?",
+          "fact_keys": [
+            "mounting_hole_distance"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_brush_holders.q09",
+          "priority": 8,
+          "question": "¿Podés medir el diámetro del agujero central por donde pasa el inducido?",
+          "fact_keys": [
+            "inner_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "starter_brush_holders.q10",
+          "priority": 9,
+          "question": "¿Podés medir el ancho total de la pieza, de un extremo al otro?",
+          "fact_keys": [
+            "outer_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "connectors",
+      "source_group": "FICHAS",
+      "category_id": 57,
+      "category_name": "FICHAS- EMULADORES- FUSIBLES",
+      "label": "Fichas",
+      "questions": [
+        {
+          "id": "connectors.q01",
+          "priority": 1,
+          "question": "¿Tenés el código original para buscar uno equivalente?",
+          "fact_keys": [
+            "code",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "connectors.q02",
+          "priority": 2,
+          "question": "¿Cuántos cables entran en la ficha?",
+          "fact_keys": [
+            "outputs"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "connectors.q03",
+          "priority": 3,
+          "question": "¿Cuántos contactos metálicos o espacios para contactos tiene la ficha?",
+          "fact_keys": [
+            "pins"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "connectors.q04",
+          "priority": 4,
+          "question": "¿La parte que se conecta es redonda, rectangular, ovalada o cuadrada?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "connectors.q05",
+          "priority": 5,
+          "question": "¿De qué color es el plástico de la ficha?",
+          "fact_keys": [
+            "color"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "emulators",
+      "source_group": "EMULADORES",
+      "category_id": 57,
+      "category_name": "FICHAS- EMULADORES- FUSIBLES",
+      "label": "Emuladores",
+      "questions": [
+        {
+          "id": "emulators.q01",
+          "priority": 1,
+          "question": "¿Cuántos cables salen del módulo?",
+          "fact_keys": [
+            "outputs"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "emulators.q02",
+          "priority": 2,
+          "question": "¿Es una cajita rectangular, redonda o tiene otra forma?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "fuses",
+      "source_group": "FUSIBLES",
+      "category_id": 57,
+      "category_name": "FICHAS- EMULADORES- FUSIBLES",
+      "label": "Fusibles",
+      "questions": [
+        {
+          "id": "fuses.q01",
+          "priority": 2,
+          "question": "¿De qué color es el fusible?",
+          "fact_keys": [
+            "color"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "text",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "fuses.q02",
+          "priority": 3,
+          "question": "¿Qué número aparece escrito arriba del fusible? Por ejemplo, 10, 15, 20 o 30.",
+          "fact_keys": [
+            "amperes"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "A",
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "fuses.q03",
+          "priority": 4,
+          "question": "¿Podés medir el ancho del cuerpo plástico para identificar el tamaño?",
+          "fact_keys": [
+            "width"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "pulleys",
+      "source_group": "POLEA",
+      "category_id": 59,
+      "category_name": "POLEA CRIQUE Y POLI-V",
+      "label": "Poleas",
+      "questions": [
+        {
+          "id": "pulleys.q01",
+          "priority": 1,
+          "question": "¿Tenés el código de la polea original o el código ZEN para buscar una equivalente?",
+          "fact_keys": [
+            "code",
+            "code_zen",
+            "equivalence"
+          ],
+          "kind": "identifier",
+          "answer_type": "code",
+          "unit": null,
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "pulleys.q02",
+          "priority": 2,
+          "question": "¿Es una polea crique o poli-V?",
+          "fact_keys": [
+            "type"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "choice",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "pulleys.q03",
+          "priority": 3,
+          "question": "¿Cuántas ranuras finitas tiene por donde pasa la correa?",
+          "fact_keys": [
+            "slots"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "integer",
+          "unit": null,
+          "catalog_filterable": false,
+          "enabled": false
+        },
+        {
+          "id": "pulleys.q04",
+          "priority": 4,
+          "question": "¿Podés medir el diámetro de la polea, de un extremo al otro, pasando por el centro?",
+          "fact_keys": [
+            "outer_diameter"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "pulleys.q05",
+          "priority": 5,
+          "question": "¿Podés medir cuánto mide de ancho la polea completa?",
+          "fact_keys": [
+            "width"
+          ],
+          "kind": "catalog_attribute",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": true,
+          "enabled": true
+        },
+        {
+          "id": "pulleys.q06",
+          "priority": 6,
+          "question": "¿Podés medir el diámetro del agujero central donde se coloca sobre el eje?",
+          "fact_keys": [
+            "inner_diameter"
+          ],
+          "kind": "physical_detail",
+          "answer_type": "measurement",
+          "unit": "mm",
+          "catalog_filterable": false,
+          "enabled": false
+        }
+      ]
+    }
+  ]
+}

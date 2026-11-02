@@ -11,6 +11,7 @@ use App\Services\Ai\DTO\AiToolCall;
 use App\Services\Ai\DTO\AiUsage;
 use App\Services\Ai\DTO\ImageAnalysis;
 use App\Services\Ai\Support\ImageAnalysisSchema;
+use App\Services\Ai\Support\ImagePayload;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -108,18 +109,16 @@ final class GeminiAiProvider implements AiProviderInterface
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
         }
 
-        $mime = mime_content_type($imagePath) ?: 'image/jpeg';
-
         $payload = [
             'systemInstruction' => ['parts' => [['text' => ImageAnalysisSchema::systemPrompt()]]],
             'contents'          => [[
                 'role'  => 'user',
                 'parts' => [
                     ['text' => ImageAnalysisSchema::userPrompt($context)],
-                    ['inlineData' => [
-                        'mimeType' => $mime,
-                        'data'     => base64_encode((string) file_get_contents($imagePath)),
-                    ]],
+                    ['inlineData' => array_combine(
+                        ['mimeType', 'data'],
+                        ImagePayload::encode($imagePath),
+                    )],
                 ],
             ]],
             'generationConfig' => [
@@ -145,6 +144,89 @@ final class GeminiAiProvider implements AiProviderInterface
         }
 
         return ImageAnalysisSchema::hydrate($decoded, $this->usage($body));
+    }
+
+    /**
+     * Compara la foto del cliente contra las de catálogo en UNA sola llamada,
+     * para que el modelo las vea lado a lado.
+     */
+    public function compareImages(
+        string $customerImagePath,
+        array $catalogImagePaths,
+        string $systemPrompt,
+        array $schema,
+    ): array {
+        if (! is_file($customerImagePath) || $catalogImagePaths === []) {
+            return [];
+        }
+
+        $partes = [
+            ['text' => 'FOTO DEL CLIENTE:'],
+            $this->imagenComoParte($customerImagePath),
+        ];
+
+        foreach ($catalogImagePaths as $indice => $ruta) {
+            if (! is_file($ruta)) {
+                continue;
+            }
+
+            $partes[] = ['text' => 'CANDIDATO ' . $indice . ':'];
+            $partes[] = $this->imagenComoParte($ruta);
+        }
+
+        if (count($partes) < 6) {
+            return [];
+        }
+
+        $response = $this->request($this->config['vision_model'], [
+            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'contents'          => [['role' => 'user', 'parts' => $partes]],
+            'generationConfig'  => [
+                'responseMimeType' => 'application/json',
+                'responseSchema'   => $this->comoSchemaGemini($schema),
+                'temperature'      => 0.0,
+            ],
+        ]);
+
+        if ($response === null) {
+            return [];
+        }
+
+        [$body] = $response;
+
+        $decoded = json_decode($body['candidates'][0]['content']['parts'][0]['text'] ?? '{}', true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return array<string, mixed> */
+    private function imagenComoParte(string $ruta): array
+    {
+        return ['inlineData' => array_combine(['mimeType', 'data'], ImagePayload::encode($ruta))];
+    }
+
+    /**
+     * Gemini usa un dialecto propio del schema: tipos en MAYÚSCULA y sin
+     * uniones con `null`.
+     *
+     * @param  array<string, mixed> $schema
+     * @return array<string, mixed>
+     */
+    private function comoSchemaGemini(array $schema): array
+    {
+        $convertido = [];
+
+        foreach ($schema as $clave => $valor) {
+            if ($clave === 'type') {
+                $tipos = array_values(array_filter((array) $valor, static fn ($t): bool => $t !== 'null'));
+                $convertido['type'] = mb_strtoupper((string) ($tipos[0] ?? 'STRING'));
+                continue;
+            }
+
+            $convertido[$clave] = is_array($valor) ? $this->comoSchemaGemini($valor) : $valor;
+        }
+
+        return $convertido;
     }
 
     public function structuredOutput(string $prompt, array $schema, array $options = []): array
@@ -255,10 +337,7 @@ final class GeminiAiProvider implements AiProviderInterface
                 continue;
             }
 
-            $parts[] = ['inlineData' => [
-                'mimeType' => mime_content_type($path) ?: 'image/jpeg',
-                'data'     => base64_encode((string) file_get_contents($path)),
-            ]];
+            $parts[] = ['inlineData' => array_combine(['mimeType', 'data'], ImagePayload::encode($path))];
         }
 
         return ['role' => $role, 'parts' => $parts];

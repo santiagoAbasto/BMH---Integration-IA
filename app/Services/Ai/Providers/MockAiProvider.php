@@ -37,38 +37,38 @@ final class MockAiProvider implements AiProviderInterface
 
     /** Palabra del cliente → rubro del catálogo. */
     private const PART_KEYWORDS = [
-        'rotor'            => 'ROTORES',
-        'inducido'         => 'INDUCIDOS',
-        'estator'          => 'ESTATORES',
-        'solenoide'        => 'SOLENOIDES',
-        'automatico'       => 'SOLENOIDES',
-        'impulsor'         => 'IMPULSORES',
-        'bendix'           => 'IMPULSORES',
-        'colector'         => 'COLECTORES DE ALTERNADOR',
-        'plaqueta'         => 'PLAQUETA RECTIFICADORA',
-        'rectificadora'    => 'PLAQUETA RECTIFICADORA',
-        'puente'           => 'PLAQUETA RECTIFICADORA',
-        'regulador'        => 'REGULADOR DE VOLTAJE',
-        'campo'            => 'CAMPOS',
-        'bobina'           => 'CAMPOS',
-        'carcasa'          => 'CARCASAS',
-        'portaescobilla'   => 'PORTAESCOBILLAS DE ARRANQUE',
-        'porta escobilla'  => 'PORTAESCOBILLAS DE ARRANQUE',
-        'escobilla'        => 'ESCOBILLAS DE ARRANQUE Y ALTERNADOR',
-        'carbon'           => 'ESCOBILLAS DE ARRANQUE Y ALTERNADOR',
-        'arranque'         => 'MOTORES DE ARRANQUE',
-        'burro'            => 'MOTORES DE ARRANQUE',
-        'alternador'       => 'ALTERNADORES',
-        'rodamiento'       => 'RODAMIENTOS',
-        'ruleman'          => 'RODAMIENTOS',
-        'polea'            => 'POLEA CRIQUE Y POLI-V',
+        'rotor' => 'ROTORES',
+        'inducido' => 'INDUCIDOS',
+        'estator' => 'ESTATORES',
+        'solenoide' => 'SOLENOIDES',
+        'automatico' => 'SOLENOIDES',
+        'impulsor' => 'IMPULSORES',
+        'bendix' => 'IMPULSORES',
+        'colector' => 'COLECTORES DE ALTERNADOR',
+        'plaqueta' => 'PLAQUETA RECTIFICADORA',
+        'rectificadora' => 'PLAQUETA RECTIFICADORA',
+        'puente' => 'PLAQUETA RECTIFICADORA',
+        'regulador' => 'REGULADOR DE VOLTAJE',
+        'campo' => 'CAMPOS',
+        'bobina' => 'CAMPOS',
+        'carcasa' => 'CARCASAS',
+        'portaescobilla' => 'PORTAESCOBILLAS DE ARRANQUE',
+        'porta escobilla' => 'PORTAESCOBILLAS DE ARRANQUE',
+        'escobilla' => 'ESCOBILLAS DE ARRANQUE Y ALTERNADOR',
+        'carbon' => 'ESCOBILLAS DE ARRANQUE Y ALTERNADOR',
+        'arranque' => 'MOTORES DE ARRANQUE',
+        'burro' => 'MOTORES DE ARRANQUE',
+        'alternador' => 'ALTERNADORES',
+        'rodamiento' => 'RODAMIENTOS',
+        'ruleman' => 'RODAMIENTOS',
+        'polea' => 'POLEA CRIQUE Y POLI-V',
         'limpiaparabrisas' => 'MOTORES LIMPIAPARABRISAS - CALEFACTORES - SOPLADORES',
-        'soplador'         => 'MOTORES LIMPIAPARABRISAS - CALEFACTORES - SOPLADORES',
-        'calefactor'       => 'MOTORES LIMPIAPARABRISAS - CALEFACTORES - SOPLADORES',
-        'ficha'            => 'FICHAS- EMULADORES- FUSIBLES',
-        'fusible'          => 'FICHAS- EMULADORES- FUSIBLES',
-        'emulador'         => 'FICHAS- EMULADORES- FUSIBLES',
-        'cargador'         => 'CARGADORES PARA ELÉCTRICOS E HÍBRIDOS',
+        'soplador' => 'MOTORES LIMPIAPARABRISAS - CALEFACTORES - SOPLADORES',
+        'calefactor' => 'MOTORES LIMPIAPARABRISAS - CALEFACTORES - SOPLADORES',
+        'ficha' => 'FICHAS- EMULADORES- FUSIBLES',
+        'fusible' => 'FICHAS- EMULADORES- FUSIBLES',
+        'emulador' => 'FICHAS- EMULADORES- FUSIBLES',
+        'cargador' => 'CARGADORES PARA ELÉCTRICOS E HÍBRIDOS',
     ];
 
     public function name(): string
@@ -84,7 +84,7 @@ final class MockAiProvider implements AiProviderInterface
     public function chat(array $messages, array $tools = [], array $options = []): AiResponse
     {
         $started = microtime(true);
-        $last    = $this->lastUserMessage($messages);
+        $last = $this->lastUserMessage($messages);
 
         return new AiResponse(
             text: $this->composeReply($messages, $last),
@@ -124,9 +124,9 @@ final class MockAiProvider implements AiProviderInterface
             return ImageAnalysis::unusable('La imagen es demasiado chica para distinguir la pieza.');
         }
 
-        $hints      = $this->categoryHints($context);
+        $hints = $this->categoryHints($context);
         $attributes = $this->extractAttributes($context);
-        $codes      = $this->extractCodes($context);
+        $codes = $this->extractCodes($context);
 
         return new ImageAnalysis(
             partType: $hints[0] ?? null,
@@ -140,7 +140,7 @@ final class MockAiProvider implements AiProviderInterface
             brandGuess: $this->extractBrand($context),
             description: $hints === []
                 ? 'Se ve una pieza de electricidad del automotor, pero no alcanza para determinar el rubro.'
-                : 'Por la forma podría corresponder a ' . mb_strtolower((string) $hints[0]) . '.',
+                : 'Por la forma podría corresponder a '.mb_strtolower((string) $hints[0]).'.',
             imageUsable: true,
             usage: new AiUsage(inputTokens: 0, outputTokens: 0, imagesAnalyzed: 1),
         );
@@ -154,27 +154,41 @@ final class MockAiProvider implements AiProviderInterface
      */
     public function structuredOutput(string $prompt, array $schema, array $options = []): array
     {
-        $hints      = $this->categoryHints($prompt);
+        $hints = $this->categoryHints($prompt);
         $attributes = $this->extractAttributes($prompt);
-        $codes      = $this->extractCodes($prompt);
-        $brand      = $this->extractBrand($prompt);
+        $codes = $this->extractCodes($prompt);
+        $brand = $this->extractBrand($prompt);
 
         return [
-            'intent'              => $this->classifyIntent($prompt),
+            'intent' => $this->classifyIntent($prompt),
             'category_candidates' => array_map(
                 static fn (string $name, int $i): array => [
                     'category_name' => $name,
-                    'confidence'    => round(0.8 - ($i * 0.15), 2),
+                    'confidence' => round(0.8 - ($i * 0.15), 2),
                 ],
                 $hints,
                 array_keys($hints)
             ),
             'extracted_attributes' => array_merge($attributes, array_filter([
-                'brand'        => $brand,
+                'brand' => $brand,
                 'visible_code' => $codes[0] ?? null,
             ])),
             'next_required_information' => $this->missingInformation($hints, $attributes, $codes, $brand),
         ];
+    }
+
+    /**
+     * Sin modelo real no se puede comparar imágenes. Devolver vacío es la
+     * respuesta honesta: el VisionMatchService lo interpreta como "no se pudo
+     * comparar" y deja el orden que ya traía la búsqueda estructurada.
+     */
+    public function compareImages(
+        string $customerImagePath,
+        array $catalogImagePaths,
+        string $systemPrompt,
+        array $schema,
+    ): array {
+        return [];
     }
 
     public function embed(string $text): array
@@ -204,16 +218,11 @@ final class MockAiProvider implements AiProviderInterface
         $t = $this->fold($text);
 
         return match (true) {
-            $this->containsAny($t, ['cuanto sale', 'cuanto cuesta', 'precio', 'cuanto me queda', 'cotiza'])
-                => 'price_inquiry',
-            $this->containsAny($t, ['compre', 'compro siempre', 'la otra vez', 'ultima vez', 'historial', 'de siempre'])
-                => 'reorder_from_history',
-            $this->containsAny($t, ['equivalente', 'equivalencia', 'reemplazo', 'parecido', 'alternativa'])
-                => 'equivalence_lookup',
-            $this->containsAny($t, ['asesor', 'humano', 'hablar con alguien', 'vendedor'])
-                => 'human_assistance',
-            $this->containsAny($t, ['stock', 'disponible', 'tenes en', 'hay stock'])
-                => 'availability_inquiry',
+            $this->containsAny($t, ['cuanto sale', 'cuanto cuesta', 'precio', 'cuanto me queda', 'cotiza']) => 'price_inquiry',
+            $this->containsAny($t, ['compre', 'compro siempre', 'la otra vez', 'ultima vez', 'historial', 'de siempre']) => 'reorder_from_history',
+            $this->containsAny($t, ['equivalente', 'equivalencia', 'reemplazo', 'parecido', 'alternativa']) => 'equivalence_lookup',
+            $this->containsAny($t, ['asesor', 'humano', 'hablar con alguien', 'vendedor']) => 'human_assistance',
+            $this->containsAny($t, ['stock', 'disponible', 'tenes en', 'hay stock']) => 'availability_inquiry',
             default => 'product_identification',
         };
     }
@@ -221,8 +230,8 @@ final class MockAiProvider implements AiProviderInterface
     /** @return list<string> nombres de rubro sugeridos, ordenados */
     public function categoryHints(string $text): array
     {
-        $t     = $this->fold($text);
-        $hits  = [];
+        $t = $this->fold($text);
+        $hits = [];
 
         foreach (self::PART_KEYWORDS as $keyword => $category) {
             if (str_contains($t, $keyword)) {
@@ -241,7 +250,7 @@ final class MockAiProvider implements AiProviderInterface
     public function extractAttributes(string $text): array
     {
         $attributes = [];
-        $t          = $this->fold($text);
+        $t = $this->fold($text);
 
         /*
          * Pares "Etiqueta: valor".
@@ -260,7 +269,7 @@ final class MockAiProvider implements AiProviderInterface
                 // filtra bien.
                 $key = match ($key) {
                     'attr_brand' => 'brand',
-                    default      => $key,
+                    default => $key,
                 };
 
                 if ($key !== null && trim($pair[2]) !== '') {
@@ -271,7 +280,7 @@ final class MockAiProvider implements AiProviderInterface
 
         // "12v", "24 v"
         if (preg_match('/\b(\d{1,2})\s*v\b/', $t, $m)) {
-            $attributes['voltage'] = $m[1] . 'v';
+            $attributes['voltage'] = $m[1].'v';
         }
 
         // "75a", "90 amp"
@@ -292,7 +301,7 @@ final class MockAiProvider implements AiProviderInterface
 
         // "9 estrias", "10 dientes"
         foreach (['estrias' => 'splines', 'dientes' => 'teeth', 'ranuras' => 'slots', 'pines' => 'pins'] as $word => $key) {
-            if (preg_match('/\b(\d{1,2})\s*' . $word . '\b/', $t, $m)) {
+            if (preg_match('/\b(\d{1,2})\s*'.$word.'\b/', $t, $m)) {
                 $attributes[$key] = $m[1];
             }
         }
@@ -364,7 +373,7 @@ final class MockAiProvider implements AiProviderInterface
     private function composeReply(array $messages, ?AiMessage $last): string
     {
         $toolPayloads = $this->toolPayloads($messages);
-        $text         = $last?->content ?? '';
+        $text = $last?->content ?? '';
 
         if (isset($toolPayloads['request_human_assistance'])) {
             return (string) config('bmh.handoff.message');
@@ -406,6 +415,15 @@ final class MockAiProvider implements AiProviderInterface
 
         if ($count === 0) {
             return 'Con esos datos no encuentro nada en el catálogo. ¿Tenés algún código grabado en la pieza?';
+        }
+
+        if (is_string($payload['next_question']['question'] ?? null)
+            && trim($payload['next_question']['question']) !== '') {
+            return sprintf(
+                'Encontré %d opciones parecidas. %s',
+                $count,
+                trim($payload['next_question']['question']),
+            );
         }
 
         if (isset($payload['next_question']['label'])) {

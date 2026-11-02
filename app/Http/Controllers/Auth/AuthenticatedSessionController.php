@@ -25,7 +25,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $request->authenticate('web');
 
         $request->session()->regenerate();
 
@@ -47,6 +47,6 @@ class AuthenticatedSessionController extends Controller
             return redirect()->back();
         }
 
-        return redirect('/login');
+        return redirect('/');
     }
 }

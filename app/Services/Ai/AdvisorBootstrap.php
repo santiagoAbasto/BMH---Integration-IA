@@ -30,7 +30,9 @@ final class AdvisorBootstrap
 
         return $user !== null
             && in_array($user->rol, ['cliente', 'vendedor'], true)
-            && config('bmh.features.ai') !== false;
+            && config('bmh.features.ai') !== false
+            // Beta cerrada: sólo los clientes autorizados ven el menú y el widget.
+            && AssistantAccess::permite($user);
     }
 
     /** @return array<string, mixed>|null */

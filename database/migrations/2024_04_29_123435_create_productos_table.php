@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('orden')->default('zz');
             $table->string('codigo')->default('1');
             $table->string('nombre');
-            $table->text('descripcion')->default('a');
+            // MySQL does not allow defaults on TEXT columns. Existing products
+            // must provide a description explicitly when they are created.
+            $table->text('descripcion');
             $table->longtext('caracteristicas')->nullable();
             $table->decimal('precio', 8, 2)->default(1);
             $table->boolean('iva')->default(true);

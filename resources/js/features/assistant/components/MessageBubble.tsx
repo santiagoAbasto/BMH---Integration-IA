@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { CircleAlert, ThumbsDown, ThumbsUp, UserRound } from 'lucide-react';
+import { CircleAlert, Eye, ScanText, ThumbsDown, ThumbsUp, UserRound } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import type { ChatMessage } from '../types';
 
@@ -8,10 +8,11 @@ interface Props {
     showDebug: boolean;
     onConfirmProduct: (messageId: number | string, productId: number) => void;
     onFeedback: (messageId: number | string, productId: number | null, wasCorrect: boolean) => void;
+    onAddToCart: (messageId: number | string, productId: number, quantity: number) => Promise<void>;
     onQuickReply: (text: string) => void;
 }
 
-export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback, onQuickReply }: Props) {
+export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback, onAddToCart, onQuickReply }: Props) {
     const isUser = message.role === 'user';
 
     if (isUser) {
@@ -81,6 +82,13 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                 </div>
             )}
 
+            {/* Lo que la IA leyó en la foto. Se muestra para que el cliente vea
+                que el sistema realmente la miró, y para que pueda corregir un
+                OCR equivocado antes de que arrastre la búsqueda. */}
+            {message.vision !== undefined && message.vision.length > 0 && (
+                <VisionReadout analyses={message.vision} notes={message.visionNotes ?? []} />
+            )}
+
             {candidates.length > 0 && (
                 <div
                     className={clsx(
@@ -103,6 +111,9 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                             index={index}
                             showDebug={showDebug}
                             onConfirm={(productId) => onConfirmProduct(message.id, productId)}
+                            confirmed={message.confirmedProductId === candidate.product.id}
+                            added={message.cartAddedProductIds?.includes(candidate.product.id) === true}
+                            onAddToCart={(productId, quantity) => onAddToCart(message.id, productId, quantity)}
                         />
                     ))}
                 </div>
@@ -193,6 +204,130 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                     </dl>
                 </details>
             )}
+        </div>
+    );
+}
+
+
+/** Panel con lo observado y lo leído en la foto del cliente. */
+function VisionReadout({
+    analyses,
+    notes,
+}: {
+    analyses: NonNullable<ChatMessage['vision']>;
+    notes: string[];
+}) {
+    const ordered = [...analyses].sort((a, b) => {
+        if (a.usable !== b.usable) {
+            return a.usable ? -1 : 1;
+        }
+
+        return b.confidence - a.confidence;
+    });
+    const principal = ordered[0];
+
+    if (principal === undefined) {
+        return null;
+    }
+
+    const usable = ordered.filter((analysis) => analysis.usable);
+    const attributes: Record<string, string> = {};
+
+    for (const analysis of usable) {
+        for (const [key, value] of Object.entries(analysis.attributes)) {
+            attributes[key] ??= value;
+        }
+    }
+
+    const detectedText = Array.from(new Set(ordered.flatMap((analysis) => analysis.detected_text)));
+    const visibleCodes = Array.from(new Set(ordered.flatMap((analysis) => analysis.visible_codes)));
+    const normalizedCodes = visibleCodes.map(normalizeReadText).filter((code) => code !== '');
+
+    return (
+        <div className="max-w-bubble rounded-card border border-edge-subtle bg-surface-raised px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-micro uppercase text-ink-tertiary">
+                <Eye aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Lo que vi en {analyses.length === 1 ? 'la foto' : `las ${analyses.length} fotos`}
+            </p>
+
+            {analyses.length > 1 && (
+                <p className="mt-1 text-caption text-ink-tertiary">
+                    Lectura combinada; los datos más claros de cada foto se contrastaron con el catálogo.
+                </p>
+            )}
+
+            {usable.length === 0 ? (
+                <p className="mt-1.5 text-caption text-state-warning">{principal.reason}</p>
+            ) : (
+                <>
+                    {principal.description !== null && (
+                        <p className="mt-1.5 text-caption text-ink-secondary">{principal.description}</p>
+                    )}
+
+                    <dl className="mt-2 space-y-1">
+                        {principal.part_type !== null && (
+                            <Fila etiqueta="Parece" valor={principal.part_type} />
+                        )}
+                        {principal.brand_guess !== null && (
+                            <Fila etiqueta="Marca" valor={principal.brand_guess} />
+                        )}
+                        {Object.entries(attributes).map(([clave, valor]) => (
+                            <Fila key={clave} etiqueta={clave} valor={valor} />
+                        ))}
+                    </dl>
+                </>
+            )}
+
+            {detectedText.length > 0 && (
+                <div className="mt-2 border-t border-edge-subtle pt-2">
+                    <p className="flex items-center gap-1.5 text-micro uppercase text-ink-tertiary">
+                        <ScanText aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Texto leído
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        {detectedText.slice(0, 16).map((fragmento) => (
+                            <code
+                                key={fragmento}
+                                className={clsx(
+                                    'rounded px-1.5 py-0.5 font-mono text-[0.8125rem]',
+                                    normalizedCodes.some((code) => {
+                                        const fragment = normalizeReadText(fragmento);
+
+                                        return fragment !== '' && (fragment.includes(code) || code.includes(fragment));
+                                    })
+                                        ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-200'
+                                        : 'bg-surface-sunken text-ink-secondary',
+                                )}
+                            >
+                                {fragmento}
+                            </code>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {notes.length > 0 && (
+                <ul className="mt-2 space-y-0.5 border-t border-edge-subtle pt-2">
+                    {notes.map((nota) => (
+                        <li key={nota} className="text-caption text-ink-secondary">
+                            {nota}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+function normalizeReadText(value: string): string {
+    return value.toLocaleUpperCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+    return (
+        <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-caption capitalize text-ink-tertiary">{etiqueta.replace(/_/g, ' ')}</dt>
+            <dd className="text-caption font-medium text-ink-primary">{valor}</dd>
         </div>
     );
 }

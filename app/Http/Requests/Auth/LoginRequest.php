@@ -96,7 +96,12 @@ class LoginRequest extends FormRequest
     }
 
     protected function prepareForValidation(){
-        $this->input_type = filter_var($this->input('input_type'), FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-        $this->merge([$this->input_type => $this->input('input_type')]);
+        $credential = (string) ($this->input('input_type')
+            ?? $this->input('email')
+            ?? $this->input('username')
+            ?? '');
+
+        $this->input_type = filter_var($credential, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $this->merge([$this->input_type => $credential]);
     }
 }

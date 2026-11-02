@@ -11,6 +11,7 @@ use App\Services\Ai\DTO\AiToolCall;
 use App\Services\Ai\DTO\AiUsage;
 use App\Services\Ai\DTO\ImageAnalysis;
 use App\Services\Ai\Support\ImageAnalysisSchema;
+use App\Services\Ai\Support\ImagePayload;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -43,7 +44,7 @@ final class OpenAiProvider implements AiProviderInterface
     {
         $payload = [
             'model'    => $options['model'] ?? $this->config['chat_model'],
-            'messages' => array_map($this->toMessage(...), $messages),
+            'messages' => $this->toMessages($messages),
         ];
 
         if ($tools !== []) {
@@ -95,8 +96,7 @@ final class OpenAiProvider implements AiProviderInterface
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
         }
 
-        $mime   = mime_content_type($imagePath) ?: 'image/jpeg';
-        $base64 = base64_encode((string) file_get_contents($imagePath));
+                [$mimeImagen, $base64] = ImagePayload::encode($imagePath);
 
         $payload = [
             'model'    => $this->config['vision_model'],
@@ -104,7 +104,7 @@ final class OpenAiProvider implements AiProviderInterface
                 ['role' => 'system', 'content' => ImageAnalysisSchema::systemPrompt()],
                 ['role' => 'user', 'content' => [
                     ['type' => 'text', 'text' => ImageAnalysisSchema::userPrompt($context)],
-                    ['type' => 'image_url', 'image_url' => ['url' => "data:{$mime};base64,{$base64}"]],
+                    ['type' => 'image_url', 'image_url' => ['url' => "data:{$mimeImagen};base64,{$base64}"]],
                 ]],
             ],
             'response_format' => [
@@ -133,6 +133,81 @@ final class OpenAiProvider implements AiProviderInterface
         }
 
         return ImageAnalysisSchema::hydrate($decoded, $this->usage($body));
+    }
+
+    /**
+     * Compara la foto del cliente contra las de catálogo en UNA sola llamada.
+     *
+     * Se manda todo junto —foto del cliente primero, después cada candidato
+     * precedido por su número— para que el modelo las vea lado a lado. En
+     * llamadas separadas no podría comparar: sólo describiría cada una.
+     */
+    public function compareImages(
+        string $customerImagePath,
+        array $catalogImagePaths,
+        string $systemPrompt,
+        array $schema,
+    ): array {
+        if (! is_file($customerImagePath) || $catalogImagePaths === []) {
+            return [];
+        }
+
+        $contenido = [
+            ['type' => 'text', 'text' => 'FOTO DEL CLIENTE:'],
+            $this->imagenComoParte($customerImagePath),
+        ];
+
+        foreach ($catalogImagePaths as $indice => $ruta) {
+            if (! is_file($ruta)) {
+                continue;
+            }
+
+            $contenido[] = ['type' => 'text', 'text' => 'CANDIDATO ' . $indice . ':'];
+            $contenido[] = $this->imagenComoParte($ruta);
+        }
+
+        // Menos de dos candidatos con imagen: no hay nada que comparar.
+        if (count($contenido) < 6) {
+            return [];
+        }
+
+        $modelo = (string) $this->config['vision_model'];
+
+        $result = $this->request('chat/completions', [
+            'model'    => $modelo,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $contenido],
+            ],
+            'response_format' => [
+                'type'        => 'json_schema',
+                'json_schema' => ['name' => 'bmh_image_comparison', 'strict' => false, 'schema' => $schema],
+            ],
+            ...$this->temperature(0.0, $modelo),
+        ]);
+
+        if ($result === null) {
+            return [];
+        }
+
+        [$body] = $result;
+
+        $decoded = json_decode((string) ($body['choices'][0]['message']['content'] ?? '{}'), true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return array<string, mixed> */
+    private function imagenComoParte(string $ruta): array
+    {
+        return [
+            'type'      => 'image_url',
+            'image_url' => [
+                'url' => ImagePayload::dataUri($ruta),
+                // `low` alcanza para comparar formas y abarata mucho la llamada.
+                'detail' => 'low',
+            ],
+        ];
     }
 
     public function structuredOutput(string $prompt, array $schema, array $options = []): array
@@ -244,6 +319,80 @@ final class OpenAiProvider implements AiProviderInterface
         return $rejectsTemperature ? [] : ['temperature' => $value];
     }
 
+    /**
+     * Serializa la conversación al dialecto de Chat Completions.
+     *
+     * OpenAI exige que todo mensaje con rol `tool` responda a un `assistant`
+     * previo que haya declarado esos `tool_calls`; si falta, rechaza la llamada
+     * entera con un 400 y la respuesta termina saliendo del texto de
+     * contingencia en vez de la IA.
+     *
+     * Nuestro orquestador no simula una ronda de tool calling —resuelve las
+     * herramientas él mismo y le pasa los resultados ya listos—, así que el
+     * `assistant` que OpenAI espera hay que sintetizarlo acá. Es una exigencia
+     * del formato de este proveedor, no del dominio: por eso vive en el
+     * adaptador y no en el orquestador.
+     *
+     * @param  list<AiMessage> $messages
+     * @return list<array<string, mixed>>
+     */
+    private function toMessages(array $messages): array
+    {
+        $salida = [];
+        $ronda  = [];
+
+        // Cierra una ronda: primero el assistant que declara las llamadas, y
+        // después los resultados que las responden. En ese orden y pegados.
+        $cerrarRonda = function () use (&$salida, &$ronda): void {
+            if ($ronda === []) {
+                return;
+            }
+
+            $salida[] = [
+                'role'       => 'assistant',
+                'content'    => null,
+                'tool_calls' => array_column($ronda, 'call'),
+            ];
+
+            foreach ($ronda as $paso) {
+                $salida[] = $paso['result'];
+            }
+
+            $ronda = [];
+        };
+
+        foreach ($messages as $i => $message) {
+            if ($message->role !== AiMessage::ROLE_TOOL) {
+                $cerrarRonda();
+                $salida[] = $this->toMessage($message);
+
+                continue;
+            }
+
+            $id = $message->toolCallId ?? 'call_' . $i;
+
+            $ronda[] = [
+                'call' => [
+                    'id'       => $id,
+                    'type'     => 'function',
+                    'function' => [
+                        'name'      => $message->toolName ?? 'tool_' . $i,
+                        'arguments' => '{}',
+                    ],
+                ],
+                'result' => [
+                    'role'         => 'tool',
+                    'tool_call_id' => $id,
+                    'content'      => $message->content,
+                ],
+            ];
+        }
+
+        $cerrarRonda();
+
+        return $salida;
+    }
+
     private function toMessage(AiMessage $message): array
     {
         if ($message->role === AiMessage::ROLE_TOOL) {
@@ -265,11 +414,9 @@ final class OpenAiProvider implements AiProviderInterface
                 continue;
             }
 
-            $mime = mime_content_type($path) ?: 'image/jpeg';
-
             $content[] = [
                 'type'      => 'image_url',
-                'image_url' => ['url' => "data:{$mime};base64," . base64_encode((string) file_get_contents($path))],
+                'image_url' => ['url' => ImagePayload::dataUri($path)],
             ];
         }
 

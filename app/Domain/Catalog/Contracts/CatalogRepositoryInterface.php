@@ -70,7 +70,36 @@ interface CatalogRepositoryInterface
     /** @return list<CategoryView> */
     public function categories(): array;
 
+    /**
+     * Marcas que existen realmente en el catálogo.
+     *
+     * Sirve para verificar antes de filtrar: una marca que la base no conoce no
+     * es un hecho, es texto suelto que alguien leyó en algún lado.
+     *
+     * @return list<string>
+     */
+    public function brands(): array;
+
     public function category(int $id): ?CategoryView;
+
+    /**
+     * Todos los códigos de un rubro, para buscar parecidos.
+     *
+     * @return list<string>
+     */
+    public function codesIn(int $categoryId): array;
+
+    /**
+     * Prefijos de letras que usa un rubro en sus códigos.
+     *
+     * Los códigos de BMH llevan la familia adelante: REG17705 es el regulador
+     * 17705, POL17705 la polea. En la pieza suele venir grabado sólo el número,
+     * así que conocer el prefijo del rubro permite reconstruir el código
+     * completo en vez de quedarse en una coincidencia parcial.
+     *
+     * @return list<string>
+     */
+    public function codePrefixes(int $categoryId): array;
 
     /** Códigos que aparecen en más de un producto. @return array<string, list<int>> */
     public function duplicateCodes(): array;

@@ -42,6 +42,18 @@ final class Candidate
     public function confidence(): float
     {
         $exactWeight = (float) config('bmh.ranking.weights.exact_code', 100.0);
+        $ocrConfidence = $this->signals['vision_ocr_confidence'] ?? null;
+
+        if ($ocrConfidence !== null
+            && $ocrConfidence < (float) config('bmh.vision.min_code_assertion_confidence', 0.85)
+            && array_intersect(['exact_code', 'normalized_code', 'equivalence'], array_keys($this->signals)) !== []) {
+            // El catálogo confirma que ese código existe. Con OCR débil todavía
+            // falta que el cliente confirme que eso es realmente lo impreso.
+            return min(
+                (float) config('bmh.confidence.high', 0.75) - 0.01,
+                max((float) config('bmh.confidence.ambiguous', 0.50), 0.45 + (0.30 * $ocrConfidence)),
+            );
+        }
 
         if (isset($this->signals['exact_code'])) {
             return min(0.99, 0.90 + min(0.09, $this->score / ($exactWeight * 4)));
@@ -51,9 +63,27 @@ final class Candidate
             return min(0.89, 0.72 + min(0.17, $this->score / ($exactWeight * 2)));
         }
 
-        // Sin código, el techo es deliberadamente bajo: la similitud por
-        // atributos o por imagen no alcanza para afirmar una pieza.
-        return min(0.74, $this->score / $exactWeight);
+        /*
+         * Sin código, el techo es deliberadamente bajo: ni los atributos ni el
+         * parecido alcanzan para AFIRMAR una pieza.
+         *
+         * Pero una comparación visual explícita —el modelo miró la foto del
+         * cliente junto a la del catálogo y dijo que son la misma— es una señal
+         * cualitativamente distinta de "coincide el rubro". Merece llegar a
+         * "coincidencia parcial", que es justo lo que el asesor debe transmitir:
+         * "creo que es esta, confirmame". Nunca a "muy alta": para eso hace
+         * falta un código.
+         */
+        $base = min(0.74, $this->score / $exactWeight);
+
+        $visionWeight = (float) config('bmh.ranking.weights.vision_similarity', 3.0);
+        $visionSignal = $this->signals['vision_similarity'] ?? 0.0;
+
+        if ($visionWeight > 0.0 && $visionSignal / $visionWeight >= 0.8) {
+            return max($base, (float) config('bmh.confidence.ambiguous', 0.5));
+        }
+
+        return $base;
     }
 
     public function confidenceBand(): string
@@ -62,37 +92,37 @@ final class Candidate
 
         return match (true) {
             $confidence >= (float) config('bmh.confidence.very_high') => 'very_high',
-            $confidence >= (float) config('bmh.confidence.high')      => 'high',
+            $confidence >= (float) config('bmh.confidence.high') => 'high',
             $confidence >= (float) config('bmh.confidence.ambiguous') => 'ambiguous',
-            default                                                   => 'low',
+            default => 'low',
         };
     }
 
     public function confidenceLabel(): string
     {
-        return (string) config('bmh.confidence.labels.' . $this->confidenceBand());
+        return (string) config('bmh.confidence.labels.'.$this->confidenceBand());
     }
 
     /** Versión corta, para el badge de la card. */
     public function confidenceShortLabel(): string
     {
-        return (string) config('bmh.confidence.short_labels.' . $this->confidenceBand());
+        return (string) config('bmh.confidence.short_labels.'.$this->confidenceBand());
     }
 
     public function toArray(bool $withDebug = false): array
     {
         $payload = [
-            'product'          => $this->product,
-            'confidence'       => round($this->confidence(), 4),
-            'confidence_band'  => $this->confidenceBand(),
+            'product' => $this->product,
+            'confidence' => round($this->confidence(), 4),
+            'confidence_band' => $this->confidenceBand(),
             'confidence_label' => $this->confidenceLabel(),
             'confidence_short' => $this->confidenceShortLabel(),
-            'matched_on'       => $this->matchedOn,
+            'matched_on' => $this->matchedOn,
         ];
 
         if ($withDebug) {
             $payload['debug'] = [
-                'score'   => round($this->score, 3),
+                'score' => round($this->score, 3),
                 'signals' => array_map(static fn (float $v): float => round($v, 3), $this->signals),
             ];
         }

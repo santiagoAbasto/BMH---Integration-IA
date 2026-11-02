@@ -28,6 +28,7 @@ export default function AssistantIndex({
         load,
         reset,
         sendFeedback,
+        addToCart,
         requestHuman,
         dismissError,
     } = useConversation({ conversationId: activeConversation });
@@ -58,9 +59,8 @@ export default function AssistantIndex({
     const handleConfirmProduct = useCallback(
         (messageId: number | string, productId: number) => {
             void sendFeedback(messageId, productId, true);
-            void send('Sí, es ese. ¿Cuánto sale?', []);
         },
-        [send, sendFeedback],
+        [sendFeedback],
     );
 
     return (
@@ -164,6 +164,7 @@ export default function AssistantIndex({
                                         onFeedback={(messageId, productId, wasCorrect) =>
                                             void sendFeedback(messageId, productId, wasCorrect)
                                         }
+                                        onAddToCart={addToCart}
                                         onQuickReply={(text) => handleSend(text, [])}
                                     />
                                 ))

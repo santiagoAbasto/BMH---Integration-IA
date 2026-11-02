@@ -13,9 +13,10 @@ namespace App\Domain\Search\DTO;
 final class SearchQuery
 {
     /**
-     * @param list<int>             $categoryIds
-     * @param array<string, string> $attributes  clave canónica => valor
-     * @param list<int>             $customerProductIds productos que el cliente ya compró
+     * @param  list<int>  $categoryIds
+     * @param  array<string, string>  $attributes  clave canónica => valor
+     * @param  list<int>  $customerProductIds  productos que el cliente ya compró
+     * @param  list<string>  $observedAttributes  claves que salieron de mirar una foto
      */
     public function __construct(
         public ?string $rawText = null,
@@ -26,8 +27,24 @@ final class SearchQuery
         public array $attributes = [],
         public array $customerProductIds = [],
         public bool $fromVision = false,
+        /** Confianza OCR del código; null cuando el código lo escribió el cliente. */
+        public ?float $codeConfidence = null,
         public int $limit = 24,
+        public array $observedAttributes = [],
     ) {
+    }
+
+    /**
+     * ¿Este atributo lo dijo el cliente, o lo dedujo una foto?
+     *
+     * La diferencia decide si puede DESCARTAR productos o sólo ordenarlos. Un
+     * dato que el cliente confirmó es un hecho; uno que salió de mirar una foto
+     * es una observación, y una observación equivocada no puede borrar del
+     * listado la pieza que el cliente está buscando.
+     */
+    public function isObserved(string $key): bool
+    {
+        return in_array($key, $this->observedAttributes, true);
     }
 
     public function hasCode(): bool
@@ -56,12 +73,20 @@ final class SearchQuery
     {
         $merged = clone $this;
 
-        $merged->rawText     = $other->rawText     ?? $merged->rawText;
-        $merged->code        = $other->code        ?? $merged->code;
-        $merged->brand       = $other->brand       ?? $merged->brand;
-        $merged->model       = $other->model       ?? $merged->model;
-        $merged->fromVision  = $merged->fromVision || $other->fromVision;
-        $merged->attributes  = [...$merged->attributes, ...$other->attributes];
+        $merged->rawText = $other->rawText ?? $merged->rawText;
+        $merged->code = $other->code ?? $merged->code;
+        $merged->brand = $other->brand ?? $merged->brand;
+        $merged->model = $other->model ?? $merged->model;
+        $merged->fromVision = $merged->fromVision || $other->fromVision;
+        $merged->codeConfidence = $other->codeConfidence ?? $merged->codeConfidence;
+        $merged->attributes = [...$merged->attributes, ...$other->attributes];
+
+        // Un atributo deja de ser "sólo observado" en cuanto el cliente lo
+        // confirma, nunca al revés.
+        $merged->observedAttributes = array_values(array_diff(
+            array_unique([...$merged->observedAttributes, ...$other->observedAttributes]),
+            array_keys(array_diff_key($other->attributes, array_flip($other->observedAttributes))),
+        ));
 
         if ($other->categoryIds !== []) {
             $merged->categoryIds = $other->categoryIds;
@@ -76,13 +101,14 @@ final class SearchQuery
     public function toArray(): array
     {
         return array_filter([
-            'text'        => $this->rawText,
-            'code'        => $this->code,
-            'brand'       => $this->brand,
-            'model'       => $this->model,
-            'categories'  => $this->categoryIds,
-            'attributes'  => $this->attributes,
+            'text' => $this->rawText,
+            'code' => $this->code,
+            'brand' => $this->brand,
+            'model' => $this->model,
+            'categories' => $this->categoryIds,
+            'attributes' => $this->attributes,
             'from_vision' => $this->fromVision,
+            'code_confidence' => $this->codeConfidence,
         ], static fn ($v) => $v !== null && $v !== [] && $v !== false);
     }
 }

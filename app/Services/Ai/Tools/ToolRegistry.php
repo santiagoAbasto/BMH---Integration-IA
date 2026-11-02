@@ -66,55 +66,55 @@ final class ToolRegistry
     {
         return [
             [
-                'name'        => 'search_products',
+                'name' => 'search_products',
                 'description' => 'Busca productos en el catálogo de BMH combinando código, rubro, marca, modelo y características técnicas. Es la herramienta principal.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => [
-                        'text'       => ['type' => 'string', 'description' => 'Descripción libre de lo que busca el cliente'],
-                        'code'       => ['type' => 'string', 'description' => 'Código si lo mencionó o se leyó en la foto'],
-                        'brand'      => ['type' => 'string'],
-                        'model'      => ['type' => 'string'],
-                        'category'   => ['type' => 'string', 'description' => 'Nombre del rubro, por ejemplo ROTORES'],
+                        'text' => ['type' => 'string', 'description' => 'Descripción libre de lo que busca el cliente'],
+                        'code' => ['type' => 'string', 'description' => 'Código si lo mencionó o se leyó en la foto'],
+                        'brand' => ['type' => 'string'],
+                        'model' => ['type' => 'string'],
+                        'category' => ['type' => 'string', 'description' => 'Nombre del rubro, por ejemplo ROTORES'],
                         'attributes' => [
-                            'type'        => 'object',
+                            'type' => 'object',
                             'description' => 'Características técnicas: voltage, amperes, diameter, total_length, splines, teeth, pins',
                         ],
                     ],
                 ],
             ],
             [
-                'name'        => 'search_by_code',
+                'name' => 'search_by_code',
                 'description' => 'Busca por código exacto o normalizado. Un código exacto tiene más autoridad que cualquier parecido visual.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['code' => ['type' => 'string']],
-                    'required'   => ['code'],
+                    'required' => ['code'],
                 ],
             ],
             [
-                'name'        => 'search_by_equivalence',
+                'name' => 'search_by_equivalence',
                 'description' => 'Busca por un código de otro fabricante (Bosch, Valeo, ZEN, PH, etc.) declarado como equivalencia.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['code' => ['type' => 'string']],
-                    'required'   => ['code'],
+                    'required' => ['code'],
                 ],
             ],
             [
-                'name'        => 'get_product',
+                'name' => 'get_product',
                 'description' => 'Devuelve la ficha completa de un producto por su id.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['product_id' => ['type' => 'integer']],
-                    'required'   => ['product_id'],
+                    'required' => ['product_id'],
                 ],
             ],
             [
-                'name'        => 'compare_products',
+                'name' => 'compare_products',
                 'description' => 'Compara 2 a 4 productos y devuelve sólo los atributos en los que difieren.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => [
                         'product_ids' => ['type' => 'array', 'items' => ['type' => 'integer']],
                     ],
@@ -122,46 +122,46 @@ final class ToolRegistry
                 ],
             ],
             [
-                'name'        => 'get_customer_price',
+                'name' => 'get_customer_price',
                 'description' => 'Calcula el precio del cliente autenticado para un producto. NUNCA calcules vos un precio: usá siempre esta herramienta.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['product_id' => ['type' => 'integer']],
-                    'required'   => ['product_id'],
+                    'required' => ['product_id'],
                 ],
             ],
             [
-                'name'        => 'get_customer_order_history',
+                'name' => 'get_customer_order_history',
                 'description' => 'Compras anteriores del cliente autenticado. Sirve para "el que compro siempre".',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => [
                         'category' => ['type' => 'string', 'description' => 'Filtrar por rubro (opcional)'],
-                        'limit'    => ['type' => 'integer'],
+                        'limit' => ['type' => 'integer'],
                     ],
                 ],
             ],
             [
-                'name'        => 'list_categories',
+                'name' => 'list_categories',
                 'description' => 'Lista los rubros del catálogo con su cantidad de productos.',
-                'parameters'  => ['type' => 'object', 'properties' => (object) []],
+                'parameters' => ['type' => 'object', 'properties' => (object) []],
             ],
             [
-                'name'        => 'check_availability',
+                'name' => 'check_availability',
                 'description' => 'Consulta disponibilidad. Puede devolver que no es verificable: en ese caso NO afirmes que hay stock.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['product_id' => ['type' => 'integer']],
-                    'required'   => ['product_id'],
+                    'required' => ['product_id'],
                 ],
             ],
             [
-                'name'        => 'request_human_assistance',
+                'name' => 'request_human_assistance',
                 'description' => 'Deriva la consulta a un asesor de BMH cuando no se puede resolver con confianza.',
-                'parameters'  => [
-                    'type'       => 'object',
+                'parameters' => [
+                    'type' => 'object',
                     'properties' => ['reason' => ['type' => 'string']],
-                    'required'   => ['reason'],
+                    'required' => ['reason'],
                 ],
             ],
         ];
@@ -181,7 +181,7 @@ final class ToolRegistry
     /**
      * Ejecuta una tool. Todo lo que sale de acá es JSON serializable.
      *
-     * @param array<string, mixed> $arguments
+     * @param  array<string, mixed>  $arguments
      */
     public function execute(string $name, array $arguments): array
     {
@@ -192,24 +192,24 @@ final class ToolRegistry
         $started = microtime(true);
 
         $result = match ($name) {
-            'search_products'            => $this->searchProducts($arguments),
-            'search_by_code'             => $this->searchByCode($arguments),
-            'search_by_equivalence'      => $this->searchByEquivalence($arguments),
-            'get_product'                => $this->getProduct($arguments),
-            'compare_products'           => $this->compareProducts($arguments),
-            'get_customer_price'         => $this->getCustomerPrice($arguments),
+            'search_products' => $this->searchProducts($arguments),
+            'search_by_code' => $this->searchByCode($arguments),
+            'search_by_equivalence' => $this->searchByEquivalence($arguments),
+            'get_product' => $this->getProduct($arguments),
+            'compare_products' => $this->compareProducts($arguments),
+            'get_customer_price' => $this->getCustomerPrice($arguments),
             'get_customer_order_history' => $this->getOrderHistory($arguments),
-            'list_categories'            => $this->listCategories(),
-            'check_availability'         => $this->checkAvailability($arguments),
-            'request_human_assistance'   => $this->requestHuman($arguments),
-            default                      => ['error' => 'unknown_tool'],
+            'list_categories' => $this->listCategories(),
+            'check_availability' => $this->checkAvailability($arguments),
+            'request_human_assistance' => $this->requestHuman($arguments),
+            default => ['error' => 'unknown_tool'],
         };
 
         $this->executionLog[] = [
-            'tool'       => $name,
-            'arguments'  => $this->redact($arguments),
+            'tool' => $name,
+            'arguments' => $this->redact($arguments),
             'latency_ms' => round((microtime(true) - $started) * 1000, 2),
-            'ok'         => ! isset($result['error']),
+            'ok' => ! isset($result['error']),
         ];
 
         return $result;
@@ -254,9 +254,9 @@ final class ToolRegistry
 
         if ($products === []) {
             return [
-                'total'      => 0,
+                'total' => 0,
                 'candidates' => [],
-                'message'    => 'Ese código no figura en el catálogo de BMH.',
+                'message' => 'Ese código no figura en el catálogo de BMH.',
             ];
         }
 
@@ -264,11 +264,11 @@ final class ToolRegistry
 
         if ($resolution['ambiguous']) {
             return [
-                'total'                    => count($products),
-                'duplicate_code'           => true,
-                'requires_disambiguation'  => true,
-                'distinguishing_attributes'=> $resolution['distinguishing'],
-                'candidates'               => array_map(
+                'total' => count($products),
+                'duplicate_code' => true,
+                'requires_disambiguation' => true,
+                'distinguishing_attributes' => $resolution['distinguishing'],
+                'candidates' => array_map(
                     static fn ($p): array => $p->forAiTool(),
                     $products
                 ),
@@ -279,7 +279,7 @@ final class ToolRegistry
         $resolved = $resolution['resolved'];
 
         return [
-            'total'      => $resolved === null ? count($products) : 1,
+            'total' => $resolved === null ? count($products) : 1,
             'candidates' => $resolved === null
                 ? array_map(static fn ($p): array => $p->forAiTool(), $products)
                 : [$resolved->forAiTool()],
@@ -291,9 +291,9 @@ final class ToolRegistry
         $products = $this->catalog->findByEquivalence((string) ($arguments['code'] ?? ''));
 
         return [
-            'total'      => count($products),
+            'total' => count($products),
             'candidates' => array_map(static fn ($p): array => $p->forAiTool(), $products),
-            'message'    => $products === []
+            'message' => $products === []
                 ? 'No hay ninguna equivalencia declarada con ese código.'
                 : null,
         ];
@@ -325,7 +325,7 @@ final class ToolRegistry
         }
 
         return [
-            'products'    => array_map(static fn ($p): array => $p->forAiTool(), $products),
+            'products' => array_map(static fn ($p): array => $p->forAiTool(), $products),
             // Sólo lo que difiere: es lo único útil para elegir.
             'differences' => $this->duplicates->distinguishingAttributes($products),
         ];
@@ -348,7 +348,7 @@ final class ToolRegistry
         }
 
         $productId = (int) ($arguments['product_id'] ?? 0);
-        $product   = $this->catalog->find($productId);
+        $product = $this->catalog->find($productId);
 
         if ($product === null) {
             return ['error' => 'product_not_found'];
@@ -369,7 +369,7 @@ final class ToolRegistry
             return ['error' => 'feature_disabled'];
         }
 
-        $limit      = min(25, max(1, (int) ($arguments['limit'] ?? 10)));
+        $limit = min(25, max(1, (int) ($arguments['limit'] ?? 10)));
         $categoryId = $this->resolveCategoryIds($this->str($arguments['category'] ?? null))[0] ?? null;
 
         $lines = $categoryId === null
@@ -379,7 +379,7 @@ final class ToolRegistry
         return [
             'total' => count($lines),
             'lines' => array_map(static fn (PurchasedLine $l): array => $l->jsonSerialize(), $lines),
-            'note'  => 'El historial es una señal, no la verdad actual: confirmá siempre contra el catálogo y el precio vigente.',
+            'note' => 'El historial es una señal, no la verdad actual: confirmá siempre contra el catálogo y el precio vigente.',
         ];
     }
 
@@ -401,8 +401,8 @@ final class ToolRegistry
 
         return [
             'availability' => $availability['availability'],
-            'can_assert'   => $availability['can_assert'],
-            'message'      => $availability['message'],
+            'can_assert' => $availability['can_assert'],
+            'message' => $availability['message'],
         ];
     }
 
@@ -410,8 +410,8 @@ final class ToolRegistry
     {
         return [
             'handoff_requested' => true,
-            'reason'            => mb_substr((string) ($arguments['reason'] ?? 'unspecified'), 0, 200),
-            'message'           => (string) config('bmh.handoff.message'),
+            'reason' => mb_substr((string) ($arguments['reason'] ?? 'unspecified'), 0, 200),
+            'message' => (string) config('bmh.handoff.message'),
         ];
     }
 
@@ -423,26 +423,29 @@ final class ToolRegistry
     public function candidatePayload(array $candidates, SearchQuery $query): array
     {
         $presented = array_slice($candidates, 0, (int) config('bmh.ranking.max_presented', 3));
-        $next      = $this->disambiguation->nextQuestion($candidates);
+        $next = $this->disambiguation->nextQuestion($candidates);
 
         return [
-            'total'      => count($candidates),
-            'strategy'   => $this->search->strategyFor($query),
+            'total' => count($candidates),
+            'strategy' => $this->search->strategyFor($query),
             'candidates' => array_map(
                 static fn (Candidate $c): array => array_merge(
                     $c->product->forAiTool(),
                     [
-                        'confidence'       => round($c->confidence(), 3),
+                        'confidence' => round($c->confidence(), 3),
                         'confidence_label' => $c->confidenceLabel(),
-                        'matched_on'       => array_values(array_unique($c->matchedOn)),
+                        'matched_on' => array_values(array_unique($c->matchedOn)),
                     ]
                 ),
                 $presented
             ),
             'next_question' => $next['should_ask'] ? [
                 'attribute' => $next['attribute']['key'],
-                'label'     => $next['attribute']['label'],
-                'options'   => $next['attribute']['options'],
+                'label' => $next['attribute']['label'],
+                'question' => $next['attribute']['question'],
+                'question_id' => $next['attribute']['question_id'],
+                'question_bank_version' => $next['attribute']['question_bank_version'],
+                'options' => $next['attribute']['options'],
             ] : null,
             'disambiguation_reason' => $next['reason'],
         ];
@@ -456,7 +459,7 @@ final class ToolRegistry
         }
 
         $needle = $this->fold($name);
-        $ids    = [];
+        $ids = [];
 
         foreach ($this->catalog->categories() as $category) {
             $haystack = $this->fold($category->name);

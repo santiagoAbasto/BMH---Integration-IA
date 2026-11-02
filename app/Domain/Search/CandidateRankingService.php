@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Search;
 
 use App\Domain\Catalog\CatalogSemanticLayer;
-use App\Domain\Catalog\DTO\CrossReference;
 use App\Domain\Catalog\DTO\ProductView;
 use App\Domain\Search\DTO\Candidate;
 use App\Domain\Search\DTO\SearchQuery;
@@ -23,12 +22,12 @@ use App\Domain\Search\DTO\SearchQuery;
 final class CandidateRankingService
 {
     /**
-     * @param  list<ProductView> $products
+     * @param  list<ProductView>  $products
      * @return list<Candidate>
      */
     public function rank(array $products, SearchQuery $query): array
     {
-        $weights    = (array) config('bmh.ranking.weights');
+        $weights = (array) config('bmh.ranking.weights');
         $candidates = [];
 
         foreach ($products as $product) {
@@ -41,6 +40,13 @@ final class CandidateRankingService
             $this->scoreAttributes($candidate, $query, $weights);
             $this->scoreText($candidate, $query, $weights);
             $this->scoreHistory($candidate, $query, $weights);
+
+            if ($query->fromVision && $query->codeConfidence !== null
+                && array_intersect(['exact_code', 'normalized_code', 'equivalence'], array_keys($candidate->signals)) !== []) {
+                // Evidencia para calibrar la etiqueta. No suma puntaje: la base
+                // confirmó que el código existe, no que el OCR lo leyó bien.
+                $candidate->signals['vision_ocr_confidence'] = max(0.0, min(1.0, $query->codeConfidence));
+            }
 
             $candidates[] = $candidate;
         }
@@ -68,7 +74,7 @@ final class CandidateRankingService
             return;
         }
 
-        $normalizedNeedle  = CatalogSemanticLayer::normalizeCode($needle);
+        $normalizedNeedle = CatalogSemanticLayer::normalizeCode($needle);
         $normalizedProduct = CatalogSemanticLayer::normalizeCode($productCode);
 
         if ($normalizedNeedle !== '' && $normalizedNeedle === $normalizedProduct) {
@@ -97,7 +103,7 @@ final class CandidateRankingService
         foreach ($candidate->product->equivalences as $reference) {
             if (CatalogSemanticLayer::normalizeCode($reference->code) === $needle) {
                 $candidate->addSignal('equivalence', (float) $weights['equivalence']);
-                $candidate->matchedOn[] = 'equivalencia ' . $reference->label;
+                $candidate->matchedOn[] = 'equivalencia '.$reference->label;
 
                 return;
             }
@@ -159,9 +165,10 @@ final class CandidateRankingService
             $candidate->addSignal('attribute_match', (float) $weights['attribute_match'] * $matched, $strength);
         }
 
-        // Si la búsqueda vino de una foto, se acredita aparte y con poco peso.
+        // Coincidir en datos vistos en la foto ayuda a ordenar, pero no equivale
+        // a una comparación visual explícita entre ambas imágenes.
         if ($query->fromVision && $matched > 0) {
-            $candidate->addSignal('vision_similarity', (float) $weights['vision_similarity']);
+            $candidate->addSignal('vision_attribute_match', (float) $weights['vision_similarity']);
         }
     }
 
@@ -172,12 +179,12 @@ final class CandidateRankingService
         }
 
         $haystack = mb_strtolower(
-            $candidate->product->name . ' '
-            . ($candidate->product->brand ?? '') . ' '
-            . ($candidate->product->model ?? '')
+            $candidate->product->name.' '
+            .($candidate->product->brand ?? '').' '
+            .($candidate->product->model ?? '')
         );
 
-        $terms   = $this->terms((string) $query->rawText);
+        $terms = $this->terms((string) $query->rawText);
         $matched = 0;
 
         foreach ($terms as $term) {
@@ -209,7 +216,7 @@ final class CandidateRankingService
      */
     private function attributeMatches(string $actual, string $expected): bool
     {
-        $actualNumeric   = $this->numeric($actual);
+        $actualNumeric = $this->numeric($actual);
         $expectedNumeric = $this->numeric($expected);
 
         if ($actualNumeric !== null && $expectedNumeric !== null) {
@@ -221,7 +228,7 @@ final class CandidateRankingService
 
     private function softMatch(string $needle, string $haystack): bool
     {
-        $needle   = $this->fold($needle);
+        $needle = $this->fold($needle);
         $haystack = $this->fold($haystack);
 
         if ($needle === '' || $haystack === '') {

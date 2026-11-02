@@ -99,7 +99,14 @@
 }
 
 .bmh-panel-in {
-    animation: bmh-panel-in 220ms cubic-bezier(0.2, 0, 0, 1) both;
+    /*
+     * `backwards`, no `both`: con `both` el panel se queda con el `transform`
+     * del fotograma final aplicado para siempre, y un elemento transformado pasa
+     * a ser el marco de referencia de sus hijos `position: fixed`. El visor de
+     * fotos ampliadas quedaba encerrado dentro del panel en vez de ocupar la
+     * pantalla. El estado final es el natural, así que no hay nada que retener.
+     */
+    animation: bmh-panel-in 220ms cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

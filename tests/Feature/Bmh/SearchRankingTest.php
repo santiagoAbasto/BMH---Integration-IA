@@ -26,7 +26,7 @@ final class SearchRankingTest extends TestCase
         // Regla dura del proyecto. Se verifica sobre el peso configurado y sobre
         // el resultado real del ranking.
         $catalog = app(CatalogRepositoryInterface::class);
-        $target  = $catalog->findByCode('1833')[0] ?? null;
+        $target = $catalog->findByCode('1833')[0] ?? null;
 
         $this->assertNotNull($target);
 
@@ -148,13 +148,29 @@ final class SearchRankingTest extends TestCase
         }
     }
 
+    public function test_un_atributo_visto_en_foto_no_finge_una_comparacion_visual(): void
+    {
+        $candidates = $this->search()->search(new SearchQuery(
+            categoryIds: [41],
+            attributes: ['voltage' => '24v'],
+            fromVision: true,
+        ));
+
+        $withAttributeMatch = collect($candidates)
+            ->first(static fn ($candidate): bool => isset($candidate->signals['attribute_match']));
+
+        $this->assertNotNull($withAttributeMatch);
+        $this->assertArrayHasKey('vision_attribute_match', $withAttributeMatch->signals);
+        $this->assertArrayNotHasKey('vision_similarity', $withAttributeMatch->signals);
+    }
+
     public function test_ante_un_codigo_duplicado_no_elige_el_primero(): void
     {
-        $catalog  = app(CatalogRepositoryInterface::class);
+        $catalog = app(CatalogRepositoryInterface::class);
         $resolver = app(DuplicateProductResolver::class);
 
         $duplicates = $catalog->duplicateCodes();
-        $code       = (string) array_key_first($duplicates);
+        $code = (string) array_key_first($duplicates);
 
         $resolution = $resolver->resolve($catalog->findByCode($code));
 
@@ -172,7 +188,7 @@ final class SearchRankingTest extends TestCase
 
     public function test_los_atributos_discriminantes_son_los_que_difieren(): void
     {
-        $catalog  = app(CatalogRepositoryInterface::class);
+        $catalog = app(CatalogRepositoryInterface::class);
         $resolver = app(DuplicateProductResolver::class);
 
         $products = $catalog->searchByKeywords('rotor', [41], 4);
@@ -235,7 +251,7 @@ final class SearchRankingTest extends TestCase
         }
 
         $candidates = app(CandidateRankingService::class)->rank($products, new SearchQuery(categoryIds: [41]));
-        $ranked     = app(CandidateDisambiguationService::class)->rankAttributesByGain($candidates);
+        $ranked = app(CandidateDisambiguationService::class)->rankAttributesByGain($candidates);
 
         foreach ($ranked as $attribute) {
             if ($attribute['key'] === 'voltage') {
@@ -249,7 +265,7 @@ final class SearchRankingTest extends TestCase
     public function test_nunca_pregunta_por_atributos_de_la_lista_negra(): void
     {
         $candidates = $this->search()->search(new SearchQuery(rawText: 'rotor', categoryIds: [41]));
-        $ranked     = app(CandidateDisambiguationService::class)->rankAttributesByGain($candidates);
+        $ranked = app(CandidateDisambiguationService::class)->rankAttributesByGain($candidates);
 
         $blacklist = array_map('mb_strtoupper', (array) config('bmh.disambiguation.never_ask'));
 
@@ -260,7 +276,7 @@ final class SearchRankingTest extends TestCase
 
     public function test_el_historial_del_cliente_suma_pero_no_domina(): void
     {
-        $catalog  = app(CatalogRepositoryInterface::class);
+        $catalog = app(CatalogRepositoryInterface::class);
         $products = $catalog->searchByKeywords('rotor', [41], 6);
 
         $this->assertGreaterThanOrEqual(2, count($products));

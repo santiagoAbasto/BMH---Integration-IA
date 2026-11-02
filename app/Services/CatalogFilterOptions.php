@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Producto;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 final class CatalogFilterOptions
 {
@@ -17,6 +18,10 @@ final class CatalogFilterOptions
      */
     public function brandsWithModels(): array
     {
+        if (! Schema::hasColumns('productos', ['marca', 'modelo'])) {
+            return [];
+        }
+
         return Producto::query()
             ->select(['marca', 'modelo'])
             ->whereNotNull('marca')
