@@ -34,7 +34,12 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {   
-        
+        // Sin sesión de administrador sólo se puede hacer el registro público de
+        // clientes (el formulario de la home). Vendedores, clientes cargados por
+        // BMH y usuarios del panel los crea un administrador: antes cualquiera
+        // podía mandar rol=administrador y crearse un acceso al panel.
+        abort_unless($request->rol === 'cliente' || Auth::guard('admin')->check(), 403);
+
         switch($request->rol){
             
             case 'cliente':
@@ -65,7 +70,6 @@ class RegisteredUserController extends Controller
                 $request->validate([
                     'name' => ['required', 'string', 'max:255'],
                     'username' => ['required', 'string', 'lowercase', 'max:255', 'unique:'.User::class],
-                    'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
                     'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 ]);
                 break;
@@ -130,18 +134,15 @@ class RegisteredUserController extends Controller
                 break;
 
             default:
-                $user = User::create([
+                // Usuarios del panel (dash-nuevo-usuario): sólo estos dos roles.
+                abort_unless(in_array($request->rol, ['usuario', 'administrador'], true), 422);
+                $user = Admin::create([
                     'name' => $request->name,
                     'username' => $request->username,
-                    'email' => $request->email,
-                    'rol' => 'cliente',
+                    'rol' => $request->rol,
                     'password' => Hash::make($request->password),
-                    'habilitado' => true,
                 ]);
-                event(new Registered($user));
-                Auth::login($user);
-
-                return redirect(RouteServiceProvider::HOME);
+                break;
         }
 
         

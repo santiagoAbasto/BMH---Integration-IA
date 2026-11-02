@@ -77,6 +77,22 @@ $cart = Cart::content();
   
   @yield('styles')
   @include('layouts.partials.apariencia')
+  <script>
+    // Abre o cierra un modal de Bootstrap por id (carrito, home, listados).
+    // Bootstrap se carga al final de la página: se busca recién al llamarla.
+    window.bmhAbrirModal = function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (window.bootstrap && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(el).show();
+      else if (window.jQuery && jQuery.fn.modal) jQuery(el).modal('show');
+    };
+    window.bmhCerrarModal = function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (window.bootstrap && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(el).hide();
+      else if (window.jQuery && jQuery.fn.modal) jQuery(el).modal('hide');
+    };
+  </script>
   <style>
     .bmh-advisor-nav { font-weight: 700; }
     .bmh-advisor-nav:hover { opacity: .82; }
@@ -161,11 +177,14 @@ $cart = Cart::content();
                     <a class="nav-link under cartNav active {{ Route::currentRouteName() == 'cliente.datos' ? 'selectUrl' : '' }}" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
                   </li>
 
+                  {{-- Asesor IA: sólo para los clientes de la beta (AssistantAccess). --}}
+                  @if (app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
                   <li class="nav-item">
                     <a class="nav-link under cartNav active bmh-advisor-nav" href="#" data-bmh-advisor>
                       <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
                     </a>
                   </li>
+                  @endif
 
                   @if(Auth::guard('web')->user()->rol == 'vendedor')
                   <li class="nav-item">
@@ -228,11 +247,13 @@ $cart = Cart::content();
             <li class="nav-item nav-mobile datos-nav px-2">
               <a class="nav-link active" href="{{route('cliente.datos', ['id' => Auth::guard('web')->user()->id])}}">Mis datos</a>
             </li>
+            @if (app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
             <li class="nav-item nav-mobile px-2">
               <a class="nav-link active bmh-advisor-nav" href="#" data-bmh-advisor>
                 <span class="bmh-advisor-dot" aria-hidden="true"></span>Asesor IA
               </a>
             </li>
+            @endif
 
             <li class="mb-3">
               @if(isset($zonaclientes) && Auth::guard('web')->check())

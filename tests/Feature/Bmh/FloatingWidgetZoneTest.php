@@ -97,6 +97,39 @@ final class FloatingWidgetZoneTest extends TestCase
         $response->assertSee('data-bmh-advisor', false);
     }
 
+    public function test_con_la_beta_cerrada_un_cliente_fuera_de_la_lista_no_ve_ningun_acceso_al_asesor(): void
+    {
+        $me = $this->customer();
+        config(['bmh.assistant_access.mode' => 'allowlist', 'bmh.assistant_access.customer_ids' => [999999999]]);
+
+        // Ni el ítem del menú ni el widget: ve WhatsApp, como antes de la IA.
+        foreach (['/productos-zona-home', '/carrito'] as $path) {
+            $response = $this->actingAs($me)->get($path);
+            $this->assertWhatsapp($response);
+            $response->assertDontSee('data-bmh-advisor', false);
+        }
+        $this->actingAs($me)->get('/asesor')->assertNotFound();
+    }
+
+    public function test_con_la_beta_cerrada_el_cliente_de_la_lista_ve_el_asesor(): void
+    {
+        $me = $this->customer();
+        config(['bmh.assistant_access.mode' => 'allowlist', 'bmh.assistant_access.customer_ids' => [$me->id]]);
+
+        $response = $this->actingAs($me)->get('/productos-zona-home');
+        $this->assertAdvisor($response);
+        $response->assertSee('data-bmh-advisor', false);
+    }
+
+    public function test_los_modales_del_sitio_tienen_su_funcion_para_abrirse(): void
+    {
+        // El carrito, la home y los listados abren sus modales con bmhAbrirModal().
+        $this->actingAs($this->customer())->get('/carrito')
+            ->assertOk()
+            ->assertSee('window.bmhAbrirModal', false)
+            ->assertSee('window.bmhCerrarModal', false);
+    }
+
     public function test_el_carrito_no_tiene_caracteres_rotos(): void
     {
         $response = $this->actingAs($this->customer())->get('/carrito');
