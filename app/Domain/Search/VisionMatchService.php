@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Search;
 
-use App\Domain\Catalog\CatalogSemanticLayer;
 use App\Domain\Catalog\CatalogFamilyResolver;
+use App\Domain\Catalog\CatalogSemanticLayer;
 use App\Domain\Catalog\Contracts\CatalogRepositoryInterface;
 use App\Domain\Catalog\DTO\ProductView;
 use App\Domain\Catalog\Legacy\ProductImageService;
@@ -57,8 +57,6 @@ final class VisionMatchService
      */
     private const MAX_COMPARACION = 8;
 
-
-
     public function __construct(
         private readonly CatalogRepositoryInterface $catalog,
         private readonly HybridProductSearchService $search,
@@ -83,18 +81,22 @@ final class VisionMatchService
         ?AiProviderInterface $provider = null,
         ?string $customerImagePath = null,
     ): array {
-        $notes            = [];
+        $notes = [];
         $codigoDescartado = false;
-        $notaDelCodigo    = null;
+        $notaDelCodigo = null;
 
-        if (! $analysis->imageUsable) {
+        if (! $analysis->imageUsable && ! $analysis->hasReliableCode()) {
             return [
                 'candidates' => [],
-                'strategy'   => 'unusable_image',
-                'code_hits'  => [],
-                'compared'   => false,
-                'notes'      => [$analysis->unusableReason ?? 'La foto no permite identificar la pieza.'],
+                'strategy' => 'unusable_image',
+                'code_hits' => [],
+                'compared' => false,
+                'notes' => [$analysis->unusableReason ?? 'La foto no permite identificar la pieza.'],
             ];
+        }
+
+        if (! $analysis->imageUsable && $analysis->unusableReason !== null) {
+            $notes[] = $analysis->unusableReason.' Sólo usaré el texto que sí pudo leerse.';
         }
 
         /*
@@ -126,21 +128,22 @@ final class VisionMatchService
         if ($porCodigo !== [] && $this->elCodigoContradiceLaFoto($porCodigo, $rubros, $analysis)) {
             $notes[] = sprintf(
                 'Leí algo parecido a %s, pero en el catálogo ese código es otra pieza, no %s. '
-                . 'Debo haber leído mal algún número, así que busco por lo que se ve en la foto.',
+                .'Debo haber leído mal algún número, así que busco por lo que se ve en la foto.',
                 $this->enumerar(array_slice($codigosQueExisten, 0, 2)),
                 $analysis->partType !== null ? 'la que se ve acá' : 'la de la foto',
             );
 
-            $porCodigo         = [];
+            $porCodigo = [];
             $codigosQueExisten = [];
-            $codigoDescartado  = true;
-            $notaDelCodigo     = array_key_last($notes);
+            $codigoDescartado = true;
+            $notaDelCodigo = array_key_last($notes);
         }
 
         if ($porCodigo !== []) {
             $query = clone $baseQuery;
-            $query->code       = $codigoEfectivo ?? $codigosQueExisten[0] ?? null;
+            $query->code = $codigoEfectivo ?? $codigosQueExisten[0] ?? null;
             $query->fromVision = true;
+            $query->codeConfidence = $analysis->textConfidence;
 
             $notes[] = sprintf(
                 'Leí %s en la pieza y %s en el catálogo.',
@@ -150,10 +153,10 @@ final class VisionMatchService
 
             return [
                 'candidates' => $this->ranking->rank($porCodigo, $query),
-                'strategy'   => 'vision_code',
-                'code_hits'  => $codigosQueExisten,
-                'compared'   => false,
-                'notes'      => $notes,
+                'strategy' => 'vision_code',
+                'code_hits' => $codigosQueExisten,
+                'compared' => false,
+                'notes' => $notes,
             ];
         }
 
@@ -173,10 +176,10 @@ final class VisionMatchService
         if ($query->isEmpty()) {
             return [
                 'candidates' => [],
-                'strategy'   => 'vision_insufficient',
-                'code_hits'  => [],
-                'compared'   => false,
-                'notes'      => array_merge($notes, [
+                'strategy' => 'vision_insufficient',
+                'code_hits' => [],
+                'compared' => false,
+                'notes' => array_merge($notes, [
                     'Con esta foto no puedo determinar el rubro. Un código grabado o el tipo de pieza me alcanzaría.',
                 ]),
             ];
@@ -223,10 +226,10 @@ final class VisionMatchService
         if ($candidates === [] && $query->categoryIds === [] && $query->attributes === []) {
             return [
                 'candidates' => [],
-                'strategy'   => 'vision_insufficient',
-                'code_hits'  => [],
-                'compared'   => false,
-                'notes'      => array_merge($notes, [
+                'strategy' => 'vision_insufficient',
+                'code_hits' => [],
+                'compared' => false,
+                'notes' => array_merge($notes, [
                     'Veo la pieza pero no logro ubicarla en el catálogo. Si tiene algún número grabado o me decís de qué equipo salió, la encuentro.',
                 ]),
             ];
@@ -250,7 +253,7 @@ final class VisionMatchService
 
             if ($comparados !== null) {
                 $candidates = $comparados['candidates'];
-                $compared   = true;
+                $compared = true;
 
                 if ($comparados['note'] !== null) {
                     $notes[] = $comparados['note'];
@@ -270,8 +273,8 @@ final class VisionMatchService
         if (count($candidates) > 1 && (! $analysis->hasReliableCode() || $codigoDescartado)) {
             $notes[] = sprintf(
                 'Tengo %d que encajan con lo que se ve. Estas piezas se distinguen por el número grabado, '
-                . 'que suele estar en la cara del cuerpo, no en la del disipador: ¿me lo pasás, o mandás '
-                . 'una foto de ese lado?',
+                .'que suele estar en la cara del cuerpo, no en la del disipador: ¿me lo pasás, o mandás '
+                .'una foto de ese lado?',
                 count($candidates),
             );
         } elseif (! $compared && count($candidates) > self::MAX_COMPARACION) {
@@ -283,10 +286,10 @@ final class VisionMatchService
 
         return [
             'candidates' => $candidates,
-            'strategy'   => $compared ? 'vision_compared' : 'vision_attributes',
-            'code_hits'  => [],
-            'compared'   => $compared,
-            'notes'      => $notes,
+            'strategy' => $compared ? 'vision_compared' : 'vision_attributes',
+            'code_hits' => [],
+            'compared' => $compared,
+            'notes' => $notes,
         ];
     }
 
@@ -304,7 +307,7 @@ final class VisionMatchService
 
         /** @var array<int, ProductView> $encontrados */
         $encontrados = [];
-        $aciertos    = [];
+        $aciertos = [];
 
         // El código que hay que usar para rankear, que no siempre es el que se
         // leyó: en la pieza dice "17705" y en el catálogo es "REG17705".
@@ -314,13 +317,13 @@ final class VisionMatchService
             $delCodigo = [];
 
             foreach ([
-                'exacto'      => fn (): array => $this->catalog->findByCode($codigo),
+                'exacto' => fn (): array => $this->catalog->findByCode($codigo),
                 'normalizado' => fn (): array => $this->catalog->findByNormalizedCode($codigo),
                 // En la pieza suele venir grabado sólo el número; el catálogo lo
                 // guarda con la familia adelante. "17705" leído en un regulador
                 // es REG17705, y así deja de ser una coincidencia parcial que
                 // arrastra la polea POL17705 del mismo número.
-                'prefijo'     => fn (): array => $this->familias->completarCodigo($codigo, $rubros),
+                'prefijo' => fn (): array => $this->familias->completarCodigo($codigo, $rubros),
                 'equivalente' => fn (): array => $this->catalog->findByEquivalence($codigo, 10),
             ] as $nombre => $intento) {
                 $delCodigo = $intento();
@@ -440,8 +443,8 @@ final class VisionMatchService
      * búsqueda en cero y arrastra al fallback, que tira también los filtros
      * buenos. Si el rubro no define el dato, el dato no filtra.
      *
-     * @param  array<string,string> $atributos
-     * @param  list<int>            $rubros
+     * @param  array<string,string>  $atributos
+     * @param  list<int>  $rubros
      * @return array<string,string>
      */
     private function normalizarAtributos(array $atributos, array $rubros = []): array
@@ -460,7 +463,7 @@ final class VisionMatchService
                 continue;
             }
 
-            $tipo  = \App\Domain\Catalog\LegacyAttributeMap::type($slot);
+            $tipo = \App\Domain\Catalog\LegacyAttributeMap::type($slot);
             $valor = trim($valor);
 
             if (in_array($tipo, [
@@ -473,6 +476,7 @@ final class VisionMatchService
                 }
 
                 $limpios[$clave] = str_replace(',', '.', $m[0]);
+
                 continue;
             }
 
@@ -500,8 +504,8 @@ final class VisionMatchService
      * bien puesto en la columna PINES. Por eso se verifica cada valor por
      * separado antes de dejarlo entrar.
      *
-     * @param  array<string,string> $atributos
-     * @param  list<int>            $rubros
+     * @param  array<string,string>  $atributos
+     * @param  list<int>  $rubros
      * @return array<string,string>
      */
     private function losQueElCatalogoReconoce(array $atributos, array $rubros): array
@@ -524,7 +528,7 @@ final class VisionMatchService
     /**
      * Slots con etiqueta en alguno de los rubros dados.
      *
-     * @param  list<int> $rubros
+     * @param  list<int>  $rubros
      * @return list<int>
      */
     private function slotsDe(array $rubros): array
@@ -588,8 +592,8 @@ final class VisionMatchService
     /**
      * Acerca los códigos del rubro que se parecen al que se leyó.
      *
-     * @param  list<int>       $rubros
-     * @param  list<Candidate> $candidates
+     * @param  list<int>  $rubros
+     * @param  list<Candidate>  $candidates
      * @return array{candidates: list<Candidate>, note: string}|array{}
      */
     private function sugerirPorCodigoParecido(ImageAnalysis $analysis, array $rubros, array $candidates): array
@@ -630,10 +634,10 @@ final class VisionMatchService
                     continue;
                 }
 
-                $candidate  = $nuevos[0];
+                $candidate = $nuevos[0];
                 $candidates = [$candidate, ...$candidates];
             } else {
-                $candidate  = $candidates[$encontrado];
+                $candidate = $candidates[$encontrado];
                 $candidates = [$candidate, ...array_values(array_filter(
                     $candidates,
                     static fn (Candidate $c): bool => $c->product->code !== $elegido,
@@ -645,9 +649,9 @@ final class VisionMatchService
 
             return [
                 'candidates' => $candidates,
-                'note'       => sprintf(
+                'note' => sprintf(
                     'Leí "%s" en la pieza, pero ese número no da con lo que muestra la foto. '
-                    . 'El más parecido que tenemos es %s. ¿Puede ser ese?',
+                    .'El más parecido que tenemos es %s. ¿Puede ser ese?',
                     $leido,
                     $elegido,
                 ),
@@ -664,8 +668,8 @@ final class VisionMatchService
      * no sabe bien qué pieza es, el código sigue siendo lo mejor que hay y el
      * equivocado bien puede ser el rubro.
      *
-     * @param  list<ProductView> $encontrados
-     * @param  list<int>         $rubros
+     * @param  list<ProductView>  $encontrados
+     * @param  list<int>  $rubros
      */
     private function elCodigoContradiceLaFoto(array $encontrados, array $rubros, ImageAnalysis $analysis): bool
     {
@@ -702,7 +706,7 @@ final class VisionMatchService
      * tiene el dato cargado y no coincide, contradice; si no lo tiene cargado,
      * no dice nada y no se lo culpa por eso.
      *
-     * @param  list<int>             $rubros
+     * @param  list<int>  $rubros
      * @param  array<string,string>  $observado
      */
     private function contradice(ProductView $producto, array $rubros, array $observado): bool
@@ -729,7 +733,7 @@ final class VisionMatchService
     /** Compara por número cuando los dos lo tienen; si no, por texto plegado. */
     private function mismoValor(string $delCatalogo, string $observado): bool
     {
-        $unNumero  = preg_match('/-?\d+(?:[.,]\d+)?/', $delCatalogo, $a) === 1
+        $unNumero = preg_match('/-?\d+(?:[.,]\d+)?/', $delCatalogo, $a) === 1
             ? (float) str_replace(',', '.', $a[0]) : null;
         $otroNumero = preg_match('/-?\d+(?:[.,]\d+)?/', $observado, $b) === 1
             ? (float) str_replace(',', '.', $b[0]) : null;
@@ -767,11 +771,11 @@ final class VisionMatchService
      * "A", "A" y "B", "A", "B" y "C" — para que la nota se lea como la diría
      * una persona y no como un array.
      *
-     * @param list<string> $items
+     * @param  list<string>  $items
      */
     private function enumerar(array $items): string
     {
-        $items = array_values(array_map(static fn (string $i): string => '"' . $i . '"', $items));
+        $items = array_values(array_map(static fn (string $i): string => '"'.$i.'"', $items));
 
         if (count($items) <= 1) {
             return $items[0] ?? '';
@@ -779,13 +783,13 @@ final class VisionMatchService
 
         $ultimo = array_pop($items);
 
-        return implode(', ', $items) . ' y ' . $ultimo;
+        return implode(', ', $items).' y '.$ultimo;
     }
 
     /**
      * Segunda pasada multimodal: la foto del cliente contra las de catálogo.
      *
-     * @param  list<Candidate> $candidates
+     * @param  list<Candidate>  $candidates
      * @return array{candidates: list<Candidate>, note: ?string}|null
      */
     private function compararImagenes(
@@ -859,6 +863,15 @@ final class VisionMatchService
             return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
         }
 
+        $similitudes = array_filter(
+            $similitudes,
+            fn (float $similitud): bool => $this->shouldAddVisualSimilaritySignal($similitud),
+        );
+
+        if ($similitudes === []) {
+            return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
+        }
+
         // La similitud entra como una señal más del ranking, con su peso bajo.
         // No reordena por sí sola: si otro candidato tiene un código exacto,
         // sigue ganando.
@@ -881,8 +894,8 @@ final class VisionMatchService
 
         foreach ($conImagen as $ref => $fila) {
             $razon = preg_replace(
-                '/\b(el |la )?candidato\s*' . $ref . '\b/iu',
-                'el ' . $fila['candidate']->product->code,
+                '/\b(el |la )?candidato\s*'.$ref.'\b/iu',
+                'el '.$fila['candidate']->product->code,
                 $razon,
             ) ?? $razon;
         }
@@ -895,8 +908,17 @@ final class VisionMatchService
 
         return [
             'candidates' => $candidates,
-            'note'       => $razon === '' ? null : 'Comparando las fotos: ' . mb_substr($razon, 0, 180),
+            'note' => $razon === '' ? null : 'Comparando las fotos: '.mb_substr($razon, 0, 180),
         ];
     }
 
+    private function shouldAddVisualSimilaritySignal(float $similarity): bool
+    {
+        $threshold = max(0.0, min(
+            1.0,
+            (float) config('bmh.vision.min_similarity_signal', 0.6),
+        ));
+
+        return $similarity >= $threshold;
+    }
 }

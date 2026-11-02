@@ -2,35 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Carrito;
-use App\Models\Producto;
-use App\Models\CodigoPostal;
-use App\Models\ZonaPostal;
-use App\Models\Pedido;
-use App\Models\DimensionPedido;
-use CodersFree\Shoppingcart\Facades\Cart;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\XmlController;
-use App\Mail\CompraMail;
 use App\Mail\PedidoClienteMail;
 use App\Mail\PedidoEmpresaMail;
 use App\Models\Bonificacion;
-use Illuminate\Support\Facades\Mail;
+use App\Models\Carrito;
 use App\Models\Contacto;
-use App\Models\Comprador;
-use App\Models\Newsletter;
-use App\Models\Dimension;
-use Illuminate\Support\Facades\Session;
-use App\Models\User;
+use App\Models\Pedido;
 use App\Models\PedidoProducto;
+use App\Models\Producto;
+use App\Models\User;
+use CodersFree\Shoppingcart\Facades\Cart;
 use Exception;
-use MercadoPago\MercadoPagoConfig;
-use MercadoPago\Client\Preference\PreferenceClient;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class CarritoController extends Controller
 {
-
     public function carrito_publico(Request $request)
     {
         $cart = Cart::content();
@@ -38,6 +26,7 @@ class CarritoController extends Controller
         $aviso = isset($request->aviso) ? $request->aviso : false;
         $ventana = 'carrito-nav';
         $bonificaciones = Bonificacion::orderBy('orden')->get();
+
         return view('frontend/carrito-publico', compact('cart', 'informacion', 'aviso', 'ventana', 'bonificaciones'));
     }
 
@@ -48,7 +37,6 @@ class CarritoController extends Controller
         $informacion = Carrito::find(1);
         $aviso = isset($request->aviso) ? $request->aviso : false;
         $ventana = 'carrito-nav';
-
 
         if (Auth::guard('web')->user()->rol == 'vendedor') {
             $clientes = User::where('rol', 'cliente')->where('vendedor_id', Auth::guard('web')->user()->id)->get();
@@ -72,7 +60,7 @@ class CarritoController extends Controller
             $prov = '02';
             $loc = '';
         }
-        $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/localidades?provincia=' . $prov . '&orden=nombre&max=1000');
+        $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/localidades?provincia='.$prov.'&orden=nombre&max=1000');
         $datos = json_decode($contenido, true);
         $localidades = $datos['localidades'];
         $datos = $request;
@@ -82,6 +70,7 @@ class CarritoController extends Controller
         } else {
             $user = null;
         }
+
         return view('frontend/pedido', compact('datos', 'provincias', 'localidades', 'user', 'informacion', 'loc'));
     }
 
@@ -95,7 +84,6 @@ class CarritoController extends Controller
             'porcentaje' => 'nullable|numeric|min:0',
         ]);
 
-
         $bonificacion = Bonificacion::find($request->idBonificacion);
         $bonificacion->desde = $request->desde;
         $bonificacion->hasta = $request->hasta;
@@ -106,13 +94,26 @@ class CarritoController extends Controller
         return redirect()->back()->with('success', 'Bonificacion actualizada');
     }
 
-  
-
     public function agregar_carrito(Request $request)
     {
-        $producto = Producto::find($request->producto_id);
+        $validated = $request->validate([
+            'producto_id' => ['required', 'integer', 'exists:productos,id'],
+            'qty' => ['required', 'integer', 'min:1', 'max:99'],
+        ]);
 
-        Cart::add($producto->id, $producto->nombre, $request->qty, $request->precio);
+        $producto = Producto::query()
+            ->whereIn('estado', [1, 2])
+            ->findOrFail((int) $validated['producto_id']);
+
+        // El precio del navegador se ignora. Siempre se recalcula con la misma
+        // regla que usa el resto del carrito, incluida la condición del cliente.
+        Cart::add(
+            $producto->id,
+            $producto->nombre,
+            (int) $validated['qty'],
+            (float) $producto->precio_unitario_descontado(),
+        );
+
         return response()->json(Cart::content());
     }
 
@@ -261,17 +262,11 @@ class CarritoController extends Controller
             $pedido->celular = 'no tiene';
         }
 
-
         if ($user->cp) {
             $pedido->cp = $user->cp;
         } else {
             $pedido->cp = 'no tiene';
         }
-
-
-
-
-
 
         $pedido->estado = 'Esperando pago';
         $pedido->cliente_id = Auth::guard('web')->check() ? Auth::guard('web')->user()->id : null;
@@ -291,7 +286,7 @@ class CarritoController extends Controller
         $pedido->save();
 
         // Asociar productos
-        foreach (Cart::content()  as $item) {
+        foreach (Cart::content() as $item) {
             $producto = Producto::find($item->id);
 
             $relacion = new PedidoProducto();
@@ -303,7 +298,6 @@ class CarritoController extends Controller
             } else {
                 $relacion->descuento_producto = 0;
             }
-
 
             if ($producto->precio) {
                 $relacion->precio_unitario = $producto->precio();
@@ -320,9 +314,8 @@ class CarritoController extends Controller
             $relacion->save();
         }
 
-
         $mensajeEnvio = Carrito::obtenerMensajeEnvio($pedido->tipo_envio);
-        
+
         Cart::destroy();
 
         try {
@@ -334,7 +327,7 @@ class CarritoController extends Controller
             $email = new PedidoEmpresaMail($pedido, $request->archivo, $mensajeEnvio);
             Mail::to($mail_empresa)->send($email);
         } catch (Exception $e) {
-            echo 'Se ha producido una excepción: ' . $e->getMessage();
+            echo 'Se ha producido una excepción: '.$e->getMessage();
         }
 
         //Limpiar carrito
@@ -346,6 +339,7 @@ class CarritoController extends Controller
     public function informacion()
     {
         $informacion = Carrito::find(1);
+
         return view('backend/dash-carrito-informacion', compact('informacion'));
     }
 
@@ -382,7 +376,7 @@ class CarritoController extends Controller
         }
 
         $informacion->descuento_efectivo = $request->descuento_efectivo;
-        
+
         $informacion->save();
 
         return redirect()->back()->with('success', 'Información del carrito actualizada');

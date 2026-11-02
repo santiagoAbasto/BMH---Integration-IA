@@ -26,13 +26,19 @@ use App\Services\Ai\DTO\ImageAnalysis;
  */
 final class ConversationMemoryService
 {
-    /** Claves que valen la pena recordar entre turnos. */
-    private const TRACKED = [
+    /**
+     * Base mínima si el archivo versionado falta o no se puede leer.
+     * Las demás claves activas se incorporan desde el banco.
+     */
+    private const CORE_TRACKED = [
         'category', 'brand', 'model', 'code',
-        'voltage', 'amperes', 'diameter', 'total_length', 'inner_diameter',
-        'outer_diameter', 'splines', 'teeth', 'slots', 'pins', 'terminals',
-        'application', 'rotation', 'type',
+        'voltage', 'amperes', 'diameter', 'total_length', 'splines', 'teeth',
     ];
+
+    public function __construct(
+        private readonly DiagnosticQuestionBank $questions,
+    ) {
+    }
 
     public function remember(
         AiConversation $conversation,
@@ -42,7 +48,7 @@ final class ConversationMemoryService
         string $source,
         float $confidence,
     ): void {
-        if (! in_array($key, self::TRACKED, true)) {
+        if (! $this->isTracked($key)) {
             return;
         }
 
@@ -85,8 +91,8 @@ final class ConversationMemoryService
             ['conversation_id' => $conversation->id, 'fact_key' => $key],
             [
                 'fact_value' => mb_substr($value, 0, 255),
-                'state'      => $state,
-                'source'     => $source,
+                'state' => $state,
+                'source' => $source,
                 'confidence' => $confidence,
             ],
         );
@@ -121,32 +127,40 @@ final class ConversationMemoryService
     {
         $conflicts = [];
 
-        if ($analysis->brandGuess !== null) {
+        if ($analysis->imageUsable && $analysis->brandGuess !== null) {
             $confirmed = $this->confirmedValue($conversation, 'brand');
 
             if ($confirmed !== null && ! $this->looselyEqual($confirmed, $analysis->brandGuess)) {
                 $conflicts[] = [
-                    'key'       => 'brand',
+                    'key' => 'brand',
                     'confirmed' => $confirmed,
-                    'observed'  => $analysis->brandGuess,
+                    'observed' => $analysis->brandGuess,
                 ];
             } else {
                 $this->rememberInferred($conversation, 'brand', $analysis->brandGuess, 'ai_vision', $analysis->confidence);
             }
         }
 
-        foreach ($analysis->attributes as $key => $value) {
-            $this->rememberInferred($conversation, (string) $key, (string) $value, 'ai_vision', $analysis->confidence);
+        if ($analysis->imageUsable) {
+            foreach ($analysis->attributes as $key => $value) {
+                $this->rememberInferred($conversation, (string) $key, (string) $value, 'ai_vision', $analysis->confidence);
+            }
         }
 
         // Un código legible en la pieza vale mucho más que un parecido de forma,
         // pero sigue siendo una lectura de OCR: entra como inferido y la base lo
         // confirma o lo descarta.
-        if ($analysis->hasCode()) {
-            $this->rememberInferred($conversation, 'code', $analysis->visibleCodes[0], 'ai_vision_ocr', max(0.6, $analysis->confidence));
+        if ($analysis->hasReliableCode()) {
+            $this->rememberInferred(
+                $conversation,
+                'code',
+                $analysis->visibleCodes[0],
+                'ai_vision_ocr',
+                $analysis->textConfidence,
+            );
         }
 
-        if ($analysis->categoryHints !== []) {
+        if ($analysis->imageUsable && $analysis->categoryHints !== []) {
             $this->rememberInferred($conversation, 'category', $analysis->categoryHints[0], 'ai_vision', $analysis->confidence);
         }
 
@@ -189,9 +203,9 @@ final class ConversationMemoryService
 
         foreach ($conversation->facts()->get() as $row) {
             $facts[$row->fact_key] = [
-                'value'      => $row->fact_value,
-                'state'      => $row->state,
-                'source'     => $row->source,
+                'value' => $row->fact_value,
+                'state' => $row->state,
+                'source' => $row->source,
                 'confidence' => (float) $row->confidence,
             ];
         }
@@ -232,5 +246,11 @@ final class ConversationMemoryService
         $b = mb_strtoupper(trim($b));
 
         return $a === $b || str_contains($a, $b) || str_contains($b, $a);
+    }
+
+    private function isTracked(string $key): bool
+    {
+        return in_array($key, self::CORE_TRACKED, true)
+            || in_array($key, $this->questions->filterableFactKeys(), true);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Search;
 
 use App\Domain\Search\DTO\Candidate;
+use App\Services\Ai\DiagnosticQuestionBank;
 
 /**
  * La pregunta más inteligente.
@@ -22,11 +23,16 @@ use App\Domain\Search\DTO\Candidate;
  */
 final class CandidateDisambiguationService
 {
+    public function __construct(
+        private readonly DiagnosticQuestionBank $questionBank,
+    ) {
+    }
+
     /**
-     * @param  list<Candidate> $candidates
+     * @param  list<Candidate>  $candidates
      * @return array{
      *     should_ask: bool,
-     *     attribute: ?array{key:string,label:string,options:list<string>,gain:float},
+     *     attribute: ?array{key:string,label:string,options:list<string>,gain:float,question:?string,question_id:?string,question_bank_version:string},
      *     alternatives: list<array{key:string,label:string,gain:float}>,
      *     reason: string
      * }
@@ -55,26 +61,38 @@ final class CandidateDisambiguationService
             return $this->result(false, null, [], 'no_discriminating_attribute');
         }
 
-        $best    = $ranked[0];
+        $best = $ranked[0];
         $minGain = (float) config('bmh.disambiguation.min_information_gain', 0.15);
 
         if ($best['gain'] < $minGain) {
             return $this->result(false, null, [], 'gain_below_threshold');
         }
 
+        $bankQuestion = $this->questionBank->questionForAttribute(
+            $candidates[0]->product->category?->name,
+            $best['key'],
+        );
+
         return $this->result(
             true,
             [
-                'key'     => $best['key'],
-                'label'   => $best['label'],
+                'key' => $best['key'],
+                'label' => $best['label'],
                 'options' => $best['options'],
-                'gain'    => round($best['gain'], 4),
+                'gain' => round($best['gain'], 4),
+                'question' => is_string($bankQuestion['question'] ?? null)
+                    ? trim($bankQuestion['question'])
+                    : null,
+                'question_id' => is_string($bankQuestion['id'] ?? null)
+                    ? $bankQuestion['id']
+                    : null,
+                'question_bank_version' => $this->questionBank->version(),
             ],
             array_map(
                 static fn (array $a): array => [
-                    'key'   => $a['key'],
+                    'key' => $a['key'],
                     'label' => $a['label'],
-                    'gain'  => round($a['gain'], 4),
+                    'gain' => round($a['gain'], 4),
                 ],
                 array_slice($ranked, 1, 3)
             ),
@@ -83,12 +101,12 @@ final class CandidateDisambiguationService
     }
 
     /**
-     * @param  list<Candidate> $candidates
+     * @param  list<Candidate>  $candidates
      * @return list<array{key:string,label:string,gain:float,options:list<string>,coverage:float}>
      */
     public function rankAttributesByGain(array $candidates): array
     {
-        $total   = count($candidates);
+        $total = count($candidates);
         $neverAsk = array_map(
             static fn (string $s): string => mb_strtoupper($s),
             (array) config('bmh.disambiguation.never_ask', [])
@@ -116,15 +134,15 @@ final class CandidateDisambiguationService
             // Marca y modelo no son atributos del EAV pero sí datos que el
             // cliente suele saber, así que compiten en igualdad de condiciones.
             if ($product->brand !== null) {
-                $buckets['brand']['label']   = 'Marca';
+                $buckets['brand']['label'] = 'Marca';
                 $buckets['brand']['present'] = ($buckets['brand']['present'] ?? 0) + 1;
-                $value                       = mb_strtoupper($product->brand);
+                $value = mb_strtoupper($product->brand);
                 $buckets['brand']['values'][$value] = ($buckets['brand']['values'][$value] ?? 0) + 1;
             }
             if ($product->model !== null) {
-                $buckets['model']['label']   = 'Modelo';
+                $buckets['model']['label'] = 'Modelo';
                 $buckets['model']['present'] = ($buckets['model']['present'] ?? 0) + 1;
-                $value                       = mb_strtoupper($product->model);
+                $value = mb_strtoupper($product->model);
                 $buckets['model']['values'][$value] = ($buckets['model']['values'][$value] ?? 0) + 1;
             }
         }
@@ -140,15 +158,15 @@ final class CandidateDisambiguationService
             }
 
             $coverage = ($bucket['present'] ?? 0) / $total;
-            $gain     = $this->normalizedEntropy($values, $total) * $coverage;
+            $gain = $this->normalizedEntropy($values, $total) * $coverage;
 
             $ranked[] = [
-                'key'      => (string) $key,
-                'label'    => (string) ($bucket['label'] ?? $key),
-                'gain'     => $gain,
+                'key' => (string) $key,
+                'label' => (string) ($bucket['label'] ?? $key),
+                'gain' => $gain,
                 'coverage' => $coverage,
                 // Las opciones sirven para ofrecer quick-replies en la UI.
-                'options'  => $this->topOptions($values),
+                'options' => $this->topOptions($values),
             ];
         }
 
@@ -163,7 +181,7 @@ final class CandidateDisambiguationService
      * 1.0 = el atributo parte los candidatos en grupos perfectamente parejos
      * (máxima reducción esperada). 0.0 = todos caen en el mismo valor.
      *
-     * @param array<string,int> $values
+     * @param  array<string,int>  $values
      */
     private function normalizedEntropy(array $values, int $total): float
     {
@@ -197,10 +215,10 @@ final class CandidateDisambiguationService
     private function result(bool $shouldAsk, ?array $attribute, array $alternatives, string $reason): array
     {
         return [
-            'should_ask'   => $shouldAsk,
-            'attribute'    => $attribute,
+            'should_ask' => $shouldAsk,
+            'attribute' => $attribute,
             'alternatives' => $alternatives,
-            'reason'       => $reason,
+            'reason' => $reason,
         ];
     }
 }

@@ -4,6 +4,7 @@
 use App\Models\Imagen;
 use App\Models\Pedido;
 use Carbon\Carbon;
+
 $logo2 = Imagen::where('sector', 'logo2')->first();
 $user = Auth::guard('admin')->user();
 $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->count();
@@ -431,6 +432,18 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
                 </div>
               </div>
             </div>
+
+            @if($user->rol == 'administrador')
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="pruebas-ia">
+                  <a class="menu-item" href="{{ route('admin.ai-tests.index') }}">
+                    <button class="accordion-button nav-link {{ request()->routeIs('admin.ai-tests.*') ? 'selected' : '' }}" type="button">
+                      <i class="fa-solid fa-flask"></i> Pruebas IA
+                    </button>
+                  </a>
+                </h2>
+              </div>
+            @endif
 
             <hr>
 

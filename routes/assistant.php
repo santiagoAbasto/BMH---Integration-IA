@@ -2,9 +2,30 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AiTestLabController;
 use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\AssistantPageController;
 use Illuminate\Support\Facades\Route;
+
+// Laboratorio interno: usa la misma orquestación, pero sus conversaciones y
+// evaluaciones quedan aisladas de la Zona de Clientes.
+Route::middleware(['admin', 'throttle:assistant'])
+    ->prefix('dashboard/ia/pruebas')
+    ->name('admin.ai-tests.')
+    ->group(function (): void {
+        Route::get('/', [AiTestLabController::class, 'index'])->name('index');
+        Route::post('conversations', [AiTestLabController::class, 'store'])->name('store');
+        Route::get('conversations/{conversation}', [AiTestLabController::class, 'show'])
+            ->whereNumber('conversation')->name('show');
+        Route::post('conversations/{conversation}/messages', [AiTestLabController::class, 'message'])
+            ->whereNumber('conversation')->name('messages.store');
+        Route::post('conversations/{conversation}/attachments', [AiTestLabController::class, 'attachmentStore'])
+            ->whereNumber('conversation')->name('attachments.store');
+        Route::post('conversations/{conversation}/reviews', [AiTestLabController::class, 'review'])
+            ->whereNumber('conversation')->name('reviews.store');
+        Route::get('attachments/{attachment}', [AiTestLabController::class, 'attachmentShow'])
+            ->whereNumber('attachment')->name('attachments.show');
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +69,8 @@ Route::middleware(['customer.api', 'throttle:assistant'])
 
         Route::post('conversations/{conversation}/feedback', [AssistantController::class, 'feedback'])
             ->whereNumber('conversation')->name('feedback.store');
+        Route::post('conversations/{conversation}/cart-items', [AssistantController::class, 'cartItemStore'])
+            ->whereNumber('conversation')->name('cart-items.store');
         Route::post('conversations/{conversation}/handoff', [AssistantController::class, 'handoff'])
             ->whereNumber('conversation')->name('handoff.store');
 

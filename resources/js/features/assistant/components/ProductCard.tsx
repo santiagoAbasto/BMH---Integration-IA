@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ChevronDown, ImageOff, Maximize2, Package, X } from 'lucide-react';
+import { Check, ChevronDown, ImageOff, Maximize2, Minus, Package, Plus, ShoppingCart, X } from 'lucide-react';
 import { formatArs } from '@/lib/api';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import type { Candidate, PriceQuote } from '../types';
@@ -11,6 +11,9 @@ interface Props {
     /** Atributos que difieren entre candidatos: son los que vale la pena mostrar. */
     highlightKeys?: string[];
     onConfirm?: (productId: number) => void;
+    onAddToCart?: (productId: number, quantity: number) => Promise<void>;
+    confirmed?: boolean;
+    added?: boolean;
     showDebug?: boolean;
     index?: number;
 }
@@ -25,9 +28,21 @@ function imageUrl(images: Candidate['product']['images']): string | null {
     return typeof first === 'string' ? `/imagenes/${first}` : first.url;
 }
 
-export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDebug, index = 0 }: Props) {
+export function ProductCard({
+    candidate,
+    price,
+    highlightKeys,
+    onConfirm,
+    onAddToCart,
+    confirmed = false,
+    added = false,
+    showDebug,
+    index = 0,
+}: Props) {
     const [expanded, setExpanded] = useState(false);
     const [zoomed, setZoomed] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+    const [adding, setAdding] = useState(false);
     const { product } = candidate;
 
     const url = imageUrl(product.images);
@@ -213,7 +228,48 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                     )}
                 </div>
 
-                {onConfirm !== undefined && (
+                {confirmed && onAddToCart !== undefined ? (
+                    <div className="flex items-center gap-1.5">
+                        {!added && (
+                            <div className="flex items-center rounded-card border border-edge">
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                                    aria-label="Restar una unidad"
+                                    className="flex h-9 w-8 items-center justify-center text-ink-secondary hover:bg-surface-sunken"
+                                >
+                                    <Minus aria-hidden className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="min-w-7 text-center text-caption font-semibold text-ink-primary">{quantity}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((current) => Math.min(99, current + 1))}
+                                    aria-label="Sumar una unidad"
+                                    className="flex h-9 w-8 items-center justify-center text-ink-secondary hover:bg-surface-sunken"
+                                >
+                                    <Plus aria-hidden className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            type="button"
+                            disabled={added || adding}
+                            onClick={() => {
+                                setAdding(true);
+                                void onAddToCart(product.id, quantity).finally(() => setAdding(false));
+                            }}
+                            className={clsx(
+                                'inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-card px-3 text-caption font-semibold transition-colors duration-150 ease-bmh',
+                                added
+                                    ? 'bg-signal-500/15 text-signal-700'
+                                    : 'bg-brand-500 text-white hover:bg-brand-600',
+                            )}
+                        >
+                            {added ? <Check aria-hidden className="h-4 w-4" /> : <ShoppingCart aria-hidden className="h-4 w-4" />}
+                            {added ? 'Agregado' : adding ? 'Agregando…' : 'Agregar'}
+                        </button>
+                    </div>
+                ) : onConfirm !== undefined ? (
                     <button
                         type="button"
                         onClick={() => onConfirm(product.id)}
@@ -222,7 +278,7 @@ export function ProductCard({ candidate, price, highlightKeys, onConfirm, showDe
                         <Package aria-hidden className="h-4 w-4" strokeWidth={1.75} />
                         Es este
                     </button>
-                )}
+                ) : null}
             </div>
 
             {zoomed && url !== null && (

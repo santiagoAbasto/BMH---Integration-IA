@@ -13,10 +13,10 @@ namespace App\Domain\Search\DTO;
 final class SearchQuery
 {
     /**
-     * @param list<int>             $categoryIds
-     * @param array<string, string> $attributes  clave canónica => valor
-     * @param list<int>             $customerProductIds productos que el cliente ya compró
-     * @param list<string>          $observedAttributes claves que salieron de mirar una foto
+     * @param  list<int>  $categoryIds
+     * @param  array<string, string>  $attributes  clave canónica => valor
+     * @param  list<int>  $customerProductIds  productos que el cliente ya compró
+     * @param  list<string>  $observedAttributes  claves que salieron de mirar una foto
      */
     public function __construct(
         public ?string $rawText = null,
@@ -27,6 +27,8 @@ final class SearchQuery
         public array $attributes = [],
         public array $customerProductIds = [],
         public bool $fromVision = false,
+        /** Confianza OCR del código; null cuando el código lo escribió el cliente. */
+        public ?float $codeConfidence = null,
         public int $limit = 24,
         public array $observedAttributes = [],
     ) {
@@ -71,12 +73,13 @@ final class SearchQuery
     {
         $merged = clone $this;
 
-        $merged->rawText     = $other->rawText     ?? $merged->rawText;
-        $merged->code        = $other->code        ?? $merged->code;
-        $merged->brand       = $other->brand       ?? $merged->brand;
-        $merged->model       = $other->model       ?? $merged->model;
-        $merged->fromVision  = $merged->fromVision || $other->fromVision;
-        $merged->attributes  = [...$merged->attributes, ...$other->attributes];
+        $merged->rawText = $other->rawText ?? $merged->rawText;
+        $merged->code = $other->code ?? $merged->code;
+        $merged->brand = $other->brand ?? $merged->brand;
+        $merged->model = $other->model ?? $merged->model;
+        $merged->fromVision = $merged->fromVision || $other->fromVision;
+        $merged->codeConfidence = $other->codeConfidence ?? $merged->codeConfidence;
+        $merged->attributes = [...$merged->attributes, ...$other->attributes];
 
         // Un atributo deja de ser "sólo observado" en cuanto el cliente lo
         // confirma, nunca al revés.
@@ -98,13 +101,14 @@ final class SearchQuery
     public function toArray(): array
     {
         return array_filter([
-            'text'        => $this->rawText,
-            'code'        => $this->code,
-            'brand'       => $this->brand,
-            'model'       => $this->model,
-            'categories'  => $this->categoryIds,
-            'attributes'  => $this->attributes,
+            'text' => $this->rawText,
+            'code' => $this->code,
+            'brand' => $this->brand,
+            'model' => $this->model,
+            'categories' => $this->categoryIds,
+            'attributes' => $this->attributes,
             'from_vision' => $this->fromVision,
+            'code_confidence' => $this->codeConfidence,
         ], static fn ($v) => $v !== null && $v !== [] && $v !== false);
     }
 }

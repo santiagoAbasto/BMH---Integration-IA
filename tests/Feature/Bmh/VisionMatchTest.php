@@ -122,9 +122,9 @@ final class VisionMatchTest extends TestCase
         // Pasa seguido: transcribe el número en `detected_text` pero no lo
         // clasifica como código. Es la señal más fuerte que tenemos: se pesca.
         $analysis = ImageAnalysisSchema::hydrate([
-            'part_type'     => 'rotor',
-            'confidence'    => 0.6,
-            'usable'        => true,
+            'part_type' => 'rotor',
+            'confidence' => 0.6,
+            'usable' => true,
             'detected_text' => ['Nº 1833', 'MADE IN ARGENTINA'],
             'visible_codes' => [],
         ]);
@@ -137,13 +137,13 @@ final class VisionMatchTest extends TestCase
     public function test_no_acepta_atributos_que_no_existen_en_el_catalogo(): void
     {
         $analysis = ImageAnalysisSchema::hydrate([
-            'part_type'  => 'rotor',
+            'part_type' => 'rotor',
             'confidence' => 0.7,
-            'usable'     => true,
+            'usable' => true,
             'attributes' => [
-                'voltage'        => '12v',
+                'voltage' => '12v',
                 'color_favorito' => 'azul',   // inventado
-                'sabor'          => 'frutilla',
+                'sabor' => 'frutilla',
             ],
         ]);
 
@@ -155,16 +155,55 @@ final class VisionMatchTest extends TestCase
         // Aunque la foto no sirva para identificar la pieza, un código legible
         // sigue siendo útil: no se tira.
         $analysis = ImageAnalysisSchema::hydrate([
-            'usable'          => false,
-            'reason'          => 'Muy borrosa.',
-            'detected_text'   => ['REG40016'],
-            'visible_codes'   => ['REG40016'],
+            'usable' => false,
+            'reason' => 'Muy borrosa.',
+            'detected_text' => ['REG40016'],
+            'visible_codes' => ['REG40016'],
             'text_confidence' => 0.7,
         ]);
 
         $this->assertFalse($analysis->imageUsable);
         $this->assertContains('REG40016', $analysis->visibleCodes);
         $this->assertTrue($analysis->hasReliableCode());
+    }
+
+    public function test_un_codigo_legible_se_busca_aunque_el_resto_de_la_foto_no_sea_usable(): void
+    {
+        $analysis = ImageAnalysisSchema::hydrate([
+            'usable' => false,
+            'reason' => 'La forma de la pieza quedó borrosa.',
+            'detected_text' => ['REG40016'],
+            'visible_codes' => ['REG40016'],
+            'text_confidence' => 0.92,
+        ]);
+
+        $resultado = $this->vision()->match($analysis, new SearchQuery());
+
+        $this->assertSame('vision_code', $resultado['strategy']);
+        $this->assertSame('REG40016', $resultado['candidates'][0]->product->code);
+        $this->assertNotEmpty(array_filter(
+            $resultado['notes'],
+            static fn (string $note): bool => str_contains($note, 'Sólo usaré el texto'),
+        ));
+    }
+
+    public function test_un_codigo_ocr_de_baja_confianza_no_se_presenta_como_certeza(): void
+    {
+        $analysis = new ImageAnalysis(
+            partType: null,
+            confidence: 0.0,
+            detectedText: ['1833'],
+            visibleCodes: ['1833'],
+            imageUsable: false,
+            unusableReason: 'Sólo se distingue parte del grabado.',
+            textConfidence: 0.3,
+        );
+
+        $resultado = $this->vision()->match($analysis, new SearchQuery());
+
+        $this->assertSame('1833', $resultado['candidates'][0]->product->code);
+        $this->assertSame('ambiguous', $resultado['candidates'][0]->confidenceBand());
+        $this->assertArrayHasKey('vision_ocr_confidence', $resultado['candidates'][0]->signals);
     }
 
     public function test_una_marca_que_no_existe_en_el_catalogo_no_filtra(): void
@@ -212,8 +251,8 @@ final class VisionMatchTest extends TestCase
 
         $limpios = $metodo->invoke($vision, [
             'terminals' => '2 principales visibles',
-            'plug'      => 'terminal de conexión eléctrica tipo ficha',
-            'voltage'   => '12v',
+            'plug' => 'terminal de conexión eléctrica tipo ficha',
+            'voltage' => '12v',
         ]);
 
         $this->assertSame('2', $limpios['terminals']);
@@ -254,13 +293,13 @@ final class VisionMatchTest extends TestCase
         // Sin código, el rubro y el parecido son todo lo que hay: no puede
         // devolver vacío.
         $analysis = ImageAnalysisSchema::hydrate([
-            'part_type'     => 'motor de arranque',
-            'confidence'    => 0.95,
-            'usable'        => true,
-            'brand_guess'   => 'BMH',
+            'part_type' => 'motor de arranque',
+            'confidence' => 0.95,
+            'usable' => true,
+            'brand_guess' => 'BMH',
             'detected_text' => ['BMH'],
             'visible_codes' => [],
-            'attributes'    => ['terminals' => '2 principales visibles'],
+            'attributes' => ['terminals' => '2 principales visibles'],
             'category_hints' => ['motores de arranque'],
         ]);
 
@@ -279,7 +318,7 @@ final class VisionMatchTest extends TestCase
          * Quedarse con la primera tiraba las otras dos.
          */
         $orquestador = app(\App\Services\Ai\ConversationOrchestrator::class);
-        $metodo      = new \ReflectionMethod($orquestador, 'firstUsableAnalysis');
+        $metodo = new \ReflectionMethod($orquestador, 'firstUsableAnalysis');
         $metodo->setAccessible(true);
 
         $fusion = $metodo->invoke($orquestador, [
@@ -296,6 +335,7 @@ final class VisionMatchTest extends TestCase
                 detectedText: ['REG40016'],
                 visibleCodes: ['REG40016'],
                 attributes: ['teeth' => '9'],
+                textConfidence: 0.9,
             ),
             ImageAnalysis::unusable('Salió movida.'),
         ]);
@@ -315,10 +355,62 @@ final class VisionMatchTest extends TestCase
         $this->assertContains('motores de arranque', $fusion->categoryHints);
     }
 
+    public function test_una_foto_no_eleva_la_confianza_ocr_de_otra(): void
+    {
+        $orquestador = app(\App\Services\Ai\ConversationOrchestrator::class);
+        $metodo = new \ReflectionMethod($orquestador, 'firstUsableAnalysis');
+        $metodo->setAccessible(true);
+
+        $fusion = $metodo->invoke($orquestador, [
+            new ImageAnalysis(
+                partType: 'regulador',
+                confidence: 0.9,
+                visibleCodes: ['1175'],
+                textConfidence: 0.1,
+            ),
+            new ImageAnalysis(
+                partType: 'regulador',
+                confidence: 0.8,
+                detectedText: ['BOSCH'],
+                textConfidence: 0.95,
+            ),
+        ]);
+
+        $this->assertNotNull($fusion);
+        $this->assertSame([], $fusion->visibleCodes);
+        $this->assertFalse($fusion->hasReliableCode());
+    }
+
+    public function test_no_promueve_voltajes_amperajes_ni_fechas_desde_el_texto_detectado(): void
+    {
+        $analysis = ImageAnalysisSchema::hydrate([
+            'part_type' => 'rotor',
+            'confidence' => 0.8,
+            'usable' => true,
+            'detected_text' => ['1833', '25C21', '0421', '100A', '24V', '2026-10-21'],
+            'visible_codes' => [],
+            'text_confidence' => 0.9,
+        ]);
+
+        $this->assertSame(['1833'], $analysis->visibleCodes);
+    }
+
+    public function test_la_similitud_visual_solo_puntua_desde_el_umbral_configurado(): void
+    {
+        config(['bmh.vision.min_similarity_signal' => 0.7]);
+
+        $service = (new \ReflectionClass(VisionMatchService::class))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod($service, 'shouldAddVisualSimilaritySignal');
+        $method->setAccessible(true);
+
+        $this->assertFalse($method->invoke($service, 0.699));
+        $this->assertTrue($method->invoke($service, 0.7));
+    }
+
     public function test_ante_atributos_contradictorios_gana_la_foto_mas_confiable(): void
     {
         $orquestador = app(\App\Services\Ai\ConversationOrchestrator::class);
-        $metodo      = new \ReflectionMethod($orquestador, 'firstUsableAnalysis');
+        $metodo = new \ReflectionMethod($orquestador, 'firstUsableAnalysis');
         $metodo->setAccessible(true);
 
         $fusion = $metodo->invoke($orquestador, [
@@ -495,7 +587,7 @@ final class VisionMatchTest extends TestCase
         $metodo = new \ReflectionMethod($vision, 'normalizarAtributos');
         $metodo->setAccessible(true);
 
-        $rubros  = app(\App\Domain\Catalog\CatalogFamilyResolver::class)->rubros(['regulador de voltaje']);
+        $rubros = app(\App\Domain\Catalog\CatalogFamilyResolver::class)->rubros(['regulador de voltaje']);
         $limpios = $metodo->invoke($vision, ['pins' => '5', 'plug' => '5 pines'], $rubros);
 
         $this->assertSame('5', $limpios['pins']);
@@ -510,10 +602,10 @@ final class VisionMatchTest extends TestCase
          * conteo es fatal: buscando 5 pines devolvía también los de 4, y el de 4
          * llegaba a salir primero. No se cuentan 4 pines y medio.
          */
-        $query              = new SearchQuery();
+        $query = new SearchQuery();
         $query->categoryIds = app(\App\Domain\Catalog\CatalogFamilyResolver::class)->rubros(['regulador de voltaje']);
-        $query->attributes  = ['pins' => '5'];
-        $query->rawText     = 'regulador de voltaje';
+        $query->attributes = ['pins' => '5'];
+        $query->rawText = 'regulador de voltaje';
 
         $candidatos = app(\App\Domain\Search\HybridProductSearchService::class)->search($query, true);
 
@@ -529,7 +621,7 @@ final class VisionMatchTest extends TestCase
             $this->assertSame(
                 '5',
                 trim($pines->value),
-                'un regulador de ' . $pines->value . ' pines no puede aparecer buscando 5',
+                'un regulador de '.$pines->value.' pines no puede aparecer buscando 5',
             );
         }
     }
@@ -550,7 +642,7 @@ final class VisionMatchTest extends TestCase
             categoryHints: ['regulador de voltaje'],
         );
 
-        $memoria             = new SearchQuery();
+        $memoria = new SearchQuery();
         $memoria->attributes = ['voltage' => '28V'];
 
         $vision = $this->vision();
@@ -578,8 +670,8 @@ final class VisionMatchTest extends TestCase
          * quedar sepultada entre decenas de reguladores parecidos. El arreglo de
          * fondo está en no contar lo que no se ve, y en pedirle el número.
          */
-        $query                     = new SearchQuery();
-        $query->attributes         = ['pins' => '3'];
+        $query = new SearchQuery();
+        $query->attributes = ['pins' => '3'];
         $query->observedAttributes = ['pins'];
 
         $search = app(\App\Domain\Search\HybridProductSearchService::class);
@@ -595,10 +687,10 @@ final class VisionMatchTest extends TestCase
     public function test_lo_que_el_cliente_confirma_si_descarta(): void
     {
         // Sin marcarlo como observado, el mismo filtro es un hecho y excluye.
-        $query              = new SearchQuery();
+        $query = new SearchQuery();
         $query->categoryIds = app(\App\Domain\Catalog\CatalogFamilyResolver::class)->rubros(['regulador de voltaje']);
-        $query->attributes  = ['pins' => '3'];
-        $query->rawText     = 'regulador de voltaje';
+        $query->attributes = ['pins' => '3'];
+        $query->rawText = 'regulador de voltaje';
 
         $candidatos = app(\App\Domain\Search\HybridProductSearchService::class)->search($query, true);
 
@@ -645,7 +737,7 @@ final class VisionMatchTest extends TestCase
     public function test_no_sugiere_parecidos_de_otra_familia(): void
     {
         $familias = app(\App\Domain\Catalog\CatalogFamilyResolver::class);
-        $rubros   = $familias->rubros(['regulador de voltaje']);
+        $rubros = $familias->rubros(['regulador de voltaje']);
 
         foreach ($familias->codigosParecidos('1775', $rubros) as $codigo) {
             $this->assertStringStartsWith('REG', $codigo);

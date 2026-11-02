@@ -43,6 +43,7 @@ export function AdvisorPanel({
         send,
         load,
         sendFeedback,
+        addToCart,
         requestHuman,
         dismissError,
     } = useConversation({ conversationId });
@@ -68,9 +69,8 @@ export function AdvisorPanel({
     const handleConfirmProduct = useCallback(
         (messageId: number | string, productId: number) => {
             void sendFeedback(messageId, productId, true);
-            void send('Sí, es ese.', []);
         },
-        [send, sendFeedback],
+        [sendFeedback],
     );
 
     return (
@@ -166,6 +166,7 @@ export function AdvisorPanel({
                                 showDebug={settings.features.debug}
                                 onConfirmProduct={handleConfirmProduct}
                                 onFeedback={(id, productId, ok) => void sendFeedback(id, productId, ok)}
+                                onAddToCart={addToCart}
                                 onQuickReply={(text) => handleSend(text, [])}
                             />
                         ))

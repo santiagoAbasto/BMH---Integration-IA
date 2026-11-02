@@ -5,6 +5,7 @@ import type {
     ChatAttachment,
     ChatMessage,
     ContextPanelData,
+    CartAddResult,
     TurnResult,
 } from '../types';
 
@@ -62,6 +63,17 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                     content: string;
                     created_at: string | null;
                     attachments: ChatAttachment[];
+                    candidates: TurnResult['candidates'];
+                    candidate_count: number;
+                    next_question: TurnResult['next_question'];
+                    price: TurnResult['price'];
+                    handoff: TurnResult['handoff'];
+                    conflicts: TurnResult['conflicts'];
+                    vision: TurnResult['vision'];
+                    vision_notes: string[];
+                    feedback_given: boolean;
+                    confirmed_product_id: number | null;
+                    cart_added_product_ids: number[];
                 }[];
             }>(`/api/assistant/conversations/${id}`);
 
@@ -73,6 +85,17 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                     content: message.content,
                     createdAt: message.created_at,
                     attachments: message.attachments,
+                    candidates: message.candidates,
+                    candidateCount: message.candidate_count,
+                    nextQuestion: message.next_question,
+                    price: message.price,
+                    handoff: message.handoff,
+                    conflicts: message.conflicts,
+                    vision: message.vision,
+                    visionNotes: message.vision_notes,
+                    feedbackGiven: message.feedback_given,
+                    confirmedProductId: message.confirmed_product_id,
+                    cartAddedProductIds: message.cart_added_product_ids,
                 })),
             );
         } catch (caught) {
@@ -284,19 +307,60 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                 return;
             }
 
-            setMessages((current) =>
-                current.map((m) => (m.id === messageId ? { ...m, feedbackGiven: true } : m)),
-            );
-
             try {
-                await apiPost(`/api/assistant/conversations/${conversationId}/feedback`, {
+                const result = await apiPost<{ ok: boolean; confirmed_product_id: number | null }>(
+                    `/api/assistant/conversations/${conversationId}/feedback`, {
                     message_id: messageId,
                     product_id: productId,
                     was_correct: wasCorrect,
                 });
-            } catch {
-                // El feedback es best-effort: si falla, no vale interrumpir al
-                // cliente con un error.
+
+                setMessages((current) =>
+                    current.map((m) =>
+                        m.id === messageId
+                            ? {
+                                  ...m,
+                                  feedbackGiven: true,
+                                  confirmedProductId: result.confirmed_product_id,
+                              }
+                            : m,
+                    ),
+                );
+            } catch (caught) {
+                setError(caught instanceof ApiError ? caught.message : 'No pudimos guardar la confirmación.');
+            }
+        },
+        [conversationId],
+    );
+
+    const addToCart = useCallback(
+        async (messageId: number | string, productId: number, quantity: number) => {
+            if (conversationId === null || typeof messageId !== 'number') {
+                return;
+            }
+
+            setError(null);
+
+            try {
+                const result = await apiPost<CartAddResult>(
+                    `/api/assistant/conversations/${conversationId}/cart-items`,
+                    { message_id: messageId, product_id: productId, quantity },
+                );
+
+                setMessages((current) =>
+                    current.map((message) =>
+                        message.id === messageId
+                            ? {
+                                  ...message,
+                                  cartAddedProductIds: Array.from(
+                                      new Set([...(message.cartAddedProductIds ?? []), result.item.product_id]),
+                                  ),
+                              }
+                            : message,
+                    ),
+                );
+            } catch (caught) {
+                setError(caught instanceof ApiError ? caught.message : 'No pudimos agregar la pieza al carrito.');
             }
         },
         [conversationId],
@@ -341,6 +405,7 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
         load,
         reset,
         sendFeedback,
+        addToCart,
         requestHuman,
         dismissError: () => setError(null),
     };

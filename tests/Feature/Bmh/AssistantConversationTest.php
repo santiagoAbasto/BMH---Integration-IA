@@ -38,7 +38,7 @@ final class AssistantConversationTest extends TestCase
         parent::setUp();
 
         // Se limpia sólo la base del asesor. La legacy nunca se toca.
-        foreach (['ai_audit_logs', 'ai_handoffs', 'ai_feedback', 'ai_customer_context',
+        foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_feedback', 'ai_customer_context',
             'ai_product_candidates', 'ai_message_tool_calls', 'ai_attachments',
             'ai_messages', 'ai_conversations'] as $table) {
             DB::connection('mysql_ai')->table($table)->delete();
@@ -88,7 +88,7 @@ final class AssistantConversationTest extends TestCase
 
         $foreign = AiConversation::query()->create([
             'customer_id' => $otherId,
-            'status'      => 'active',
+            'status' => 'active',
         ]);
 
         $this->actingAs($this->customer)
@@ -362,7 +362,7 @@ final class AssistantConversationTest extends TestCase
     {
         $conversation = AiConversation::query()->create([
             'customer_id' => $this->customer->id,
-            'status'      => 'active',
+            'status' => 'active',
         ]);
 
         $memory = app(\App\Services\Ai\ConversationMemoryService::class);
@@ -380,7 +380,7 @@ final class AssistantConversationTest extends TestCase
     {
         $conversation = AiConversation::query()->create([
             'customer_id' => $this->customer->id,
-            'status'      => 'active',
+            'status' => 'active',
         ]);
 
         $memory = app(\App\Services\Ai\ConversationMemoryService::class);
@@ -401,6 +401,37 @@ final class AssistantConversationTest extends TestCase
 
         // Y no la pisó en silencio.
         $this->assertSame('BOSCH', $memory->facts($conversation)['brand']['value']);
+    }
+
+    public function test_la_memoria_solo_guarda_codigos_ocr_con_lectura_confiable(): void
+    {
+        $conversation = AiConversation::query()->create([
+            'customer_id' => $this->customer->id,
+            'status' => 'active',
+        ]);
+
+        $memory = app(\App\Services\Ai\ConversationMemoryService::class);
+
+        $memory->absorbImageAnalysis($conversation, new ImageAnalysis(
+            partType: 'regulador',
+            confidence: 0.95,
+            visibleCodes: ['1175'],
+            textConfidence: 0.2,
+        ));
+
+        $this->assertArrayNotHasKey('code', $memory->facts($conversation));
+
+        $memory->absorbImageAnalysis($conversation, new ImageAnalysis(
+            partType: 'regulador',
+            confidence: 0.7,
+            visibleCodes: ['REG17705'],
+            textConfidence: 0.82,
+        ));
+
+        $code = $memory->facts($conversation)['code'];
+        $this->assertSame('REG17705', $code['value']);
+        $this->assertSame('ai_vision_ocr', $code['source']);
+        $this->assertEqualsWithDelta(0.82, $code['confidence'], 0.0001);
     }
 
     // -----------------------------------------------------------------
@@ -455,7 +486,7 @@ final class AssistantConversationTest extends TestCase
 
         $content = (string) $response->json('message.content');
 
-        $this->assertStringNotContainsString((string) $other->descuento . '%', $content);
+        $this->assertStringNotContainsString((string) $other->descuento.'%', $content);
         $this->assertStringNotContainsString((string) $other->name, $content);
     }
 
@@ -538,10 +569,10 @@ final class AssistantConversationTest extends TestCase
 
         $attachment = \App\Models\Ai\AiAttachment::query()->create([
             'conversation_id' => $foreign->id,
-            'disk'            => 'ai_private',
-            'path'            => 'conversations/x/secret.jpg',
-            'mime'            => 'image/jpeg',
-            'bytes'           => 10,
+            'disk' => 'ai_private',
+            'path' => 'conversations/x/secret.jpg',
+            'mime' => 'image/jpeg',
+            'bytes' => 10,
         ]);
 
         $this->actingAs($this->customer)
@@ -553,7 +584,7 @@ final class AssistantConversationTest extends TestCase
     {
         // Imagen minúscula: el análisis la declara inusable y el sistema pide
         // otro dato en vez de arriesgar una pieza.
-        $path = sys_get_temp_dir() . '/bmh-tiny.jpg';
+        $path = sys_get_temp_dir().'/bmh-tiny.jpg';
         $image = imagecreatetruecolor(60, 60);
         imagejpeg($image, $path);
         imagedestroy($image);
@@ -662,7 +693,7 @@ final class AssistantConversationTest extends TestCase
     {
         $conversation = AiConversation::query()->create([
             'customer_id' => $this->customer->id,
-            'status'      => 'active',
+            'status' => 'active',
         ]);
 
         $memory = app(\App\Services\Ai\ConversationMemoryService::class);
@@ -673,10 +704,43 @@ final class AssistantConversationTest extends TestCase
         $this->assertSame('ROTORES', $memory->facts($conversation)['category']['value']);
     }
 
+    public function test_las_respuestas_guiadas_de_pines_y_diametro_se_guardan_y_filtran(): void
+    {
+        $this->swapProvider($this->stubProvider([
+            'intent' => 'product_identification',
+            'extracted_attributes' => [
+                'pins' => '5',
+                'outer_diameter' => '35 mm',
+                'campo_inventado' => 'no debe persistirse',
+            ],
+        ]));
+
+        $conversationId = $this->startConversation();
+
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/messages",
+            ['message' => 'Tiene 5 pines y diámetro externo 35 mm.'],
+        )->assertOk();
+
+        $conversation = AiConversation::query()->findOrFail($conversationId);
+        $memory = app(\App\Services\Ai\ConversationMemoryService::class);
+        $facts = $memory->facts($conversation);
+        $query = $memory->toSearchQuery($conversation);
+
+        $this->assertSame('5', $facts['pins']['value']);
+        $this->assertSame('35 mm', $facts['outer_diameter']['value']);
+        $this->assertSame('confirmed', $facts['pins']['state']);
+        $this->assertSame('confirmed', $facts['outer_diameter']['state']);
+        $this->assertArrayNotHasKey('campo_inventado', $facts);
+        $this->assertSame('5', $query->attributes['pins']);
+        $this->assertSame('35 mm', $query->attributes['outer_diameter']);
+    }
+
     public function test_si_el_proveedor_falla_la_zona_de_clientes_sigue_respondiendo(): void
     {
         // Gemini/OpenAI caído: la respuesta se arma con datos de la base.
-        $this->swapProvider(new class implements AiProviderInterface {
+        $this->swapProvider(new class implements AiProviderInterface
+        {
             public function name(): string
             {
                 return 'broken';
@@ -736,7 +800,8 @@ final class AssistantConversationTest extends TestCase
     {
         // Un proveedor que responde bien salvo en la extracción estructurada,
         // donde devuelve algo que no respeta el schema.
-        $this->swapProvider(new class implements AiProviderInterface {
+        $this->swapProvider(new class implements AiProviderInterface
+        {
             private MockAiProvider $inner;
 
             public function __construct()
@@ -828,7 +893,7 @@ final class AssistantConversationTest extends TestCase
 
         $this->assertNotNull($log);
         $this->assertSame('turn_completed', $log->event);
-        $this->assertSame('bmh-sales-advisor-v1', $log->prompt_version);
+        $this->assertSame('bmh-sales-advisor-v2', $log->prompt_version);
         $this->assertArrayHasKey('candidate_count', $log->payload);
 
         // No se persiste chain-of-thought en ningún lado.
@@ -859,6 +924,34 @@ final class AssistantConversationTest extends TestCase
             ->firstOrFail();
 
         $this->assertGreaterThan(0, $message->candidates()->count());
+    }
+
+    public function test_rehidrata_los_candidatos_que_motivaron_un_handoff_automatico(): void
+    {
+        config()->set('bmh.disambiguation.present_threshold', 0);
+        config()->set('bmh.disambiguation.min_information_gain', 2.0);
+        config()->set('bmh.handoff.too_many_candidates_threshold', 0);
+
+        $conversationId = $this->startConversation();
+
+        $turn = $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/messages",
+            ['message' => 'Necesito un rotor'],
+        )->assertOk()
+            ->assertJsonPath('handoff.reason', 'too_many_candidates');
+
+        $shownProductId = (int) $turn->json('candidates.0.product.id');
+        $shownCandidateCount = (int) $turn->json('candidate_count');
+
+        $this->assertGreaterThan(0, $shownProductId);
+        $this->assertGreaterThan(0, $shownCandidateCount);
+
+        $this->actingAs($this->customer)
+            ->getJson("/api/assistant/conversations/{$conversationId}")
+            ->assertOk()
+            ->assertJsonPath('messages.1.handoff.reason', 'too_many_candidates')
+            ->assertJsonPath('messages.1.candidate_count', $shownCandidateCount)
+            ->assertJsonPath('messages.1.candidates.0.product.id', $shownProductId);
     }
 
     public function test_el_feedback_del_cliente_se_guarda_y_resuelve_la_conversacion(): void
@@ -930,14 +1023,15 @@ final class AssistantConversationTest extends TestCase
     private function providerWithCategory(string $category): AiProviderInterface
     {
         return $this->stubProvider([
-            'intent'              => 'product_identification',
+            'intent' => 'product_identification',
             'category_candidates' => [['category_name' => $category, 'confidence' => 0.9]],
         ]);
     }
 
     private function stubProvider(array $interpretation): AiProviderInterface
     {
-        return new class($interpretation) implements AiProviderInterface {
+        return new class($interpretation) implements AiProviderInterface
+        {
             private MockAiProvider $inner;
 
             public function __construct(private readonly array $interpretation)

@@ -19,19 +19,22 @@ final class AiConversation extends Model
     use HasFactory;
 
     protected $connection = 'mysql_ai';
+
     protected $table = 'ai_conversations';
 
     protected $fillable = [
-        'customer_id', 'title', 'status', 'detected_intent', 'resolved_product_id',
+        'customer_id', 'mode', 'tester_admin_id', 'test_family',
+        'title', 'status', 'detected_intent', 'resolved_product_id',
         'prompt_version', 'total_input_tokens', 'total_output_tokens', 'total_images',
     ];
 
     protected $casts = [
-        'customer_id'         => 'integer',
+        'customer_id' => 'integer',
+        'tester_admin_id' => 'integer',
         'resolved_product_id' => 'integer',
-        'total_input_tokens'  => 'integer',
+        'total_input_tokens' => 'integer',
         'total_output_tokens' => 'integer',
-        'total_images'        => 'integer',
+        'total_images' => 'integer',
     ];
 
     public function messages(): HasMany
@@ -53,5 +56,22 @@ final class AiConversation extends Model
     public function scopeOwnedBy($query, int $customerId)
     {
         return $query->where('customer_id', $customerId);
+    }
+
+    /** Conversaciones visibles para la Zona de Clientes. */
+    public function scopeCustomerFacing($query)
+    {
+        return $query->where('mode', 'customer');
+    }
+
+    /** Pruebas pertenecientes al administrador que las inició. */
+    public function scopeTestsForAdmin($query, int $adminId)
+    {
+        return $query->where('mode', 'test')->where('tester_admin_id', $adminId);
+    }
+
+    public function isTest(): bool
+    {
+        return $this->mode === 'test';
     }
 }

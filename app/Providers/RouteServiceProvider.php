@@ -31,14 +31,21 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         /*
-        | Asesor IA. Se limita por cliente autenticado, no por IP: varios
-        | talleres pueden compartir una salida NAT y no queremos que uno le
-        | consuma la cuota al otro. El techo contiene el costo de tokens de una
-        | sesión desbocada sin molestar a un uso normal.
+        | Asesor IA. Se limita por la identidad autenticada: cliente en la zona
+        | pública y administrador en el laboratorio. Así, talleres o testers
+        | que comparten una salida NAT no se consumen la cuota entre sí.
         */
         RateLimiter::for('assistant', function (Request $request) {
+            $admin = $request->user('admin');
+
+            if ($admin !== null) {
+                return Limit::perMinute(30)->by(
+                    'assistant:admin:'.$admin->getAuthIdentifier()
+                );
+            }
+
             return Limit::perMinute(30)->by(
-                'assistant:' . ($request->user()?->id ?: $request->ip())
+                'assistant:customer:'.($request->user()?->getAuthIdentifier() ?: $request->ip())
             );
         });
 
@@ -48,7 +55,7 @@ class RouteServiceProvider extends ServiceProvider
         | queda muy lejos del techo; esto corta scrapers del catálogo.
         */
         RateLimiter::for('buscador', function (Request $request) {
-            return Limit::perMinute(120)->by('buscador:' . $request->ip());
+            return Limit::perMinute(120)->by('buscador:'.$request->ip());
         });
 
         $this->routes(function () {

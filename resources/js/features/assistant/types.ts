@@ -90,6 +90,9 @@ export interface NextQuestion {
     label: string;
     options: string[];
     gain: number;
+    question: string | null;
+    question_id: string | null;
+    question_bank_version: string;
 }
 
 export interface ContextPanelData {
@@ -167,6 +170,25 @@ export interface ChatMessage {
     attachments?: ChatAttachment[];
     debug?: DebugInfo;
     feedbackGiven?: boolean;
+    confirmedProductId?: number | null;
+    cartAddedProductIds?: number[];
+}
+
+export interface CartAddResult {
+    ok: boolean;
+    idempotent: boolean;
+    item: {
+        row_id: string;
+        product_id: number;
+        code: string;
+        name: string;
+        quantity: number;
+        unit_price: number;
+        currency: string;
+    };
+    cart_count: number;
+    cart_url: string;
+    availability_note: string;
 }
 
 export interface ConversationSummary {
