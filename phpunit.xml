@@ -48,6 +48,7 @@
         <env name="DB_LEGACY_DATABASE" value="bmh_legacy"/>
         <env name="AI_PROVIDER" value="mock"/>
         <env name="AI_DEBUG" value="true"/>
+        <env name="AI_ACCESS_MODE" value="all"/>
         <env name="BMH_STOCK_SEMANTICS_VERIFIED" value="false"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

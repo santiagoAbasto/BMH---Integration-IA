@@ -34,6 +34,24 @@ return [
     ],
 
     /*
+    |--------------------------------------------------------------------------
+    | Lanzamiento gradual del asesor
+    |--------------------------------------------------------------------------
+    |
+    | En `allowlist` sólo los IDs declarados pueden abrir la pantalla y las
+    | APIs del asesor. Es el modo seguro para una beta con el usuario demo.
+    | Al terminar las pruebas, cambiar explícitamente a `all`.
+    |
+    */
+    'assistant_access' => [
+        'mode' => env('AI_ACCESS_MODE', 'allowlist'), // allowlist | all
+        'customer_ids' => array_values(array_filter(
+            array_map('intval', explode(',', (string) env('AI_ALLOWED_CUSTOMER_IDS', ''))),
+            static fn (int $id): bool => $id > 0,
+        )),
+    ],
+
+    /*
     |----------------------------------------------------------------------
     | Proveedores de IA
     |----------------------------------------------------------------------

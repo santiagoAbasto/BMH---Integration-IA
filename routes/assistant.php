@@ -40,7 +40,7 @@ Route::middleware(['admin', 'throttle:assistant'])
 */
 
 // La pantalla (Inertia).
-Route::middleware(['cliente'])->group(function (): void {
+Route::middleware(['cliente', 'assistant.access'])->group(function (): void {
     Route::get('/asesor', [AssistantPageController::class, 'show'])->name('assistant.page');
     Route::get('/asesor/{conversation}', [AssistantPageController::class, 'show'])
         ->whereNumber('conversation')
@@ -48,7 +48,7 @@ Route::middleware(['cliente'])->group(function (): void {
 });
 
 // La API que consume el chat.
-Route::middleware(['customer.api', 'throttle:assistant'])
+Route::middleware(['customer.api', 'assistant.access', 'throttle:assistant'])
     ->prefix('api/assistant')
     ->name('assistant.')
     ->group(function (): void {
@@ -79,7 +79,7 @@ Route::middleware(['customer.api', 'throttle:assistant'])
     });
 
 // Catálogo de sólo lectura, para la ficha de producto del chat.
-Route::middleware(['customer.api', 'throttle:assistant'])
+Route::middleware(['customer.api', 'assistant.access', 'throttle:assistant'])
     ->prefix('api/catalog')
     ->name('catalog.')
     ->group(function (): void {

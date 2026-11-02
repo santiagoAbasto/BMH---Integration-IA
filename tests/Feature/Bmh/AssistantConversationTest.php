@@ -80,6 +80,42 @@ final class AssistantConversationTest extends TestCase
             ->assertJsonPath('code', 'unauthenticated');
     }
 
+    public function test_la_beta_cerrada_no_expone_el_asesor_a_clientes_fuera_de_la_lista(): void
+    {
+        config([
+            'bmh.assistant_access.mode' => 'allowlist',
+            'bmh.assistant_access.customer_ids' => [$this->customer->id + 1],
+        ]);
+
+        $this->actingAs($this->customer)
+            ->get('/asesor')
+            ->assertNotFound();
+
+        $this->actingAs($this->customer)
+            ->postJson('/api/assistant/conversations')
+            ->assertNotFound();
+
+        $this->actingAs($this->customer)
+            ->getJson('/api/catalog/categories')
+            ->assertNotFound();
+    }
+
+    public function test_la_beta_cerrada_permite_al_cliente_de_la_lista(): void
+    {
+        config([
+            'bmh.assistant_access.mode' => 'allowlist',
+            'bmh.assistant_access.customer_ids' => [$this->customer->id],
+        ]);
+
+        $this->actingAs($this->customer)
+            ->get('/asesor')
+            ->assertOk();
+
+        $this->actingAs($this->customer)
+            ->postJson('/api/assistant/conversations')
+            ->assertCreated();
+    }
+
     public function test_un_cliente_no_puede_leer_la_conversacion_de_otro(): void
     {
         $otherId = (int) DB::connection('mysql_legacy')->table('users')

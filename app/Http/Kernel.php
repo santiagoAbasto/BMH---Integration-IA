@@ -72,6 +72,8 @@ class Kernel extends HttpKernel
         'cliente' => \App\Http\Middleware\ClienteAuthenticate::class,
         // Igual que `cliente` pero responde JSON en vez de redirigir. Asesor IA.
         'customer.api' => \App\Http\Middleware\EnsureCustomerForApi::class,
+        // Beta cerrada del asesor: permite una lista explícita de clientes.
+        'assistant.access' => \App\Http\Middleware\EnsureAssistantAccess::class,
         'vendedor' => \App\Http\Middleware\VendedorAuthenticate::class,
     ];
 }

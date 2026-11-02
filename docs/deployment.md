@@ -107,6 +107,10 @@ SEMANTIC_SEARCH_ENABLED=false
 AI_DEBUG=false
 AI_FALLBACK_ENABLED=false
 
+# Beta cerrada: usar el ID del usuario demo de PRODUCCIÓN, no el local.
+AI_ACCESS_MODE=allowlist
+AI_ALLOWED_CUSTOMER_IDS=<id-del-demo>
+
 AI_PROVIDER=mock
 AI_API_KEY=
 
@@ -205,6 +209,7 @@ build.
 - [ ] `php artisan config:cache route:cache view:cache`
 - [ ] `php artisan bmh:catalog-sync` en cron (diario o al actualizar el catálogo)
 - [ ] `AI_API_KEY` en el entorno del servidor, nunca en el repo
+- [ ] `AI_ACCESS_MODE=allowlist` y `AI_ALLOWED_CUSTOMER_IDS` con el ID real de `demo` durante la beta
 - [ ] Rotar la contraseña de producción que estaba en el `.env` local
 
 ### 6.5 Cron
