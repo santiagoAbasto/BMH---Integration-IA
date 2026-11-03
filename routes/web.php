@@ -151,6 +151,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::get('productos-zona-home', 'productos_clientes')->name('productos.home');
         Route::post('productos-clientes-buscar', 'productos_clientes_buscar')->name('productos.clientes.buscar');
         Route::get('lista-de-precios', 'lista_de_precios')->name('lista');
+        Route::get('lista-de-precios/completa', \App\Http\Controllers\ListaPreciosCompletaController::class)->name('lista.completa');
         Route::get('productos-carrito-vista', 'productos_vista')->name('productos.carrito.vista');
 
     });

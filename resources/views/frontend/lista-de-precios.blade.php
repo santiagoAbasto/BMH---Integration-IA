@@ -254,6 +254,27 @@ style="padding-top: 24px; color: #717171 !important; font-family: Roboto; font-s
             
             
             @endforeach
+
+            {{-- Todos los productos en un único Excel de una sola hoja, generado en el momento (ListaPreciosCompleta). --}}
+            <div class="col-lg-12 listaPrecioDiv" style="height: 193px; border-radius: 8px; background: #F3F3F3; margin-top: 36px; padding-top: 50px">
+                <div class="row d-flex">
+                    <div class="col-lg-2" style="padding-left: 32px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="107" height="107" viewBox="0 0 107 107" fill="none" aria-hidden="true">
+                            <path d="M56.584 8.67274V39.1094C56.584 39.3301 56.6717 39.5418 56.8277 39.6978C56.9838 39.8539 57.1954 39.9415 57.4161 39.9415H87.8528C87.935 39.9416 88.0154 39.9173 88.0838 39.8717C88.1522 39.8262 88.2056 39.7613 88.2372 39.6854C88.2688 39.6095 88.2772 39.526 88.2614 39.4453C88.2455 39.3646 88.2062 39.2905 88.1482 39.2322L57.2934 8.37733C57.2351 8.31938 57.1609 8.27999 57.0802 8.26415C56.9995 8.2483 56.916 8.25671 56.8401 8.28832C56.7642 8.31992 56.6994 8.3733 56.6538 8.44172C56.6082 8.51014 56.5839 8.59052 56.584 8.67274Z" fill="#0098DA"/>
+                            <path d="M51.5914 46.5985C51.15 46.5985 50.7267 46.4232 50.4146 46.1111C50.1025 45.799 49.9272 45.3757 49.9272 44.9343V6.65698H19.1389C18.4769 6.65698 17.8419 6.91999 17.3737 7.38814C16.9056 7.8563 16.6426 8.49126 16.6426 9.15333V97.3575C16.6426 98.0196 16.9056 98.6546 17.3737 99.1227C17.8419 99.5909 18.4769 99.8539 19.1389 99.8539H87.3724C88.0344 99.8539 88.6694 99.5909 89.1376 99.1227C89.6057 98.6546 89.8687 98.0196 89.8687 97.3575V46.5985H51.5914ZM73.2264 79.8831H33.2849V73.2262H73.2264V79.8831ZM73.2264 63.2408H33.2849V56.5839H73.2264V63.2408Z" fill="#0098DA"/>
+                        </svg>
+                    </div>
+
+                    <div class="col-lg-8 d-flex flex-column">
+                        <span class="tituloDescarga">Lista completa - Todos los productos</span>
+                        <span class="descripcionDescarga">Todos los productos en un único Excel, en una sola hoja y sin separar por rubros. Se genera en el momento con los precios actuales.</span>
+                    </div>
+
+                    <div class="col-lg-2 d-flex flex-column align-items-center justify-content-center botonesLista">
+                        <a href="{{ route('lista.completa') }}"><button class="btn dow-btn">Descargar</button></a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
