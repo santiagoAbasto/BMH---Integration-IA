@@ -863,15 +863,14 @@ SVG;
 public function dash_productos(Request $request)
 {
     $categoria_id = $request->input('categoria_id');
+    // El texto del buscador también viaja en la URL (?q=): así el listado se
+    // abre ya filtrado al volver desde otra pantalla o al recargar.
+    $busqueda = mb_substr(trim((string) $request->query('q', '')), 0, 100);
 
-    $hayCategoria = !empty($categoria_id) && $categoria_id != 'todos';
-    $query = Producto::with(['categoria', 'portadaImagen'])->ordenado();
-
-    if ($hayCategoria) {
-        $query->where('categoria_id', $categoria_id);
-    }
-
-    $productos = $query->paginate(20)->appends($request->all());
+    ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoria_id);
+    $productos->withPath(route('dashboard.productos'))
+        ->appends(array_filter(['categoria_id' => $categoria_id, 'q' => $busqueda], fn ($v) => $v !== null && $v !== ''));
+    $hayAlternativas = $sinResultadosCategoria && $productos->isNotEmpty();
 
     $categorias = Categoria::orderBy('nombre')->get();
 
@@ -880,7 +879,7 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria'));
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas'));
 }
 
     public function exportarExcel(Request $request)
@@ -1339,38 +1338,7 @@ public function dash_productos(Request $request)
         $busqueda = (string) $request->input('valor', '');
         $categoriaId = $request->input('categoria_id');
 
-        // El código tiene prioridad sobre nombre, descripción y categoría,
-        // incluso antes de paginar y al buscar alternativas de otra categoría.
-        // Es la misma búsqueda que usa el Excel (ExcelProductos::exportar).
-        $crearConsulta = fn () => Producto::with(['categoria', 'portadaImagen'])->busquedaAdmin($busqueda);
-
-        $query = $crearConsulta();
-        $sinResultadosCategoria = false;
-
-        // La categoría seleccionada debe restringir también las búsquedas AJAX.
-        if ($categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos') {
-            $query->where('categoria_id', $categoriaId);
-        }
-
-        $productos = $query
-            ->orderBy('orden')
-            ->paginate(20);
-
-        // Si no hay coincidencias dentro de la categoría, mostrar alternativas
-        // fuera de ella sin mezclar esos resultados con el filtro seleccionado.
-        if (
-            $productos->isEmpty()
-            && trim($busqueda) !== ''
-            && $categoriaId !== null
-            && $categoriaId !== ''
-            && $categoriaId !== 'todos'
-        ) {
-            $sinResultadosCategoria = true;
-            $productos = $crearConsulta()
-                ->where('categoria_id', '!=', $categoriaId)
-                ->orderBy('orden')
-                ->paginate(20);
-        }
+        ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoriaId);
 
         return response()->json([
             'html' => view('backend/dash-productos-listado', compact('productos'))->render(),
@@ -1378,6 +1346,36 @@ public function dash_productos(Request $request)
             'sinResultadosCategoria' => $sinResultadosCategoria,
             'hayAlternativas' => $sinResultadosCategoria && $productos->isNotEmpty(),
         ]);
+    }
+
+    /**
+     * El listado de productos del admin, igual al cargar la página (con ?q= y
+     * ?categoria_id= en la URL) que al buscar por AJAX.
+     *
+     * El código tiene prioridad sobre nombre, descripción y categoría, incluso
+     * antes de paginar (Producto::busquedaAdmin, la misma búsqueda del Excel).
+     * Si no hay coincidencias dentro de la categoría, se muestran las de otras
+     * categorías, avisando, en vez de una lista vacía.
+     *
+     * @return array{productos: \Illuminate\Pagination\LengthAwarePaginator, sinResultadosCategoria: bool}
+     */
+    private function listadoAdmin(string $busqueda, $categoriaId): array
+    {
+        $hayBusqueda = trim($busqueda) !== '';
+        $hayCategoria = $categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos';
+        $consulta = fn () => Producto::with(['categoria', 'portadaImagen'])
+            ->busquedaAdmin($busqueda)
+            ->when($hayBusqueda, fn ($q) => $q->orderBy('orden'), fn ($q) => $q->ordenado());
+
+        $productos = $consulta()->when($hayCategoria, fn ($q) => $q->where('categoria_id', $categoriaId))->paginate(20);
+        $sinResultadosCategoria = false;
+
+        if ($productos->isEmpty() && $hayBusqueda && $hayCategoria) {
+            $sinResultadosCategoria = true;
+            $productos = $consulta()->where('categoria_id', '!=', $categoriaId)->paginate(20);
+        }
+
+        return ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria];
     }
 
     public function actualizar_clientes(Request $request)

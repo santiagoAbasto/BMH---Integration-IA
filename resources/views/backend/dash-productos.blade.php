@@ -35,19 +35,28 @@
       } else {
           $catLabel = ' de todos los productos';
       }
+      $hayFiltros = (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') || ($busqueda ?? '') !== '';
   @endphp
 
   <div class="productos-tools">
     <form method="GET" action="{{ route('dashboard.productos') }}" class="productos-filtro">
+      {{-- Cambiar de categoría conserva lo escrito en el buscador. --}}
+      <input type="hidden" name="q" id="filtro-q" value="{{ $busqueda ?? '' }}">
       <label for="categoria_id" class="form-label">Filtrar por categoría</label>
-      <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
-          <option value="todos">Todas</option>
-          @foreach($categorias as $categoria)
-              <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
-                  {{ $categoria->nombre }}
-              </option>
-          @endforeach
-      </select>
+      <div class="productos-filtro-fila">
+        <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
+            <option value="todos">Todas</option>
+            @foreach($categorias as $categoria)
+                <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
+                    {{ $categoria->nombre }}
+                </option>
+            @endforeach
+        </select>
+        {{-- Su lugar queda reservado aunque no se vea: al aparecer no mueve nada. --}}
+        <a href="{{ route('dashboard.productos') }}" class="productos-borrar-filtros" data-borrar-filtros @unless($hayFiltros) hidden @endunless title="Quitar la categoría y la búsqueda">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i> Borrar filtros
+        </a>
+      </div>
     </form>
 
     <div class="productos-descargas">
@@ -90,7 +99,7 @@
       <form class="productos-buscador" role="search" id="productos-buscar-form">
         <label for="productos-busqueda" class="form-label">Buscar productos</label>
         <div class="productos-search-control">
-          <input type="search" id="productos-busqueda" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
+          <input type="search" id="productos-busqueda" value="{{ $busqueda ?? '' }}" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
           <button type="submit" id="buscador-productos" class="productos-search-btn" aria-label="Buscar productos">
             <i class="fa fa-search" aria-hidden="true"></i>
           </button>
@@ -112,7 +121,8 @@
     </div>
 
     <p id="productos-estado" class="productos-estado" role="status" aria-live="polite"></p>
-    <div id="productos-feedback" class="productos-feedback" role="status" aria-live="polite" hidden></div>
+    <div id="productos-feedback" class="productos-feedback" role="status" aria-live="polite" hidden
+         data-sin-resultados-categoria="{{ !empty($sinResultadosCategoria) ? '1' : '0' }}" data-hay-alternativas="{{ !empty($hayAlternativas) ? '1' : '0' }}"></div>
     <div id="productos-alternativas-titulo" class="productos-alternativas-titulo" role="heading" aria-level="2" hidden></div>
 
     <div class="card-body productos-listado">
@@ -242,7 +252,18 @@
 @endsection
 
 @section('styles')
-<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}">
+@unless (request()->getQueryString() || session()->has('success') || session()->has('warning'))
+<script>
+  // Al entrar al listado sin filtros (el sidebar, «volver», una redirección),
+  // retomarlo como se lo dejó en esta pestaña. Va en el <head>, antes de que
+  // se dibuje la página. Los filtros los guarda guardarFiltros() más abajo.
+  try {
+    var filtrosGuardados = sessionStorage.getItem('bmh.admin.productos.filtros');
+    if (filtrosGuardados) location.replace(location.pathname + '?' + filtrosGuardados);
+  } catch (e) { /* sin sessionStorage: se abre sin filtros */ }
+</script>
+@endunless
+<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=3">
 @endsection
 
 @section('script')
@@ -338,6 +359,38 @@
             : boton.dataset.titulo;
     }
 
+    /*
+     * Filtros del listado (categoría, búsqueda y página). La URL los refleja,
+     * así recargar o volver «atrás» los conserva, y una copia queda en
+     * sessionStorage para retomarlos al volver desde el sidebar o después de
+     * editar (ver el script del <head>). sessionStorage es de la pestaña: al
+     * cerrarla, los filtros se olvidan.
+     */
+    var CLAVE_FILTROS = 'bmh.admin.productos.filtros';
+
+    function guardarFiltros(pagina) {
+        var params = new URLSearchParams();
+        var categoria = $('#categoria_id').val();
+        var texto = ($('#productos-busqueda').val() || '').trim();
+        if (categoria && categoria !== 'todos') params.set('categoria_id', categoria);
+        if (texto) params.set('q', texto);
+        if (Number(pagina) > 1) params.set('page', pagina);
+
+        var query = params.toString();
+        history.replaceState(history.state, '', location.pathname + (query ? '?' + query : ''));
+        try {
+            if (query) sessionStorage.setItem(CLAVE_FILTROS, query);
+            else sessionStorage.removeItem(CLAVE_FILTROS);
+        } catch (e) { /* sin sessionStorage: quedan sólo en la URL */ }
+
+        $('#filtro-q').val(texto);
+        $('[data-borrar-filtros]').prop('hidden', !(params.has('categoria_id') || params.has('q')));
+    }
+
+    $('[data-borrar-filtros]').on('click', function() {
+        try { sessionStorage.removeItem(CLAVE_FILTROS); } catch (e) {}
+    });
+
     function buscarProductos(valor, pagina) {
         actualizarExcel(valor);
         clearTimeout(esperaBusqueda);
@@ -359,6 +412,7 @@
                 page: pagina || 1,
             },
             success: function(response) {
+                guardarFiltros(pagina || 1);
                 $('#productos-contenedor').html(response.html);
                 $('#productos-paginacion').html(response.pagination);
                 $('#productos-paginacion').closest('.card-footer').prop('hidden', response.pagination.trim().length === 0);
@@ -374,6 +428,15 @@
                 }
             }
         });
+    }
+
+    // Al cargar: la URL queda prolija, el Excel y el aviso de «sin resultados
+    // en esta categoría» reflejan lo que vino filtrado desde el servidor.
+    guardarFiltros({{ (int) $productos->currentPage() }});
+    actualizarExcel($('#productos-busqueda').val());
+    var avisoInicial = $('#productos-feedback');
+    if (avisoInicial.data('sin-resultados-categoria') == 1) {
+        actualizarFeedback({ sinResultadosCategoria: true, hayAlternativas: avisoInicial.data('hay-alternativas') == 1 });
     }
 
     // BUSCADOR

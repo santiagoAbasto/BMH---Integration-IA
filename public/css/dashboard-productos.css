@@ -102,6 +102,53 @@
     margin: 0;
 }
 
+/* Selector de categoría y, a su derecha, la pastilla «Borrar filtros». */
+.productos-filtro-fila {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+}
+.productos-filtro-fila .form-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Aparece sólo con una categoría o una búsqueda activa. */
+.productos-borrar-filtros {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: .35rem;
+    padding: .3rem .75rem;
+    border: 1px solid #cfdae5;
+    border-radius: 999px;
+    background: #f2f6fa;
+    color: #2b4a66;
+    font-size: .8rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color .15s, border-color .15s, color .15s;
+}
+.productos-borrar-filtros i { font-size: .75rem; }
+.productos-borrar-filtros:hover,
+.productos-borrar-filtros:focus-visible {
+    border-color: #dc3545;
+    background: #fdecee;
+    color: #b02a37;
+}
+.productos-borrar-filtros:focus-visible {
+    outline: 2px solid #b02a37;
+    outline-offset: 2px;
+}
+/* Oculta pero ocupando su lugar: el selector no cambia de ancho al aparecer.
+   (!important porque Bootstrap fuerza [hidden] { display: none !important }.) */
+.productos-borrar-filtros[hidden] {
+    display: inline-flex !important;
+    visibility: hidden;
+}
+
 .productos-page .form-select,
 .productos-page .form-control {
     min-height: 44px;
