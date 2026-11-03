@@ -75,8 +75,9 @@
       <span>Imágenes</span>
     </a>
 
-    {{-- Con una categoría elegida: un ZIP con las imágenes nombradas por código. Sin
-         categoría el botón está igual (deshabilitado), así el bloque no cambia de alto. --}}
+    {{-- Un ZIP con las imágenes nombradas por código: las de la categoría elegida o,
+         sin categoría, las de todo el catálogo. El botón está siempre, así el bloque
+         no cambia de alto al filtrar. --}}
     @if (isset($imagenesCategoria))
       @if ($imagenesCategoria > 0)
         <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
@@ -91,9 +92,12 @@
         </span>
       @endif
     @else
-      <span class="btn btn-outline-secondary disabled" aria-disabled="true" title="Elegí una categoría para descargar sus imágenes">
-        <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Descargar imágenes (elegí una categoría)
-      </span>
+      <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
+         class="btn btn-outline-primary"
+         title="Todas las imágenes del catálogo, cada una con el código del producto. Es un archivo grande: puede tardar en descargar">
+        <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+        <span>Descargar todas las imágenes</span>
+      </a>
     @endif
     </div>
   </div>

@@ -26,18 +26,21 @@ class DescargaImagenesCategoriaController extends Controller
 {
     public function __invoke(Request $request, ImagenesDeCategoria $imagenes): StreamedResponse
     {
-        $categoria = Categoria::query()->findOrFail((int) $request->query('categoria_id'));
+        // Sin categoría elegida («todos»): las imágenes de todo el catálogo.
+        $todas = in_array($request->query('categoria_id'), [null, '', 'todos'], true);
+        $categoria = $todas ? null : Categoria::query()->findOrFail((int) $request->query('categoria_id'));
         // Las fotos cargadas desde la ficha de cada producto también salen con su código.
         if (Schema::hasTable('biblioteca_imagenes')) {
             app(BibliotecaImagenes::class)->sincronizar();
         }
-        ['archivos' => $archivos, 'sinImagenes' => $sinImagenes] = $imagenes->armar($categoria->id);
+        ['archivos' => $archivos, 'sinImagenes' => $sinImagenes] = $imagenes->armar($categoria?->id);
 
-        abort_if($archivos === [], 404, 'La categoría no tiene imágenes para descargar.');
+        abort_if($archivos === [], 404, $todas ? 'No hay imágenes para descargar.' : 'La categoría no tiene imágenes para descargar.');
 
-        $nombreZip = 'imagenes-'.(Str::slug($categoria->nombre) ?: 'categoria-'.$categoria->id).'-'.now()->format('Y-m-d').'.zip';
+        $nombreZip = 'imagenes-'.($todas ? 'todas' : (Str::slug($categoria->nombre) ?: 'categoria-'.$categoria->id)).'-'.now()->format('Y-m-d').'.zip';
+        $titulo = $todas ? 'Productos sin imágenes cargadas' : "Productos de «{$categoria->nombre}» sin imágenes cargadas";
 
-        return response()->streamDownload(function () use ($archivos, $sinImagenes, $categoria): void {
+        return response()->streamDownload(function () use ($archivos, $sinImagenes, $titulo): void {
             @set_time_limit(0);
 
             $zip = new ZipStream(
@@ -55,7 +58,7 @@ class DescargaImagenesCategoriaController extends Controller
             if ($sinImagenes !== []) {
                 $zip->addFile(
                     fileName: 'sin-imagenes.txt',
-                    data: "Productos de «{$categoria->nombre}» sin imágenes cargadas:\r\n\r\n".implode("\r\n", $sinImagenes)."\r\n",
+                    data: "{$titulo}:\r\n\r\n".implode("\r\n", $sinImagenes)."\r\n",
                     compressionMethod: CompressionMethod::DEFLATE,
                 );
             }
