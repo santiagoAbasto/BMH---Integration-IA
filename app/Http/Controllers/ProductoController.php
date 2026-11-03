@@ -1916,8 +1916,9 @@ public function dash_productos(Request $request)
         }
 
         // El Excel trae códigos sueltos separados por coma, sin etiqueta.
+        // Van siempre en mayúsculas, como en el formulario.
         $valores = collect(explode(',', $equivalencias))
-            ->map(fn ($valor): string => trim((string) $valor))
+            ->map(fn ($valor): string => mb_strtoupper(trim((string) $valor)))
             ->filter(fn (string $valor): bool => $valor !== '')
             ->unique()
             ->values();
@@ -2198,8 +2199,9 @@ public function dash_productos(Request $request)
             ->map(function ($valor, $i) use ($nombres, $ordenes): array {
                 $rawOrden = $ordenes[$i] ?? null;
                 return [
-                    'nombre' => trim((string) ($nombres[$i] ?? '')),
-                    'valor' => trim((string) $valor),
+                    // Origen y código van siempre en mayúsculas.
+                    'nombre' => mb_strtoupper(trim((string) ($nombres[$i] ?? ''))),
+                    'valor' => mb_strtoupper(trim((string) $valor)),
                     'orden' => self::normalizarOrden($rawOrden, $i),
                 ];
             })

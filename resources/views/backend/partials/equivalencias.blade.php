@@ -48,8 +48,8 @@
         @forelse ($equivalencias as $equivalencia)
             <div class="eqv-item" role="listitem">
                 <input type="text" class="eqv-in eqv-orden" name="equiv_orden[]" value="{{ $equivalencia->orden }}" aria-label="Orden" maxlength="2" pattern="[A-Za-z0-9]{1,2}" placeholder="orden" title="Hasta 2 caracteres alfanuméricos (ej: aa, a1)">
-                <input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" value="{{ $equivalencia->nombre }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
-                <input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" value="{{ $equivalencia->valor }}" aria-label="Valor" maxlength="255">
+                <input type="text" class="eqv-in eqv-in-nombre" name="equiv_nombre[]" value="{{ mb_strtoupper((string) $equivalencia->nombre) }}" placeholder="Sin etiqueta" aria-label="Nombre u origen" maxlength="255">
+                <input type="text" class="eqv-in eqv-in-valor" name="equiv_valor[]" value="{{ mb_strtoupper((string) $equivalencia->valor) }}" aria-label="Valor" maxlength="255">
                 <div class="eqv-actions">
                     <button type="button" class="eqv-btn eqv-btn-danger" data-remove title="Quitar" aria-label="Quitar equivalencia">&times;</button>
                 </div>
@@ -170,6 +170,29 @@
     if (!adder || !lista || !countEl) return;
 
     var MAX_FILAS_LOTE = 300;
+
+    // Origen y código se guardan y se muestran siempre en mayúsculas (como aplicaciones).
+    var SELECTOR_MAYUS = '.eqv-add-nombre, .eqv-add-valor, .eqv-in-nombre, .eqv-in-valor';
+
+    function mayus(texto) {
+        return (texto == null ? '' : String(texto)).toUpperCase();
+    }
+
+    // Pasa el input a mayúsculas conservando la posición del cursor: el largo
+    // no cambia, pero asignar .value lo mandaría al final.
+    function forzarMayus(input) {
+        var arriba = mayus(input.value);
+        if (arriba === input.value) return;
+        var ini = input.selectionStart;
+        var fin = input.selectionEnd;
+        input.value = arriba;
+        try { input.setSelectionRange(ini, fin); } catch (e) {}
+    }
+
+    root.addEventListener('input', function (ev) {
+        var t = ev.target;
+        if (t instanceof HTMLInputElement && t.matches(SELECTOR_MAYUS)) forzarMayus(t);
+    });
 
     function escapar(texto) {
         var div = document.createElement('div');
@@ -303,8 +326,8 @@
             '<div class="eqv-actions">' +
                 '<button type="button" class="eqv-btn eqv-btn-danger" data-remove title="Quitar" aria-label="Quitar equivalencia">&times;</button>' +
             '</div>';
-        fila.querySelector('.eqv-in-nombre').value = nombre || '';
-        fila.querySelector('.eqv-in-valor').value = valor || '';
+        fila.querySelector('.eqv-in-nombre').value = mayus(nombre);
+        fila.querySelector('.eqv-in-valor').value = mayus(valor);
         fila.querySelector('.eqv-orden').value = codigoAlfa(filas().length);
         lista.appendChild(fila);
         actualizarEstado();
@@ -400,12 +423,12 @@
         var esValor = target.classList.contains('eqv-in-valor');
         var primero = pares.shift();
         if (esValor) {
-            target.value = primero.valor;
+            target.value = mayus(primero.valor);
             var inNombre = item.querySelector('.eqv-in-nombre');
-            if (primero.nombre && inNombre.value.trim() === '') inNombre.value = primero.nombre;
+            if (primero.nombre && inNombre.value.trim() === '') inNombre.value = mayus(primero.nombre);
         } else {
-            target.value = primero.nombre;
-            item.querySelector('.eqv-in-valor').value = primero.valor;
+            target.value = mayus(primero.nombre);
+            item.querySelector('.eqv-in-valor').value = mayus(primero.valor);
         }
         pares.forEach(function (p) { agregarFila(p.nombre, p.valor, false); });
         actualizarEstado();
