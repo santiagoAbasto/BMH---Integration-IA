@@ -73,28 +73,23 @@ final class ListaPreciosCompletaTest extends TestCase
         return $libro->getSheet(0)->toArray(null, true, false, false);
     }
 
-    public function test_todos_los_productos_publicados_en_una_hoja_con_el_precio_del_cliente(): void
+    public function test_todos_los_productos_publicados_en_una_hoja_solo_con_el_precio_de_lista(): void
     {
         $filas = $this->descargar(14);
 
-        $this->assertSame(['Código', 'Producto', 'Rubro', 'Estado', 'Precio de lista', 'Tu precio (–14%)'], $filas[0]);
+        $this->assertSame(['Código', 'Producto', 'Rubro', 'Estado', 'Precio de lista'], $filas[0]);
+        $this->assertCount(4, $filas, 'encabezado y los tres publicados');
         // Por rubro y código; los ocultos no van; el código conserva sus ceros.
         $this->assertSame(['0094', 'ROT-1', 'ROT-2'], array_column(array_slice($filas, 1), 0));
         $this->assertSame(['Arranques', 'Rotores', 'Rotores'], array_column(array_slice($filas, 1), 2));
         $this->assertSame(['', 'Nuevo', 'Reconstruido'], array_map(fn ($v) => (string) $v, array_column(array_slice($filas, 1), 3)));
-
-        // Mismo precio que muestra el sitio: lista, descuento del producto y del cliente.
         $this->assertEqualsWithDelta(500.0, (float) $filas[1][4], 0.001);
-        $this->assertEqualsWithDelta(500 * 0.9 * 0.86, (float) $filas[1][5], 0.001);
-        $this->assertEqualsWithDelta(1000 * 0.86, (float) $filas[2][5], 0.001);
+        $this->assertEqualsWithDelta(1000.0, (float) $filas[2][4], 0.001);
     }
 
-    public function test_sin_descuento_no_agrega_la_columna_tu_precio(): void
+    public function test_es_la_misma_lista_para_todos_los_clientes(): void
     {
-        $filas = $this->descargar(0);
-
-        $this->assertSame(['Código', 'Producto', 'Rubro', 'Estado', 'Precio de lista'], $filas[0]);
-        $this->assertCount(4, $filas, 'encabezado y los tres publicados');
+        $this->assertSame($this->descargar(0), $this->descargar(14), 'el descuento del cliente no cambia la lista');
     }
 
     public function test_un_visitante_no_puede_descargarla(): void

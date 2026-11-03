@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Productos;
 
 use App\Models\Producto;
-use App\Models\User;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -16,23 +15,20 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
  * rubro, generada en el momento para que siempre esté actualizada.
  *
  * Las listas que prepara BMH (una solapa por rubro) siguen igual; esta es una
- * opción más. Si el cliente tiene descuento se agrega «Tu precio», con la
- * misma regla que el resto del sitio (Producto::precio_unitario_descontado).
+ * opción más. Como esas listas, lleva sólo el precio de lista: es la misma
+ * para todos los clientes.
  */
 final class ListaPreciosCompleta
 {
     private const ESTADOS = [1 => 'Nuevo', 2 => 'Reconstruido'];
 
-    public function generar(User $cliente): Spreadsheet
+    public function generar(): Spreadsheet
     {
-        $descuento = (float) ($cliente->descuento ?? 0);
-        $conDescuento = $descuento > 0;
-
         $productos = Producto::query()
             ->with('categoria:id,nombre')
             // Publicados: todo salvo los ocultos (estado 0), como en el catálogo.
             ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0))
-            ->get(['id', 'codigo', 'nombre', 'categoria_id', 'estado', 'precio', 'descuento'])
+            ->get(['id', 'codigo', 'nombre', 'categoria_id', 'estado', 'precio'])
             // Por rubro y, dentro de cada uno, por código (A2 antes que A10).
             ->sort(fn (Producto $a, Producto $b) => strcasecmp((string) $a->categoria?->nombre, (string) $b->categoria?->nombre)
                 ?: strnatcasecmp((string) $a->codigo, (string) $b->codigo))
@@ -41,12 +37,7 @@ final class ListaPreciosCompleta
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Lista de precios');
-
-        $encabezados = ['Código', 'Producto', 'Rubro', 'Estado', 'Precio de lista'];
-        if ($conDescuento) {
-            $encabezados[] = 'Tu precio (–'.rtrim(rtrim(number_format($descuento, 2, ',', ''), '0'), ',').'%)';
-        }
-        $hoja->fromArray($encabezados, null, 'A1');
+        $hoja->fromArray(['Código', 'Producto', 'Rubro', 'Estado', 'Precio de lista'], null, 'A1');
 
         $fila = 2;
         foreach ($productos as $producto) {
@@ -56,25 +47,20 @@ final class ListaPreciosCompleta
             $hoja->setCellValue("C{$fila}", (string) ($producto->categoria?->nombre ?? ''));
             $hoja->setCellValue("D{$fila}", self::ESTADOS[(int) $producto->estado] ?? '');
             $hoja->setCellValue("E{$fila}", round((float) $producto->precio(), 2));
-            if ($conDescuento) {
-                $hoja->setCellValue("F{$fila}", round((float) $producto->precio_unitario_descontado(), 2));
-            }
             $fila++;
         }
 
-        $ultimaColumna = $conDescuento ? 'F' : 'E';
         $ultimaFila = max(1, $fila - 1);
 
         // Encabezado destacado, fijo al bajar y con filtros (por rubro, estado…).
-        $hoja->getStyle("A1:{$ultimaColumna}1")->applyFromArray([
+        $hoja->getStyle('A1:E1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0098DA']],
         ]);
         $hoja->freezePane('A2');
-        $hoja->setAutoFilter("A1:{$ultimaColumna}{$ultimaFila}");
-        $hoja->getStyle("E2:{$ultimaColumna}{$ultimaFila}")->getNumberFormat()->setFormatCode('"$" #,##0.00');
-        $anchos = ['A' => 16, 'B' => 70, 'C' => 30, 'D' => 15, 'E' => 18] + ($conDescuento ? ['F' => 22] : []);
-        foreach ($anchos as $columna => $ancho) {
+        $hoja->setAutoFilter("A1:E{$ultimaFila}");
+        $hoja->getStyle("E2:E{$ultimaFila}")->getNumberFormat()->setFormatCode('"$" #,##0.00');
+        foreach (['A' => 16, 'B' => 70, 'C' => 30, 'D' => 15, 'E' => 18] as $columna => $ancho) {
             $hoja->getColumnDimension($columna)->setWidth($ancho);
         }
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\Productos\ListaPreciosCompleta;
-use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -15,10 +14,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 class ListaPreciosCompletaController extends Controller
 {
-    public function __invoke(Request $request, ListaPreciosCompleta $lista): BinaryFileResponse
+    public function __invoke(ListaPreciosCompleta $lista): BinaryFileResponse
     {
         $temporal = tempnam(sys_get_temp_dir(), 'lista');
-        (new Xlsx($lista->generar($request->user('web'))))->save($temporal);
+        (new Xlsx($lista->generar()))->save($temporal);
 
         return response()
             ->download($temporal, 'Lista de precios completa BMH '.now()->format('Y-m-d').'.xlsx')
