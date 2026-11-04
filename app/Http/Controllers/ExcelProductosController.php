@@ -31,16 +31,25 @@ class ExcelProductosController extends Controller
 
     public function exportar(Request $request): BinaryFileResponse
     {
-        $categoria = $request->input('categoria_id');
-        $categoriaId = is_numeric($categoria) ? (int) $categoria : null;
+        // Los rubros tildados (categorias[]) o, como antes, una sola categoría
+        // (categoria_id); sin ninguno, todos.
+        $categoriaIds = collect((array) $request->query('categorias', []))
+            ->push($request->query('categoria_id'))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()->values()->all() ?: null;
         // El texto del buscador del listado: el Excel trae lo mismo que se ve filtrado.
         $busqueda = mb_substr(trim((string) $request->query('q', '')), 0, 100);
 
         $temporal = tempnam(sys_get_temp_dir(), 'xlsx');
-        (new Xlsx($this->excel->exportar($categoriaId, $busqueda)))->save($temporal);
+        (new Xlsx($this->excel->exportar($categoriaIds, $busqueda)))->save($temporal);
 
         $nombre = 'productos'
-            .($categoriaId !== null ? '_categoria_'.$categoriaId : '_todos')
+            .match (true) {
+                $categoriaIds === null => '_todos',
+                count($categoriaIds) === 1 => '_categoria_'.$categoriaIds[0],
+                default => '_'.count($categoriaIds).'_rubros',
+            }
             .($busqueda !== '' ? '_busqueda_'.Str::slug($busqueda) : '')
             .'_'.now()->format('Y-m-d').'.xlsx';
 
@@ -50,7 +59,7 @@ class ExcelProductosController extends Controller
     public function importar(): View
     {
         return view('backend.excel-productos.importar', [
-            'categorias' => Categoria::query()->orderBy('nombre')->get(['id', 'nombre']),
+            'categorias' => Categoria::query()->withCount('productos')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 

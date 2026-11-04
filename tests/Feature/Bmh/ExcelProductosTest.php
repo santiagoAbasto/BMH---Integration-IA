@@ -223,6 +223,39 @@ final class ExcelProductosTest extends TestCase
         $this->assertCount(9, IOFactory::load($todos->baseResponse->getFile()->getPathname())->getSheet(0)->toArray());
     }
 
+    public function test_exportar_los_rubros_tildados_ordenados_por_rubro_y_codigo(): void
+    {
+        DB::table('categorias')->insert([['id' => 2, 'nombre' => 'Arranques'], ['id' => 3, 'nombre' => 'Bobinas']]);
+        DB::table('productos')->insert([
+            ['id' => 20, 'codigo' => 'A10', 'nombre' => 'Arranque diez', 'categoria_id' => 2, 'precio' => 1, 'orden' => 'aa'],
+            ['id' => 21, 'codigo' => 'A2', 'nombre' => 'Arranque dos', 'categoria_id' => 2, 'precio' => 1, 'orden' => 'ab'],
+            ['id' => 22, 'codigo' => 'B1', 'nombre' => 'Bobina', 'categoria_id' => 3, 'precio' => 1, 'orden' => 'aa'],
+        ]);
+
+        // Dos rubros tildados (no el 3): sólo esos, por rubro y por código (A2 antes que A10).
+        $respuesta = $this->actingAs($this->admin, 'admin')
+            ->get(route('dashboard.productos.exportar', ['categorias' => [1, 2]]))
+            ->assertOk();
+        $filas = array_slice(IOFactory::load($respuesta->baseResponse->getFile()->getPathname())->getSheet(0)->toArray(null, true, false, false), 1);
+
+        $rubros = array_column($filas, 2);
+        $this->assertSame('Arranques', $rubros[0]);
+        $this->assertNotContains('Bobinas', $rubros);
+        $this->assertSame(array_values(array_unique($rubros)), ['Arranques', 'Solenoides'], 'agrupado por rubro, en orden alfabético');
+        $this->assertSame(['A2', 'A10'], array_slice(array_column($filas, 0), 0, 2));
+        $solenoides = array_values(array_filter($filas, fn ($f) => $f[2] === 'Solenoides'));
+        $codigos = array_column($solenoides, 0);
+        $ordenados = $codigos;
+        natcasesort($ordenados);
+        $this->assertSame(array_values($ordenados), $codigos, 'dentro del rubro, por código');
+        $this->assertStringContainsString('productos_2_rubros_', (string) $respuesta->headers->get('content-disposition'));
+
+        // La pantalla de carga ofrece tildar los rubros.
+        $this->actingAs($this->admin, 'admin')->get(route('dashboard.productos.excel.importar'))->assertOk()
+            ->assertSee('Descargar Excel de productos')
+            ->assertSee('name="categorias[]" value="3"', false);
+    }
+
     public function test_la_pantalla_de_carga_explica_las_reglas_de_reemplazo(): void
     {
         $this->actingAs($this->admin, 'admin')->get(route('dashboard.productos.excel.importar'))->assertOk()

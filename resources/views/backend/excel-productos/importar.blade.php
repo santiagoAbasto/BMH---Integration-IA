@@ -40,17 +40,14 @@
         <div class="bi-card-cuerpo">
             <h2 class="bi-card-titulo" id="titulo-descargar">1. Descargá el Excel con los datos actuales</h2>
             <p class="bi-card-sub">Usalo siempre como base: tiene las columnas en el orden correcto y los códigos de imagen de hoy. Si cambiaste códigos en la biblioteca, descargalo de nuevo.</p>
-            <form method="GET" action="{{ route('dashboard.productos.exportar') }}" class="bi-barra" style="margin: 14px 0 0">
-                <select name="categoria_id" class="bi-select" aria-label="Qué productos descargar">
-                    <option value="todos">Todos los productos</option>
-                    @foreach ($categorias as $categoria)
-                        <option value="{{ $categoria->id }}">Sólo {{ $categoria->nombre }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="bi-btn"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Descargar Excel</button>
-            </form>
+            <div class="bi-barra" style="margin: 14px 0 0">
+                <button type="button" class="bi-btn" data-bs-toggle="modal" data-bs-target="#exportar-excel"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Descargar Excel</button>
+                <span class="bi-card-sub" style="margin: 0">Elegí los rubros que quieras: todos, uno o varios.</span>
+            </div>
         </div>
     </section>
+
+    @include('backend.partials.exportar-excel-modal', ['seleccionadas' => null])
 
     {{-- 2. Reglas --}}
     <section class="bi-card" aria-labelledby="titulo-reglas">

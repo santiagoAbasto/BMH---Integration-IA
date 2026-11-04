@@ -875,7 +875,7 @@ public function dash_productos(Request $request)
         ->appends(array_filter(['categoria_id' => $categoria_id, 'q' => $busqueda], fn ($v) => $v !== null && $v !== ''));
     $hayAlternativas = $sinResultadosCategoria && $productos->isNotEmpty();
 
-    $categorias = Categoria::orderBy('nombre')->get();
+    $categorias = Categoria::withCount('productos')->orderBy('nombre')->get();
 
     // Con una categoría elegida se ofrece descargar sus imágenes en un ZIP.
     $imagenesCategoria = (!empty($categoria_id) && $categoria_id != 'todos')

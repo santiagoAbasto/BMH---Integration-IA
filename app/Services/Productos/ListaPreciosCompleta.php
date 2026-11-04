@@ -24,15 +24,11 @@ final class ListaPreciosCompleta
 
     public function generar(): Spreadsheet
     {
-        $productos = Producto::query()
+        $productos = Producto::ordenarPorRubroYCodigo(Producto::query()
             ->with('categoria:id,nombre')
             // Publicados: todo salvo los ocultos (estado 0), como en el catálogo.
             ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0))
-            ->get(['id', 'codigo', 'nombre', 'categoria_id', 'estado', 'precio'])
-            // Por rubro y, dentro de cada uno, por código (A2 antes que A10).
-            ->sort(fn (Producto $a, Producto $b) => strcasecmp((string) $a->categoria?->nombre, (string) $b->categoria?->nombre)
-                ?: strnatcasecmp((string) $a->codigo, (string) $b->codigo))
-            ->values();
+            ->get(['id', 'codigo', 'nombre', 'categoria_id', 'estado', 'precio']));
 
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();

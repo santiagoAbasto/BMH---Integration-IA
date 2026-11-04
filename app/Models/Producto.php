@@ -42,6 +42,21 @@ class Producto extends Model
     }
 
     /**
+     * El orden de las listas de precios en Excel: por rubro y, dentro de cada
+     * uno, por código (A2 antes que A10). Necesita la relación categoria.
+     *
+     * @param  \Illuminate\Support\Collection<int, self>  $productos
+     * @return \Illuminate\Support\Collection<int, self>
+     */
+    public static function ordenarPorRubroYCodigo(\Illuminate\Support\Collection $productos): \Illuminate\Support\Collection
+    {
+        return $productos
+            ->sort(fn (self $a, self $b) => strcasecmp((string) $a->categoria?->nombre, (string) $b->categoria?->nombre)
+                ?: strnatcasecmp((string) $a->codigo, (string) $b->codigo))
+            ->values();
+    }
+
+    /**
      * El buscador del listado del admin (y el Excel que descarga lo mismo):
      * el texto en el código, nombre, descripción o categoría, con los códigos
      * que coinciden primero (exacto, empieza con, contiene).
