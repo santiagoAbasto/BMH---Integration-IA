@@ -879,7 +879,11 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas'));
+    // Reporte de la última «Actualizar desde Excel → Precios», si se acaba de subir.
+    $reportePrecios = app(ActualizacionPreciosController::class)->reporte(session('precios_reporte'));
+    $tokenPrecios = session('precios_reporte');
+
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas', 'reportePrecios', 'tokenPrecios'));
 }
 
     public function exportarExcel(Request $request)
@@ -1291,48 +1295,6 @@ public function dash_productos(Request $request)
         return redirect()->back()->with('success', 'Imagen principal eliminada. El producto mostrará la imagen predeterminada de BMH.');
     }
 
-    public function actualizarPreciosExcel(Request $request)
-    {
-        // 1) Validar que venga el Excel y sea correcto
-        $request->validate([
-            'lista' => 'required|file|mimes:xlsx,xls'
-        ]);
-
-        // 2) Leer el Excel
-        $filePath    = $request->file('lista')->getRealPath();
-        $reader      = IOFactory::createReaderForFile($filePath);
-        $reader->setReadEmptyCells(false);
-        $spreadsheet = $reader->load($filePath);
-        $rows        = $spreadsheet->getActiveSheet()->toArray();
-
-        // 3) Iterar y actualizar
-        $actualizados = 0;
-        foreach ($rows as $i => $row) {
-            if ($i === 0) {
-                // salto encabezados
-                continue;
-            }
-
-            $codigo    = trim($row[0] ?? '');
-            $precioRaw = trim($row[1] ?? '');
-            $precio    = str_replace(',', '.', $precioRaw);
-
-            if ($codigo === '' || ! is_numeric($precio)) {
-                continue;
-            }
-
-            $updated = Producto::where('codigo', $codigo)
-                ->update(['precio' => $precio]);
-
-            if ($updated) {
-                $actualizados++;
-            }
-        }
-
-        // 4) Devolver con mensaje de Ã©xito
-        return redirect()->back()
-            ->with('success', "ActualizaciÃ³n exitosa: {$actualizados} productos actualizados.");
-    }
     public function dash_buscar_producto(Request $request)
     {
         $busqueda = (string) $request->input('valor', '');

@@ -173,7 +173,6 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::get('dashboard/productos/buscar-partes', 'buscarPartes')->name('producto.buscar.partes');
         Route::post('dashboard/buscar-producto-oferta', 'dash_buscar_producto_oferta')->name('dashboard.buscar.producto.oferta');
         Route::post('dashboard/oferta/store', 'oferta_store')->name('oferta.store');
-        Route::post('actualizar-precios', 'actualizarPreciosExcel')->name('actualizar.precios');
         Route::post('actualizar-clientes', 'actualizar_clientes')->name('actualizar.clientes');
         Route::post('actualizar-categoriasExcel', 'actualizar_categoriasExcel')->name('actualizar.categoriasExcel');
         Route::post('/producto/actualizar-porcentaje', 'actualizarPorcentaje')->name('producto.actualizarPorcentaje');
@@ -195,6 +194,10 @@ Route::middleware('admin')->group(function () {
     Route::post('dashboard/productos/importar-excel', [ExcelProductosController::class, 'previsualizar'])->name('dashboard.productos.excel.previsualizar');
     Route::get('dashboard/productos/importar-excel/{token}', [ExcelProductosController::class, 'preview'])->name('dashboard.productos.excel.preview');
     Route::post('dashboard/productos/importar-excel/{token}/confirmar', [ExcelProductosController::class, 'confirmar'])->name('dashboard.productos.excel.confirmar');
+
+    // Actualizar desde Excel → Precios: aplica y vuelve al listado con el reporte.
+    Route::post('actualizar-precios', [\App\Http\Controllers\ActualizacionPreciosController::class, 'store'])->name('actualizar.precios');
+    Route::get('dashboard/productos/actualizar-precios/{token}/no-actualizados', [\App\Http\Controllers\ActualizacionPreciosController::class, 'noActualizados'])->name('actualizar.precios.no-actualizados');
 });
 
 Route::controller(DimensionController::class)->middleware('admin')->group(function () {

@@ -504,3 +504,22 @@
     .productos-page .btn,
     .productos-page .modal.fade .modal-dialog { transition: none; }
 }
+
+/* Reporte de «Actualizar desde Excel → Precios» */
+.precios-reporte { margin: 0 0 1rem; border: 1px solid #b7e1c5; border-radius: 10px; background: #f3fbf6; overflow: hidden; }
+.precios-reporte--faltan { border-color: #f1c9a5; }
+.precios-reporte-cabecera { display: flex; align-items: flex-start; gap: .75rem; padding: .9rem 1rem; }
+.precios-reporte-icono { font-size: 1.35rem; color: #198754; margin-top: .1rem; }
+.precios-reporte-texto { flex: 1; min-width: 0; }
+/* El layout pone todos los h2 a 2em con !important. */
+.precios-reporte .precios-reporte-texto h2 { margin: 0; font-size: 1.15rem !important; font-weight: 700 !important; color: #14532d; }
+.precios-reporte-texto p { margin: .2rem 0 0; font-size: .8rem; color: #4b6355; overflow-wrap: anywhere; }
+.precios-reporte-faltan { padding: .85rem 1rem 1rem; background: #fff8f1; border-top: 1px solid #f1c9a5; }
+.precios-reporte-faltan-cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .65rem; }
+.precios-reporte-faltan-cabecera strong { color: #9a3412; font-size: .9rem; }
+.precios-reporte-tabla { max-height: 260px; overflow: auto; border: 1px solid #f1d9c3; border-radius: 8px; background: #fff; }
+.precios-reporte-tabla table { font-size: .8rem; }
+.precios-reporte-tabla thead th { position: sticky; top: 0; background: #fdf0e3; color: #7c2d12; font-weight: 600; white-space: nowrap; }
+.precios-reporte-tabla td { vertical-align: middle; white-space: nowrap; }
+.precios-reporte-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; }
+.precios-reporte-ayuda { margin: .6rem 0 0; font-size: .75rem; color: #7c5a3c; }

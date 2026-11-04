@@ -27,6 +27,76 @@
         {{ session('warning') }}
     </div>
   @endif
+
+  {{-- Reporte de «Actualizar desde Excel → Precios» (ActualizacionPreciosController). --}}
+  @if (! empty($reportePrecios))
+    @php
+      $rp = $reportePrecios;
+      $rpFaltan = $rp['no_actualizados'];
+      $rpN = $rp['actualizados'];
+      $rpFmt = fn (int $n) => number_format($n, 0, ',', '.');
+    @endphp
+    <section class="precios-reporte {{ $rpFaltan ? 'precios-reporte--faltan' : '' }}" role="status" aria-labelledby="precios-reporte-titulo" data-precios-reporte>
+      <div class="precios-reporte-cabecera">
+        <i class="fa-solid {{ $rpN > 0 ? 'fa-circle-check' : 'fa-circle-info' }} precios-reporte-icono" aria-hidden="true"></i>
+        <div class="precios-reporte-texto">
+          <h2 id="precios-reporte-titulo">
+            @if ($rpN > 0)
+              Se {{ $rpN === 1 ? 'actualizó 1 producto' : 'actualizaron '.$rpFmt($rpN).' productos' }}
+            @else
+              No se actualizó ningún producto
+            @endif
+          </h2>
+          <p>
+            <i class="fa-solid fa-file-excel" aria-hidden="true"></i> {{ $rp['archivo'] }} · {{ $rpFmt($rp['filas']) }} {{ $rp['filas'] === 1 ? 'fila' : 'filas' }} con datos
+            @if ($rp['sin_cambios'] > 0)
+              · {{ $rpFmt($rp['sin_cambios']) }} ya {{ $rp['sin_cambios'] === 1 ? 'tenía' : 'tenían' }} ese precio
+            @endif
+          </p>
+        </div>
+        <button type="button" class="btn-close" aria-label="Cerrar el reporte" data-cerrar-reporte></button>
+      </div>
+
+      @if ($rpFaltan)
+        <div class="precios-reporte-faltan">
+          <div class="precios-reporte-faltan-cabecera">
+            <strong>
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              {{ count($rpFaltan) === 1 ? '1 fila no se pudo actualizar' : $rpFmt(count($rpFaltan)).' filas no se pudieron actualizar' }}
+            </strong>
+            <a class="btn btn-sm btn-outline-danger" href="{{ route('actualizar.precios.no-actualizados', $tokenPrecios) }}">
+              <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Descargar Excel con los no actualizados
+            </a>
+          </div>
+          <div class="precios-reporte-tabla">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr><th scope="col">Fila</th><th scope="col">Código en el Excel</th><th scope="col">Precio</th><th scope="col">Motivo</th><th scope="col">Código parecido en la web</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($rpFaltan as $f)
+                  <tr>
+                    <td>{{ $f['fila'] }}</td>
+                    <td class="precios-reporte-codigo">{{ $f['codigo'] !== '' ? $f['codigo'] : '—' }}</td>
+                    <td>{{ $f['precio'] !== '' ? $f['precio'] : '—' }}</td>
+                    <td>{{ $f['motivo'] }}</td>
+                    <td>
+                      @if ($f['sugerencia'])
+                        ¿Será <a class="precios-reporte-codigo" href="{{ route('dashboard.productos', ['q' => $f['sugerencia']]) }}" title="Ver el producto {{ $f['sugerencia'] }}">{{ $f['sugerencia'] }}</a>?
+                      @else
+                        —
+                      @endif
+                    </td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+          <p class="precios-reporte-ayuda">Corregí el código en el Excel (o en el producto) y volvé a subirlo: los que ya se actualizaron no cambian.</p>
+        </div>
+      @endif
+    </section>
+  @endif
   
   @php
       if (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') {
@@ -192,6 +262,7 @@
       </div>
       <div class="modal-body">
         <p>Los productos de la web deben tener el mismo código que en el Excel. Podés modificarlo en cada producto. El orden de las columnas debe coincidir con el modelo.</p>
+        <p class="mb-0">Al terminar vas a ver cuántos productos se actualizaron y cuáles códigos no, con un Excel para descargarlos.</p>
         <form id='actualizar-precios-form' action="{{ route('actualizar.precios') }}" method="POST" enctype="multipart/form-data">
           @csrf
           <label for="lista-precios" class="form-label">Listado de precios (Excel)</label>
@@ -261,7 +332,7 @@
 @endsection
 
 @section('styles')
-@unless (request()->getQueryString() || session()->has('success') || session()->has('warning'))
+@unless (request()->getQueryString() || session()->has('success') || session()->has('warning') || session()->has('precios_reporte'))
 <script>
   // Al entrar al listado sin filtros (el sidebar, «volver», una redirección),
   // retomarlo como se lo dejó en esta pestaña. Va en el <head>, antes de que
@@ -272,7 +343,7 @@
   } catch (e) { /* sin sessionStorage: se abre sin filtros */ }
 </script>
 @endunless
-<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=3">
+<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=4">
 @endsection
 
 @section('script')
@@ -395,6 +466,10 @@
         $('#filtro-q').val(texto);
         $('[data-borrar-filtros]').prop('hidden', !(params.has('categoria_id') || params.has('q')));
     }
+
+    $('[data-cerrar-reporte]').on('click', function() {
+      $(this).closest('[data-precios-reporte]').remove();
+    });
 
     $('[data-borrar-filtros]').on('click', function() {
         try { sessionStorage.removeItem(CLAVE_FILTROS); } catch (e) {}
