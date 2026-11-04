@@ -14,6 +14,7 @@ auth.json
 # Datos, uploads y respaldos locales
 /storage/app/backups/
 /storage/app/ai/
+/storage/app/actualizacion-precios/
 /storage/logs/*.log
 /storage/*.key
 /public/imagenes/*
