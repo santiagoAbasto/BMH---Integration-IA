@@ -34,7 +34,7 @@ final class ActualizacionPrecios
      */
     public function aplicar(string $ruta, string $nombreArchivo): array
     {
-        $hoja = IOFactory::load($ruta)->getActiveSheet();
+        $hoja = self::sinAvisosDeIconv(fn () => IOFactory::load($ruta))->getActiveSheet();
         // Los códigos como se ven en la celda (respeta formatos como «00094»);
         // los precios con su valor real (un «$ 1.234,50» formateado es 1234.5).
         $vistos = $hoja->toArray(null, true, true, false);
@@ -168,6 +168,36 @@ final class ActualizacionPrecios
         }
 
         return [$porCodigo, $porParecido];
+    }
+
+    /**
+     * Algunos .xls traen comentarios o cuadros de texto con caracteres mal
+     * codificados: iconv() avisa «incomplete multibyte character», Laravel lo
+     * convierte en error y el Excel no se puede leer (pasó en producción el
+     * 2026-11-04). Ese texto no interesa para los precios y PhpSpreadsheet
+     * tiene un plan B (mb_convert_encoding) si iconv falla: se ignoran sólo
+     * esos avisos mientras se lee el archivo; cualquier otro sigue su curso.
+     *
+     * @template T
+     * @param callable(): T $leer
+     * @return T
+     */
+    private static function sinAvisosDeIconv(callable $leer): mixed
+    {
+        $anterior = null;
+        $anterior = set_error_handler(function (int $nivel, string $mensaje, string $archivo = '', int $linea = 0) use (&$anterior): bool {
+            if (str_starts_with($mensaje, 'iconv(')) {
+                return true;
+            }
+
+            return $anterior !== null ? (bool) $anterior($nivel, $mensaje, $archivo, $linea) : false;
+        });
+
+        try {
+            return $leer();
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /** «70.505», «70-505», «070 505» → «70505»: sólo letras y números, sin ceros adelante. */

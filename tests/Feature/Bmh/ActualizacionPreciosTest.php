@@ -167,6 +167,21 @@ final class ActualizacionPreciosTest extends TestCase
         $this->assertStringNotContainsString('no se pudieron actualizar', $html);
     }
 
+    public function test_un_xls_con_texto_mal_codificado_no_rompe_la_lectura(): void
+    {
+        // Lo que pasó en producción: iconv() avisa «incomplete multibyte
+        // character» al leer un comentario del .xls y Laravel lo vuelve error.
+        $leer = new \ReflectionMethod(\App\Services\Productos\ActualizacionPrecios::class, 'sinAvisosDeIconv');
+        $leer->setAccessible(true);
+
+        $resultado = $leer->invoke(null, fn () => iconv('UTF-8', 'ISO-8859-1', 'texto '.chr(0xC3)) === false ? 'plan B' : 'leído');
+        $this->assertSame('plan B', $resultado);
+
+        // Cualquier otro aviso sigue siendo un error.
+        $this->expectException(\ErrorException::class);
+        $leer->invoke(null, fn () => $noDefinida + 1);
+    }
+
     public function test_un_token_invalido_o_vencido_no_descarga_nada(): void
     {
         $this->get(route('actualizar.precios.no-actualizados', '7f1a0a8e-0000-4000-8000-000000000000'))->assertNotFound();
