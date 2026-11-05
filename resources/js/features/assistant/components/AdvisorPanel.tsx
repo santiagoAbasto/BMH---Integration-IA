@@ -165,7 +165,7 @@ export function AdvisorPanel({
                                 message={message}
                                 showDebug={settings.features.debug}
                                 onConfirmProduct={handleConfirmProduct}
-                                onFeedback={(id, productId, ok) => void sendFeedback(id, productId, ok)}
+                                onFeedback={(id, productId, ok, correction) => void sendFeedback(id, productId, ok, correction)}
                                 onAddToCart={addToCart}
                                 onQuickReply={(text) => handleSend(text, [])}
                             />

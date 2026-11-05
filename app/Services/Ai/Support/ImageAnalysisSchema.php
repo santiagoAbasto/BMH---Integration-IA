@@ -187,7 +187,8 @@ final class ImageAnalysisSchema
 
         Decidí cuál se parece más a la foto del cliente, mirando:
         forma general, cantidad y disposición de terminales, tipo de conector,
-        proporciones, presencia de polea/ventilador/colector, acabado.
+        proporciones, presencia de polea/ventilador/colector, acabado y las
+        medidas impresas en la propia foto cuando estén legibles.
 
         Reglas:
         - Comparás IMÁGENES. No inventes códigos ni características.
@@ -195,6 +196,10 @@ final class ImageAnalysisSchema
           respuesta válida y preferible a forzar una.
         - Ojo con los ángulos: la foto del cliente y la del catálogo pueden estar
           tomadas desde posiciones distintas. Juzgá la pieza, no la pose.
+        - Algunas fotos del catálogo tienen cotas dibujadas (por ejemplo,
+          diámetro, largo total o distancia entre apoyos). Leelas y usalas como
+          evidencia visual aunque esos valores no figuren en la ficha textual.
+          No inventes una medida si no se lee con claridad.
         - `similarity` de 0 a 1, honesto. Dos rotores cualesquiera se parecen
           bastante entre sí: reservá los valores altos para cuando coinciden los
           detalles, no sólo la silueta.

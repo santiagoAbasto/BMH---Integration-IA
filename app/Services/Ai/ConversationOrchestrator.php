@@ -58,6 +58,7 @@ final class ConversationOrchestrator
         private readonly QueryRouter $router,
         private readonly \App\Domain\Search\VisionMatchService $visionMatch,
         private readonly DiagnosticQuestionBank $questions,
+        private readonly ApprovedCorrectionService $approvedCorrections,
     ) {
     }
 
@@ -146,6 +147,17 @@ final class ConversationOrchestrator
             $visionNotes = $match['notes'];
         } elseif (! $query->isEmpty()) {
             $candidates = $this->search->search($query, $attachments !== []);
+        }
+
+        // Una X del cliente no altera nada por sí sola. Sólo una corrección
+        // aprobada por un administrador, y para exactamente la misma entrada,
+        // puede priorizar el producto esperado en una conversación posterior.
+        $approvedCorrection = $this->approvedCorrections->apply($text, $attachments, $candidates);
+        $candidates = $approvedCorrection['candidates'];
+
+        if ($approvedCorrection['applied']) {
+            $strategy .= '+approved_correction';
+            $visionNotes[] = $approvedCorrection['note'];
         }
 
         // --- 5. Desambiguación --------------------------------------------

@@ -179,11 +179,23 @@ GRANT SELECT ON bmhbobinajes_bmh.* TO 'bmh_reader'@'localhost';
 (`bmh_ai`) va aparte y sí necesita escritura.
 
 **No se corre ninguna migración contra la base legacy.** Las migraciones del
-asesor se aplican sólo a `mysql_ai`:
+asesor se aplican sólo a `mysql_ai`. Antes de ejecutarlas, verificá qué falta
+con `php artisan migrate:status --database=mysql_ai`; luego aplicá únicamente
+las migraciones del asesor que todavía no figuren como ejecutadas:
 
 ```bash
 php artisan migrate --database=mysql_ai --path=database/migrations/2026_08_10_000100_create_bmh_advisor_tables.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_10_21_000001_create_ai_test_lab_tables.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_10_21_000002_add_structured_expectations_to_ai_test_reviews.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_10_21_000003_create_ai_cart_operations_table.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_11_04_000001_add_correction_workflow_to_ai_feedback.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_11_05_000001_create_ai_correction_rules_table.php --force
 ```
+
+La última agrega el circuito de correcciones de clientes: motivo, código de
+producto esperado y estado de revisión. La siguiente crea reglas reutilizables
+sólo después de aprobación administrativa y sólo para la misma foto o el mismo
+texto. No modifican tablas, productos ni imágenes de `bmh_legacy`.
 
 ### 6.2 Front controller
 

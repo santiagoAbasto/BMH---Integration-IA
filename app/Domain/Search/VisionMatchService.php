@@ -41,21 +41,11 @@ use Illuminate\Support\Facades\Log;
  */
 final class VisionMatchService
 {
-    /** Cuántos candidatos como máximo se mandan a comparar visualmente. */
     /**
      * Desde qué confianza de la visión se le cree a la foto por encima de un
      * código leído que apunta a otra familia de piezas.
      */
     private const CONFIANZA_PARA_DUDAR_DEL_CODIGO = 0.7;
-
-    /**
-     * Cuántas fotos del catálogo se comparan contra la del cliente.
-     *
-     * Con cuatro se quedaba corto: si la pieza correcta caía sexta en el orden
-     * previo —cosa normal cuando lo único seguro es el rubro— la comparación ni
-     * la miraba. Las imágenes van en `detail: low`, así que ampliar cuesta poco.
-     */
-    private const MAX_COMPARACION = 8;
 
     public function __construct(
         private readonly CatalogRepositoryInterface $catalog,
@@ -243,8 +233,8 @@ final class VisionMatchService
          * imágenes costaría 6 veces más y no serviría más, porque los que están
          * abajo ya perdieron por señales más duras que el parecido visual.
          *
-         * El costo queda acotado a MAX_COMPARACION imágenes, sin importar si el
-         * rubro tenía 5 candidatos o 400.
+         * El costo queda acotado por configuración, sin importar si el rubro
+         * tenía 5 candidatos o 400.
          */
         $compared = false;
 
@@ -261,23 +251,7 @@ final class VisionMatchService
             }
         }
 
-        /*
-         * Cuando el número no se pudo leer, pedirlo es lo que más acorta el
-         * camino: el cliente tiene la pieza en la mano y ahí está grabado.
-         *
-         * En esta familia hay piezas gemelas —dos reguladores Bosch de 24V y 5
-         * pines son indistinguibles en una foto— así que insistir con la imagen
-         * no va a resolverlo nunca, y adivinar entre dos que se ven iguales es
-         * justamente lo que no hay que hacer.
-         */
-        if (count($candidates) > 1 && (! $analysis->hasReliableCode() || $codigoDescartado)) {
-            $notes[] = sprintf(
-                'Tengo %d que encajan con lo que se ve. Estas piezas se distinguen por el número grabado, '
-                .'que suele estar en la cara del cuerpo, no en la del disipador: ¿me lo pasás, o mandás '
-                .'una foto de ese lado?',
-                count($candidates),
-            );
-        } elseif (! $compared && count($candidates) > self::MAX_COMPARACION) {
+        if (! $compared && count($candidates) > $this->maxComparisonImages()) {
             $notes[] = sprintf(
                 'Hay %d piezas parecidas. Con un dato más te digo cuál es.',
                 count($candidates),
@@ -789,6 +763,10 @@ final class VisionMatchService
     /**
      * Segunda pasada multimodal: la foto del cliente contra las de catálogo.
      *
+     * Se consideran las fotos de galería, no sólo la portada. En BMH es común
+     * que una segunda imagen incluya las cotas, aunque la ficha no las tenga
+     * transcritas como atributos.
+     *
      * @param  list<Candidate>  $candidates
      * @return array{candidates: list<Candidate>, note: ?string}|null
      */
@@ -798,28 +776,48 @@ final class VisionMatchService
         array $candidates,
     ): ?array {
         // Sólo candidatos que tengan imagen en disco: comparar contra un
-        // placeholder no dice nada.
+        // placeholder no dice nada. Se intercala una foto por producto antes
+        // de tomar una segunda, para que una galería extensa no desplace a los
+        // demás candidatos. Las fotos con medidas suelen seguir a la portada.
         $conImagen = [];
+        $porProducto = max(1, (int) config('bmh.vision.comparison_images_per_product', 3));
+        $limite = $this->maxComparisonImages();
+        $productos = array_slice(
+            $candidates,
+            0,
+            max(1, (int) config('bmh.vision.comparison_candidate_limit', 12)),
+        );
+        $galerias = array_map(
+            static fn (Candidate $candidate): array => [
+                'candidate' => $candidate,
+                'images' => array_slice($candidate->product->images, 0, $porProducto),
+            ],
+            $productos,
+        );
 
-        foreach ($candidates as $candidate) {
-            $archivo = $candidate->product->primaryImage();
+        for ($position = 0; $position < $porProducto && count($conImagen) < $limite; $position++) {
+            foreach ($galerias as $galeria) {
+                $archivo = $galeria['images'][$position] ?? null;
 
-            if ($archivo === null) {
-                continue;
-            }
+                if (! is_string($archivo) || $archivo === '') {
+                    continue;
+                }
 
-            $ruta = $this->images->absolutePath($archivo);
+                $ruta = $this->images->absolutePath($archivo);
 
-            if (is_file($ruta)) {
-                $conImagen[] = ['candidate' => $candidate, 'path' => $ruta];
-            }
+                if (is_file($ruta)) {
+                    $conImagen[] = ['candidate' => $galeria['candidate'], 'path' => $ruta];
+                }
 
-            if (count($conImagen) >= self::MAX_COMPARACION) {
-                break;
+                if (count($conImagen) >= $limite) {
+                    break;
+                }
             }
         }
 
-        if (count($conImagen) < 2) {
+        // Una única foto del catálogo alcanza para comprobar el caso más
+        // simple: cliente y catálogo muestran la misma pieza.
+        if ($conImagen === []) {
             return null;
         }
 
@@ -840,36 +838,47 @@ final class VisionMatchService
             return null;
         }
 
-        $similitudes = [];
+        /** @var array<int,float> $similitudesPorReferencia */
+        $similitudesPorReferencia = [];
 
         foreach ((array) ($resultado['ranking'] ?? []) as $fila) {
             $ref = (int) ($fila['ref'] ?? -1);
 
             if (isset($conImagen[$ref])) {
-                $similitudes[$ref] = max(0.0, min(1.0, (float) ($fila['similarity'] ?? 0)));
+                $similitudesPorReferencia[$ref] = max(0.0, min(1.0, (float) ($fila['similarity'] ?? 0)));
             }
         }
 
         $mejor = $resultado['best_match'];
 
         if (is_int($mejor) && isset($conImagen[$mejor])) {
-            $similitudes[$mejor] = max(
-                $similitudes[$mejor] ?? 0.0,
+            $similitudesPorReferencia[$mejor] = max(
+                $similitudesPorReferencia[$mejor] ?? 0.0,
                 max(0.0, min(1.0, (float) ($resultado['similarity'] ?? 0))),
             );
         }
 
-        if ($similitudes === []) {
+        if ($similitudesPorReferencia === []) {
             return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
         }
 
-        $similitudes = array_filter(
-            $similitudes,
+        $similitudesPorReferencia = array_filter(
+            $similitudesPorReferencia,
             fn (float $similitud): bool => $this->shouldAddVisualSimilaritySignal($similitud),
         );
 
-        if ($similitudes === []) {
+        if ($similitudesPorReferencia === []) {
             return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
+        }
+
+        // Un candidato puede aportar varias fotos. Conservamos solamente el
+        // mejor parecido de su galería: sumar una señal por cada ángulo haría
+        // que gane por cantidad de fotos, no por evidencia.
+        $similitudes = [];
+
+        foreach ($similitudesPorReferencia as $ref => $similitud) {
+            $productId = $conImagen[$ref]['candidate']->product->id;
+            $similitudes[$productId] = max($similitudes[$productId] ?? 0.0, $similitud);
         }
 
         // La similitud entra como una señal más del ranking, con su peso bajo.
@@ -877,9 +886,15 @@ final class VisionMatchService
         // sigue ganando.
         $peso = (float) config('bmh.ranking.weights.vision_similarity', 3.0);
 
-        foreach ($similitudes as $ref => $similitud) {
-            $conImagen[$ref]['candidate']->addSignal('vision_similarity', $peso, $similitud);
-            $conImagen[$ref]['candidate']->matchedOn[] = 'parecido visual';
+        foreach ($candidates as $candidate) {
+            $similitud = $similitudes[$candidate->product->id] ?? null;
+
+            if ($similitud === null) {
+                continue;
+            }
+
+            $candidate->addSignal('vision_similarity', $peso, $similitud);
+            $candidate->matchedOn[] = 'parecido visual validado contra la galería';
         }
 
         usort($candidates, static fn (Candidate $a, Candidate $b): int => $b->score <=> $a->score);
@@ -920,5 +935,10 @@ final class VisionMatchService
         ));
 
         return $similarity >= $threshold;
+    }
+
+    private function maxComparisonImages(): int
+    {
+        return max(1, min(24, (int) config('bmh.vision.comparison_max_images', 12)));
     }
 }

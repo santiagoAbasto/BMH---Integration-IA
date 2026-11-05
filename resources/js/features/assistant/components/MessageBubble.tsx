@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Eye, ScanText, ThumbsDown, ThumbsUp, UserRound } from 'lucide-react';
 import { ProductCard } from './ProductCard';
@@ -7,13 +8,21 @@ interface Props {
     message: ChatMessage;
     showDebug: boolean;
     onConfirmProduct: (messageId: number | string, productId: number) => void;
-    onFeedback: (messageId: number | string, productId: number | null, wasCorrect: boolean) => void;
+    onFeedback: (
+        messageId: number | string,
+        productId: number | null,
+        wasCorrect: boolean,
+        correction?: { reason: string; expectedCode?: string },
+    ) => void;
     onAddToCart: (messageId: number | string, productId: number, quantity: number) => Promise<void>;
     onQuickReply: (text: string) => void;
 }
 
 export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback, onAddToCart, onQuickReply }: Props) {
     const isUser = message.role === 'user';
+    const [showCorrection, setShowCorrection] = useState(false);
+    const [reason, setReason] = useState('');
+    const [expectedCode, setExpectedCode] = useState('');
 
     if (isUser) {
         return (
@@ -168,7 +177,7 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                             </button>
                             <button
                                 type="button"
-                                onClick={() => onFeedback(message.id, topProductId, false)}
+                                onClick={() => setShowCorrection(true)}
                                 className="inline-flex min-h-[2rem] items-center gap-1 rounded-full border border-edge px-2.5 text-caption text-ink-secondary hover:border-state-danger hover:text-state-danger"
                             >
                                 <ThumbsDown aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -177,6 +186,66 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                         </>
                     )}
                 </div>
+            )}
+
+            {candidates.length > 0 && typeof message.id === 'number' && message.feedbackGiven !== true && showCorrection && (
+                <form
+                    className="max-w-bubble rounded-card border border-state-danger/30 bg-surface-raised p-3"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+
+                        const trimmedReason = reason.trim();
+
+                        if (trimmedReason === '') {
+                            return;
+                        }
+
+                        onFeedback(message.id, topProductId, false, {
+                            reason: trimmedReason,
+                            expectedCode: expectedCode.trim() || undefined,
+                        });
+                    }}
+                >
+                    <p className="text-caption font-medium text-ink-primary">¿Qué habría que corregir?</p>
+                    <label className="mt-2 block text-caption text-ink-secondary" htmlFor={`feedback-reason-${message.id}`}>
+                        Motivo
+                    </label>
+                    <input
+                        id={`feedback-reason-${message.id}`}
+                        required
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        maxLength={500}
+                        placeholder="Ej.: no era esa ficha; la foto coincide con otro modelo."
+                        className="mt-1 min-h-[2.5rem] w-full rounded-card border border-edge bg-surface px-2.5 text-body text-ink-primary"
+                    />
+                    <label className="mt-2 block text-caption text-ink-secondary" htmlFor={`feedback-code-${message.id}`}>
+                        Código correcto esperado (opcional)
+                    </label>
+                    <input
+                        id={`feedback-code-${message.id}`}
+                        value={expectedCode}
+                        onChange={(event) => setExpectedCode(event.target.value)}
+                        maxLength={64}
+                        placeholder="Ej.: IMPO1401"
+                        className="mt-1 min-h-[2.5rem] w-full rounded-card border border-edge bg-surface px-2.5 text-body text-ink-primary"
+                    />
+                    <div className="mt-3 flex gap-2">
+                        <button
+                            type="submit"
+                            className="min-h-[2.25rem] rounded-full bg-brand-600 px-3 text-caption font-medium text-white hover:bg-brand-700"
+                        >
+                            Enviar corrección
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowCorrection(false)}
+                            className="min-h-[2.25rem] rounded-full border border-edge px-3 text-caption text-ink-secondary"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
             )}
 
             {showDebug && message.debug !== undefined && (

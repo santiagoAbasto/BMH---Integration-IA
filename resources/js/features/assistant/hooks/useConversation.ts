@@ -302,7 +302,12 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
     );
 
     const sendFeedback = useCallback(
-        async (messageId: number | string, productId: number | null, wasCorrect: boolean) => {
+        async (
+            messageId: number | string,
+            productId: number | null,
+            wasCorrect: boolean,
+            correction?: { reason: string; expectedCode?: string },
+        ) => {
             if (conversationId === null || typeof messageId !== 'number') {
                 return;
             }
@@ -313,6 +318,8 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
                     message_id: messageId,
                     product_id: productId,
                     was_correct: wasCorrect,
+                    reason: correction?.reason,
+                    expected_code: correction?.expectedCode,
                 });
 
                 setMessages((current) =>

@@ -171,10 +171,13 @@ final class GeminiAiProvider implements AiProviderInterface
             }
 
             $partes[] = ['text' => 'CANDIDATO ' . $indice . ':'];
-            $partes[] = $this->imagenComoParte($ruta);
+            $partes[] = $this->imagenComoParte(
+                $ruta,
+                (int) config('bmh.vision.comparison_image_max_px', 1024),
+            );
         }
 
-        if (count($partes) < 6) {
+        if (count($partes) < 4) {
             return [];
         }
 
@@ -200,9 +203,9 @@ final class GeminiAiProvider implements AiProviderInterface
     }
 
     /** @return array<string, mixed> */
-    private function imagenComoParte(string $ruta): array
+    private function imagenComoParte(string $ruta, int $maxPx = 512): array
     {
-        return ['inlineData' => array_combine(['mimeType', 'data'], ImagePayload::encode($ruta))];
+        return ['inlineData' => array_combine(['mimeType', 'data'], ImagePayload::encode($ruta, $maxPx))];
     }
 
     /**

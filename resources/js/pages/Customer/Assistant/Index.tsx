@@ -161,8 +161,8 @@ export default function AssistantIndex({
                                         message={message}
                                         showDebug={settings.features.debug}
                                         onConfirmProduct={handleConfirmProduct}
-                                        onFeedback={(messageId, productId, wasCorrect) =>
-                                            void sendFeedback(messageId, productId, wasCorrect)
+                                        onFeedback={(messageId, productId, wasCorrect, correction) =>
+                                            void sendFeedback(messageId, productId, wasCorrect, correction)
                                         }
                                         onAddToCart={addToCart}
                                         onQuickReply={(text) => handleSend(text, [])}
