@@ -68,6 +68,14 @@
   .ait-recent { margin-top:18px; }
   .ait-recent-buttons { display:flex; flex-wrap:wrap; gap:7px; }
   .ait-recent-btn { min-height:34px; padding:6px 9px; font-size:11px; }
+  .ait-corrections { margin-top:18px; border:1px solid #dce5eb; border-radius:14px; background:#fff; overflow:hidden; }
+  .ait-correction { display:grid; grid-template-columns:minmax(0,1fr) minmax(210px,.55fr); gap:14px; padding:14px 16px; border-top:1px solid #e6edf1; }
+  .ait-correction:first-child { border-top:0; }
+  .ait-correction p { margin:4px 0; font-size:12px; line-height:1.45; }
+  .ait-correction-meta { color:#687985; font-size:11px; }
+  .ait-correction-code { display:inline-block; border-radius:5px; padding:2px 5px; background:#eef3f6; font-family:monospace; font-size:12px; }
+  .ait-correction-form { display:grid; gap:7px; align-content:start; }
+  .ait-correction-form input { width:100%; border:1px solid #cdd9e1; border-radius:8px; padding:8px 9px; font:inherit; font-size:12px; }
   @media (max-width:1250px) { .ait-grid { grid-template-columns:minmax(220px,.8fr) minmax(400px,1.4fr); } .ait-review-card { grid-column:1/-1; } }
   @media (max-width:850px) { .ait-header { flex-direction:column; } .ait-setup,.ait-grid { grid-template-columns:1fr; } .ait-metrics { grid-template-columns:repeat(2,1fr); } .ait-chat { min-height:590px; } }
   @media (max-width:520px) { .ait-review-fields-grid,.ait-metrics { grid-template-columns:1fr; } }
@@ -200,14 +208,11 @@
             <select id="ait-expected"><option value="">No corresponde / ninguna</option></select>
           </div>
           <div class="ait-review-fields-grid">
-            <div class="ait-field">
-              <label for="ait-expected-product">Producto esperado (ID)</label>
-              <input id="ait-expected-product" type="number" min="1" list="ait-candidate-options" placeholder="Opcional">
+            <div class="ait-field" style="grid-column:1/-1">
+              <label for="ait-expected-code">Código del producto esperado</label>
+              <input id="ait-expected-code" type="text" maxlength="64" list="ait-candidate-options" placeholder="Ej.: IMPO1401">
               <datalist id="ait-candidate-options"></datalist>
-            </div>
-            <div class="ait-field">
-              <label for="ait-expected-code">Código esperado</label>
-              <input id="ait-expected-code" type="text" maxlength="64" placeholder="Opcional">
+              <small style="display:block;margin-top:5px;color:#687985">Escribí el código, no el ID interno. Si leés O/0 distinto, el laboratorio probará esa variante y guardará el código real del catálogo.</small>
             </div>
           </div>
           <div class="ait-field" style="margin-bottom:15px">
@@ -252,6 +257,41 @@
     </div>
   </section>
   @endif
+
+  <section class="ait-corrections" aria-label="Correcciones enviadas por clientes">
+    <header class="ait-card-head">
+      <h2>Correcciones enviadas por clientes</h2>
+      <p>Los “No” quedan pendientes hasta que una persona los revise. Aprobar reutiliza la corrección sólo para la misma foto o el mismo texto; no modifica el catálogo ni reentrena el modelo.</p>
+    </header>
+    @forelse ($customerFeedback as $feedback)
+      <article class="ait-correction">
+        <div>
+          <p class="ait-correction-meta">Cliente #{{ $feedback->customer_id }} · consulta #{{ $feedback->conversation_id }} · {{ $feedback->created_at?->format('d/m/Y H:i') }}</p>
+          <p><strong>Motivo:</strong> {{ $feedback->reason ?: $feedback->comment ?: 'No indicó un motivo.' }}</p>
+          @if ($feedback->expected_code)
+            <p><strong>Producto esperado:</strong> <span class="ait-correction-code">{{ $feedback->expected_code }}</span></p>
+          @endif
+          @if ($feedback->message?->content)
+            <p><strong>Respuesta evaluada:</strong> {{ \Illuminate\Support\Str::limit($feedback->message->content, 240) }}</p>
+          @endif
+        </div>
+        <form class="ait-correction-form" method="post" action="{{ route('admin.ai-tests.feedback.review', ['feedback' => $feedback->id]) }}">
+          @csrf
+          <label for="feedback-note-{{ $feedback->id }}">Nota de revisión</label>
+          <input id="feedback-note-{{ $feedback->id }}" name="admin_note" maxlength="1000" placeholder="Ej.: validado; crear caso de rotor con medidas.">
+          @if ($feedback->expected_product_id)
+            <button class="ait-btn ait-btn-primary" type="submit" name="decision" value="approved">Aprobar para casos idénticos</button>
+            <button class="ait-btn" type="submit" name="decision" value="reviewed">Cerrar sin aplicar</button>
+          @else
+            <p class="ait-help" style="margin:0">Falta el producto esperado: se puede registrar la revisión, pero no crear una regla reutilizable.</p>
+            <button class="ait-btn" type="submit" name="decision" value="reviewed">Cerrar sin aplicar</button>
+          @endif
+        </form>
+      </article>
+    @empty
+      <p class="ait-help" style="margin:14px">No hay correcciones de clientes pendientes.</p>
+    @endforelse
+  </section>
 </main>
 @endsection
 
@@ -279,7 +319,6 @@
   const reviewEmpty = document.getElementById('ait-review-empty');
   const expectedSelect = document.getElementById('ait-expected');
   const expectedActionSelect = document.getElementById('ait-expected-action');
-  const expectedProductInput = document.getElementById('ait-expected-product');
   const expectedCodeInput = document.getElementById('ait-expected-code');
   const candidateOptions = document.getElementById('ait-candidate-options');
   const surfaceSelect = document.getElementById('ait-surface');
@@ -370,11 +409,11 @@
   }
 
   function renderCandidateOptions(candidates) {
-    lastCandidates = (candidates || []).map(normalizedCandidate).filter(item => item.id !== null);
+    lastCandidates = (candidates || []).map(normalizedCandidate).filter(item => item.code);
     candidateOptions.innerHTML = '';
     lastCandidates.forEach(candidate => {
       const option = document.createElement('option');
-      option.value = candidate.id;
+      option.value = candidate.code;
       option.label = [candidate.code, candidate.name].filter(Boolean).join(' · ');
       candidateOptions.appendChild(option);
     });
@@ -394,7 +433,6 @@
     if (rating) rating.checked = true;
     expectedActionSelect.value = review.expected_action || '';
     expectedSelect.value = review.expected_question_id || '';
-    expectedProductInput.value = review.expected_product_id || '';
     expectedCodeInput.value = review.expected_code || '';
     surfaceSelect.value = review.surface || 'private';
     severitySelect.value = review.severity || 'medium';
@@ -478,7 +516,7 @@
           rating,
           expected_action: expectedActionSelect.value,
           expected_question_id: expectedSelect.value || null,
-          expected_product_id: expectedProductInput.value ? Number(expectedProductInput.value) : null,
+          expected_product_id: null,
           expected_code: expectedCodeInput.value.trim() || null,
           surface: surfaceSelect.value,
           severity: severitySelect.value,
@@ -519,10 +557,6 @@
   familySelect.addEventListener('change', renderBank);
   imagesInput.addEventListener('change', () => {
     fileLabel.textContent = imagesInput.files.length ? `${imagesInput.files.length} foto(s)` : 'Sin fotos';
-  });
-  expectedProductInput.addEventListener('change', () => {
-    const candidate = lastCandidates.find(item => String(item.id) === expectedProductInput.value);
-    if (candidate?.code) expectedCodeInput.value = candidate.code;
   });
   document.getElementById('ait-start').addEventListener('click', startTest);
   document.querySelectorAll('[data-load-test]').forEach(button => {

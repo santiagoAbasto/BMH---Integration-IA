@@ -163,11 +163,15 @@ final class OpenAiProvider implements AiProviderInterface
             }
 
             $contenido[] = ['type' => 'text', 'text' => 'CANDIDATO ' . $indice . ':'];
-            $contenido[] = $this->imagenComoParte($ruta);
+            $contenido[] = $this->imagenComoParte(
+                $ruta,
+                (int) config('bmh.vision.comparison_image_max_px', 1024),
+                'high',
+            );
         }
 
-        // Menos de dos candidatos con imagen: no hay nada que comparar.
-        if (count($contenido) < 6) {
+        // Una foto de catálogo ya permite confirmar o descartar una pieza.
+        if (count($contenido) < 4) {
             return [];
         }
 
@@ -198,14 +202,13 @@ final class OpenAiProvider implements AiProviderInterface
     }
 
     /** @return array<string, mixed> */
-    private function imagenComoParte(string $ruta): array
+    private function imagenComoParte(string $ruta, int $maxPx = 512, string $detail = 'auto'): array
     {
         return [
             'type'      => 'image_url',
             'image_url' => [
-                'url' => ImagePayload::dataUri($ruta),
-                // `low` alcanza para comparar formas y abarata mucho la llamada.
-                'detail' => 'low',
+                'url' => ImagePayload::dataUri($ruta, $maxPx),
+                'detail' => $detail,
             ],
         ];
     }

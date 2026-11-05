@@ -67,6 +67,16 @@ final class ImagePayloadTest extends TestCase
         $this->assertLessThanOrEqual(512, max($medidas[0], $medidas[1]));
     }
 
+    public function test_el_modo_de_detalle_conserva_mas_pixeles_para_leer_cotas(): void
+    {
+        [, $base64] = ImagePayload::encode($this->grande, 1024);
+        $medidas = getimagesizefromstring(base64_decode($base64, true) ?: '');
+
+        $this->assertNotFalse($medidas);
+        $this->assertLessThanOrEqual(1024, max($medidas[0], $medidas[1]));
+        $this->assertGreaterThan(512, max($medidas[0], $medidas[1]));
+    }
+
     public function test_el_mime_declarado_coincide_con_lo_que_realmente_se_manda(): void
     {
         // Un PNG reducido sale como JPEG: si se declarara image/png el proveedor

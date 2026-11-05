@@ -23,6 +23,8 @@ Route::middleware(['admin', 'throttle:assistant'])
             ->whereNumber('conversation')->name('attachments.store');
         Route::post('conversations/{conversation}/reviews', [AiTestLabController::class, 'review'])
             ->whereNumber('conversation')->name('reviews.store');
+        Route::post('feedback/{feedback}/review', [AiTestLabController::class, 'reviewCustomerFeedback'])
+            ->whereNumber('feedback')->name('feedback.review');
         Route::get('attachments/{attachment}', [AiTestLabController::class, 'attachmentShow'])
             ->whereNumber('attachment')->name('attachments.show');
     });

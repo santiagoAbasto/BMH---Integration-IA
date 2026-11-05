@@ -9,6 +9,8 @@ use App\Domain\Customer\Contracts\CustomerRepositoryInterface;
 use App\Models\Admin;
 use App\Models\Ai\AiAttachment;
 use App\Models\Ai\AiConversation;
+use App\Models\Ai\AiCorrectionRule;
+use App\Models\Ai\AiFeedback;
 use App\Models\Ai\AiHandoff;
 use App\Models\Ai\AiMessageRecord;
 use App\Models\Ai\AiProductCandidate;
@@ -16,6 +18,7 @@ use App\Models\Ai\AiTestReview;
 use App\Models\User;
 use App\Services\Ai\DiagnosticQuestionBank;
 use App\Services\Ai\HumanHandoffService;
+use App\Services\Ai\ApprovedCorrectionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -43,7 +46,17 @@ final class AiTestLabTest extends TestCase
             '--force' => true,
         ])->assertSuccessful();
 
-        foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_feedback', 'ai_customer_context',
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_11_04_000001_add_correction_workflow_to_ai_feedback.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_11_05_000001_create_ai_correction_rules_table.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
+        foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_correction_rules', 'ai_feedback', 'ai_customer_context',
             'ai_product_candidates', 'ai_message_tool_calls', 'ai_attachments',
             'ai_messages', 'ai_conversations'] as $table) {
             DB::connection('mysql_ai')->table($table)->delete();
@@ -356,6 +369,130 @@ final class AiTestLabTest extends TestCase
             ->postJson($endpoint, [...$base, 'expected_code' => 'CODIGO-INEXISTENTE-XYZ'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('expected_code');
+    }
+
+    public function test_el_laboratorio_acepta_la_variante_ocr_o_cero_del_codigo_esperado(): void
+    {
+        $conversation = $this->testConversation();
+        $message = AiMessageRecord::query()->create([
+            'conversation_id' => $conversation->id,
+            'role' => 'assistant',
+            'content' => 'Encontré una ficha.',
+        ]);
+
+        $this->actingAs($this->admin, 'admin')
+            ->postJson("/dashboard/ia/pruebas/conversations/{$conversation->id}/reviews", [
+                'message_id' => $message->id,
+                'rating' => 'incorrect',
+                'expected_action' => 'present_product',
+                'expected_code' => 'IMP01401',
+                'surface' => 'private',
+                'severity' => 'medium',
+                'comment' => 'El código se leyó con O y 0 intercambiados.',
+            ])
+            ->assertOk();
+
+        $review = AiTestReview::query()->sole();
+        $this->assertSame('IMPO1401', $review->expected_code);
+        $this->assertNotNull($review->expected_product_id);
+    }
+
+    public function test_un_admin_revisa_una_correccion_enviada_por_un_cliente_sin_alterar_el_catalogo(): void
+    {
+        $conversation = AiConversation::query()->create([
+            'customer_id' => $this->customer->id,
+            'mode' => 'customer',
+            'status' => 'active',
+        ]);
+        $message = AiMessageRecord::query()->create([
+            'conversation_id' => $conversation->id,
+            'role' => 'assistant',
+            'content' => 'Encontré una ficha similar.',
+        ]);
+        $feedback = AiFeedback::query()->create([
+            'conversation_id' => $conversation->id,
+            'message_id' => $message->id,
+            'customer_id' => $this->customer->id,
+            'was_correct' => false,
+            'reason' => 'La ficha sugerida no coincide con los pines.',
+            'expected_code' => 'IMPO1401',
+            'review_status' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin, 'admin')
+            ->get('/dashboard/ia/pruebas')
+            ->assertOk()
+            ->assertSee('Correcciones enviadas por clientes')
+            ->assertSee('La ficha sugerida no coincide con los pines.')
+            ->assertSee('IMPO1401');
+
+        $this->actingAs($this->admin, 'admin')
+            ->post("/dashboard/ia/pruebas/feedback/{$feedback->id}/review", [
+                'admin_note' => 'Validado como caso de prueba para fichas.',
+            ])
+            ->assertRedirect('/dashboard/ia/pruebas');
+
+        $feedback->refresh();
+        $this->assertSame('reviewed', $feedback->review_status);
+        $this->assertSame($this->admin->id, $feedback->reviewed_by_admin_id);
+        $this->assertNotNull($feedback->reviewed_at);
+        $this->assertSame('Validado como caso de prueba para fichas.', $feedback->admin_note);
+    }
+
+    public function test_un_admin_puede_aprobar_una_correccion_para_la_misma_consulta_de_otro_cliente(): void
+    {
+        $productId = (int) DB::connection('mysql_legacy')->table('productos')
+            ->whereNotNull('codigo')
+            ->value('id');
+        $product = app(CatalogRepositoryInterface::class)->find($productId);
+        $this->assertNotNull($product);
+
+        $conversation = AiConversation::query()->create([
+            'customer_id' => $this->customer->id,
+            'mode' => 'customer',
+            'status' => 'active',
+        ]);
+        $input = AiMessageRecord::query()->create([
+            'conversation_id' => $conversation->id,
+            'role' => 'user',
+            'content' => 'Consulta de prueba repetible para una ficha.',
+        ]);
+        $message = AiMessageRecord::query()->create([
+            'conversation_id' => $conversation->id,
+            'role' => 'assistant',
+            'content' => 'La primera sugerencia no fue correcta.',
+        ]);
+        $feedback = AiFeedback::query()->create([
+            'conversation_id' => $conversation->id,
+            'message_id' => $message->id,
+            'customer_id' => $this->customer->id,
+            'was_correct' => false,
+            'reason' => 'El producto correcto era otro.',
+            'expected_product_id' => $product->id,
+            'expected_code' => $product->code,
+            'review_status' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin, 'admin')
+            ->post("/dashboard/ia/pruebas/feedback/{$feedback->id}/review", [
+                'decision' => 'approved',
+                'admin_note' => 'Validada para reutilizar sólo con la misma entrada.',
+            ])
+            ->assertRedirect('/dashboard/ia/pruebas');
+
+        $feedback->refresh();
+        $rule = AiCorrectionRule::query()->sole();
+
+        $this->assertSame('approved', $feedback->review_status);
+        $this->assertSame($feedback->id, $rule->feedback_id);
+        $this->assertSame($product->id, $rule->expected_product_id);
+        $this->assertSame('text', $rule->fingerprint_kind);
+
+        $result = app(ApprovedCorrectionService::class)->apply($input->content, [], []);
+
+        $this->assertTrue($result['applied']);
+        $this->assertSame($product->id, $result['candidates'][0]->product->id);
+        $this->assertContains('approved_correction', array_keys($result['candidates'][0]->signals));
     }
 
     public function test_el_panel_resume_solo_las_evaluaciones_del_admin_y_calcula_una_tasa_observada(): void

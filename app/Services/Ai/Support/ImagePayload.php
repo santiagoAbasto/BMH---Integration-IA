@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Log;
  * ~24 MB de subida por comparación: es lo que hacía que el turno se colgara y
  * que PHP se muriera por max_execution_time antes de recibir respuesta.
  *
- * Y era desperdicio puro: con `detail: low` el modelo mira una versión de 512 px
- * de todos modos. Achicar acá no pierde nada —el modelo veía 512 px igual— y
- * baja la subida unas cien veces.
+ * La comparación de formas usa 512 px; para leer cotas escritas en una imagen
+ * de catálogo se pide explícitamente una versión de 1024 px. Ambas se reducen
+ * en memoria: nunca se manda el original completo por defecto.
  */
 final class ImagePayload
 {
-    /** Lado máximo en píxeles. Es lo que consume el modo `low` de los modelos. */
+    /** Lado máximo por defecto en píxeles. */
     private const LADO_MAXIMO = 512;
 
     private const CALIDAD_JPEG = 82;
@@ -36,11 +36,11 @@ final class ImagePayload
      *
      * @return array{0: string, 1: string}
      */
-    public static function encode(string $ruta): array
+    public static function encode(string $ruta, int $ladoMaximo = self::LADO_MAXIMO): array
     {
         $mimeOriginal = mime_content_type($ruta) ?: 'image/jpeg';
 
-        $reducida = self::reducir($ruta);
+        $reducida = self::reducir($ruta, max(128, min(2048, $ladoMaximo)));
 
         if ($reducida !== null) {
             return ['image/jpeg', base64_encode($reducida)];
@@ -50,27 +50,27 @@ final class ImagePayload
     }
 
     /** Data URI listo para el campo `image_url` de OpenAI. */
-    public static function dataUri(string $ruta): string
+    public static function dataUri(string $ruta, int $ladoMaximo = self::LADO_MAXIMO): string
     {
-        [$mime, $base64] = self::encode($ruta);
+        [$mime, $base64] = self::encode($ruta, $ladoMaximo);
 
         return "data:{$mime};base64,{$base64}";
     }
 
     /** Sólo el base64, para el `inlineData` de Gemini. */
-    public static function base64(string $ruta): string
+    public static function base64(string $ruta, int $ladoMaximo = self::LADO_MAXIMO): string
     {
-        return self::encode($ruta)[1];
+        return self::encode($ruta, $ladoMaximo)[1];
     }
 
     /** El mime que corresponde a lo que realmente se va a mandar. */
-    public static function mime(string $ruta): string
+    public static function mime(string $ruta, int $ladoMaximo = self::LADO_MAXIMO): string
     {
-        return self::encode($ruta)[0];
+        return self::encode($ruta, $ladoMaximo)[0];
     }
 
     /** JPEG reducido en memoria, o null si no se pudo. */
-    private static function reducir(string $ruta): ?string
+    private static function reducir(string $ruta, int $ladoMaximo): ?string
     {
         if (! is_file($ruta) || ! function_exists('imagecreatefromstring')) {
             return null;
@@ -95,7 +95,7 @@ final class ImagePayload
         }
 
         // Ya es chica: no se toca. Reencodear sólo agregaría pérdida.
-        if ($ancho <= self::LADO_MAXIMO && $alto <= self::LADO_MAXIMO && $bytes < 400_000) {
+        if ($ancho <= $ladoMaximo && $alto <= $ladoMaximo && $bytes < 400_000) {
             return null;
         }
 
@@ -106,7 +106,7 @@ final class ImagePayload
                 return null;
             }
 
-            $escala = min(self::LADO_MAXIMO / $ancho, self::LADO_MAXIMO / $alto, 1.0);
+            $escala = min($ladoMaximo / $ancho, $ladoMaximo / $alto, 1.0);
             $nuevoAncho = max(1, (int) round($ancho * $escala));
             $nuevoAlto  = max(1, (int) round($alto * $escala));
 

@@ -383,6 +383,10 @@ final class AssistantController extends Controller
         $messageId = (int) $request->validated('message_id');
         $productId = $request->validated('product_id');
         $wasCorrect = (bool) $request->validated('was_correct');
+        [$expectedProductId, $expectedCode] = $this->expectedProduct(
+            $request->validated('expected_product_id'),
+            $request->validated('expected_code'),
+        );
 
         $message = $conversation->messages()
             ->where('role', 'assistant')
@@ -402,6 +406,13 @@ final class AssistantController extends Controller
             ], 422);
         }
 
+        if ($wasCorrect && ($expectedProductId !== null || $expectedCode !== null)) {
+            return response()->json([
+                'message' => 'La corrección esperada sólo corresponde cuando marcás que el resultado no fue correcto.',
+                'code' => 'unexpected_correction',
+            ], 422);
+        }
+
         AiFeedback::query()->create([
             'conversation_id' => $conversation->id,
             'message_id' => $message->id,
@@ -409,6 +420,10 @@ final class AssistantController extends Controller
             'product_id' => $productId,
             'was_correct' => $wasCorrect,
             'comment' => $request->validated('comment'),
+            'expected_product_id' => $wasCorrect ? null : $expectedProductId,
+            'expected_code' => $wasCorrect ? null : $expectedCode,
+            'reason' => $wasCorrect ? null : $request->validated('reason'),
+            'review_status' => $wasCorrect ? 'confirmed' : 'pending',
         ]);
 
         // Si acertó, se deja registrado el artículo resuelto: sirve para
@@ -429,6 +444,111 @@ final class AssistantController extends Controller
             'ok' => true,
             'confirmed_product_id' => $wasCorrect ? (int) $productId : null,
         ]);
+    }
+
+    /**
+     * La corrección negativa puede apuntar a una pieza que el asesor ni siquiera
+     * mostró. Es justamente el dato que necesitamos conservar. El código se
+     * valida contra el catálogo y se normaliza a su forma canónica.
+     *
+     * @return array{0:?int,1:?string}
+     */
+    private function expectedProduct(mixed $productId, mixed $code): array
+    {
+        $expectedId = is_numeric($productId) ? (int) $productId : null;
+        $expectedCode = is_string($code) && trim($code) !== '' ? trim($code) : null;
+
+        if ($expectedId === null && $expectedCode === null) {
+            return [null, null];
+        }
+
+        if ($expectedId !== null) {
+            $product = $this->catalog->find($expectedId);
+
+            if ($product === null) {
+                abort(response()->json([
+                    'message' => 'El producto indicado no existe en el catálogo.',
+                    'code' => 'expected_product_not_found',
+                ], 422));
+            }
+
+            if ($expectedCode !== null && $this->foldCode($expectedCode) !== $this->foldCode($product->code)) {
+                abort(response()->json([
+                    'message' => 'El código indicado no corresponde al producto esperado.',
+                    'code' => 'expected_code_mismatch',
+                ], 422));
+            }
+
+            return [$product->id, $product->code];
+        }
+
+        $products = $this->productsByCodeOrReadableVariant((string) $expectedCode);
+
+        if (count($products) !== 1) {
+            abort(response()->json([
+                'message' => $products === []
+                    ? 'No encontramos ese código en el catálogo.'
+                    : 'Ese código puede corresponder a más de un producto. Indicá el código completo.',
+                'code' => $products === [] ? 'expected_code_not_found' : 'expected_code_ambiguous',
+            ], 422));
+        }
+
+        return [$products[0]->id, $products[0]->code];
+    }
+
+    /** @return list<\App\Domain\Catalog\DTO\ProductView> */
+    private function productsByCodeOrReadableVariant(string $code): array
+    {
+        $normalized = $this->foldCode($code);
+        $exact = $this->catalog->findByCode($code);
+
+        if ($exact === []) {
+            $exact = $this->catalog->findByNormalizedCode($code);
+        }
+
+        /** @var array<int,\App\Domain\Catalog\DTO\ProductView> $hits */
+        $hits = [];
+
+        foreach ($exact as $product) {
+            $hits[$product->id] = $product;
+        }
+
+        // En fotos y pantallas la O y el 0 se confunden con facilidad. Sólo
+        // se acepta una variante si resuelve un único artículo real.
+        $variants = [$normalized];
+
+        for ($index = 0; $index < strlen($normalized) && count($variants) < 16; $index++) {
+            $character = $normalized[$index];
+
+            if ($character !== '0' && $character !== 'O') {
+                continue;
+            }
+
+            foreach ($variants as $variant) {
+                if (count($variants) >= 16) {
+                    break 2;
+                }
+
+                $alternate = substr_replace($variant, $character === '0' ? 'O' : '0', $index, 1);
+
+                if (! in_array($alternate, $variants, true)) {
+                    $variants[] = $alternate;
+                }
+            }
+        }
+
+        foreach ($variants as $variant) {
+            foreach ($this->catalog->findByNormalizedCode($variant) as $product) {
+                $hits[$product->id] = $product;
+            }
+        }
+
+        return array_values($hits);
+    }
+
+    private function foldCode(string $code): string
+    {
+        return mb_strtoupper((string) preg_replace('/[^\pL\pN]+/u', '', trim($code)));
     }
 
     /** Agrega una pieza confirmada; producto y precio se verifican otra vez en servidor. */

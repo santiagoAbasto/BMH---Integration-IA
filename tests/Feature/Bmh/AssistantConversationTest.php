@@ -37,8 +37,18 @@ final class AssistantConversationTest extends TestCase
     {
         parent::setUp();
 
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_11_04_000001_add_correction_workflow_to_ai_feedback.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_11_05_000001_create_ai_correction_rules_table.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
         // Se limpia sólo la base del asesor. La legacy nunca se toca.
-        foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_feedback', 'ai_customer_context',
+        foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_correction_rules', 'ai_feedback', 'ai_customer_context',
             'ai_product_candidates', 'ai_message_tool_calls', 'ai_attachments',
             'ai_messages', 'ai_conversations'] as $table) {
             DB::connection('mysql_ai')->table($table)->delete();
@@ -1016,6 +1026,47 @@ final class AssistantConversationTest extends TestCase
 
         $this->assertSame(803, $conversation->resolved_product_id);
         $this->assertSame('resolved', $conversation->status);
+    }
+
+    public function test_una_correccion_negativa_exige_motivo_y_guarda_el_producto_esperado(): void
+    {
+        $conversationId = $this->startConversation();
+
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/messages",
+            ['message' => '1833'],
+        )->assertOk();
+
+        $message = AiMessageRecord::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/feedback",
+            ['message_id' => $message->id, 'product_id' => 803, 'was_correct' => false],
+        )->assertUnprocessable()->assertJsonValidationErrors('reason');
+
+        // En una pantalla la letra O se confunde con el cero. El catálogo usa
+        // IMPO1401 y la corrección ingresa IMP01401: se debe guardar el código
+        // canónico sólo si resuelve un producto real único.
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/feedback",
+            [
+                'message_id' => $message->id,
+                'product_id' => 803,
+                'was_correct' => false,
+                'reason' => 'La foto corresponde a otra ficha.',
+                'expected_code' => 'IMP01401',
+            ],
+        )->assertOk();
+
+        $feedback = AiFeedback::query()->latest('id')->firstOrFail();
+        $this->assertFalse($feedback->was_correct);
+        $this->assertSame('La foto corresponde a otra ficha.', $feedback->reason);
+        $this->assertSame('IMPO1401', $feedback->expected_code);
+        $this->assertSame('pending', $feedback->review_status);
     }
 
     public function test_el_rate_limit_protege_el_costo_de_tokens(): void

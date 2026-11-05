@@ -138,6 +138,16 @@ return [
     'vision' => [
         'min_similarity_signal' => (float) env('AI_VISION_MIN_SIMILARITY_SIGNAL', 0.60),
         'min_code_assertion_confidence' => (float) env('AI_VISION_MIN_CODE_ASSERTION_CONFIDENCE', 0.85),
+        // La comparación se reparte entre los candidatos y también mira fotos
+        // secundarias: allí suelen estar las medidas dibujadas por BMH.
+        // 12 candidatos × portada + segunda foto: alcanza también las fotos
+        // con cotas que BMH suele guardar en la galería.
+        'comparison_max_images' => (int) env('AI_VISION_COMPARISON_MAX_IMAGES', 24),
+        'comparison_candidate_limit' => (int) env('AI_VISION_COMPARISON_CANDIDATE_LIMIT', 12),
+        'comparison_images_per_product' => (int) env('AI_VISION_COMPARISON_IMAGES_PER_PRODUCT', 3),
+        // Más detalle que el análisis rápido: permite leer cotas impresas en
+        // fichas de catálogo sin mandar los originales de varios megabytes.
+        'comparison_image_max_px' => (int) env('AI_VISION_COMPARISON_IMAGE_MAX_PX', 1024),
     ],
 
     /*

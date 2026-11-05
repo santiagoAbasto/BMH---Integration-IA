@@ -13,13 +13,18 @@ use App\Http\Requests\AiTest\StoreAiTestAttachmentRequest;
 use App\Http\Requests\AiTest\StoreAiTestReviewRequest;
 use App\Models\Ai\AiAttachment;
 use App\Models\Ai\AiConversation;
+use App\Models\Ai\AiCorrectionRule;
+use App\Models\Ai\AiFeedback;
 use App\Models\Ai\AiMessageRecord;
 use App\Models\Ai\AiTestReview;
 use App\Services\Ai\AiProviderManager;
+use App\Services\Ai\ApprovedCorrectionService;
 use App\Services\Ai\AttachmentService;
 use App\Services\Ai\ConversationOrchestrator;
 use App\Services\Ai\DiagnosticQuestionBank;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -38,6 +43,7 @@ final class AiTestLabController extends Controller
         private readonly ConversationOrchestrator $orchestrator,
         private readonly AttachmentService $attachments,
         private readonly AiProviderManager $providers,
+        private readonly ApprovedCorrectionService $approvedCorrections,
     ) {
     }
 
@@ -59,6 +65,7 @@ final class AiTestLabController extends Controller
             'defaultCustomerId' => $this->defaultCustomerId(),
             'provider' => $this->providers->describe(),
             'reviewMetrics' => $this->reviewMetrics($adminId),
+            'customerFeedback' => $this->pendingCustomerFeedback(),
         ]);
     }
 
@@ -309,6 +316,68 @@ final class AiTestLabController extends Controller
     }
 
     /**
+     * Cierra o aprueba una corrección de Zona Clientes.
+     *
+     * Aprobar no cambia el catálogo ni entrena al proveedor. Sólo crea una
+     * regla para una entrada idéntica, con producto esperado validado, para no
+     * repetir el mismo error con otro cliente.
+     */
+    public function reviewCustomerFeedback(Request $request, int $feedback): RedirectResponse
+    {
+        $adminId = $this->adminId();
+        $validated = $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+            'decision' => ['nullable', 'in:reviewed,approved'],
+        ]);
+
+        $record = AiFeedback::query()
+            ->where('was_correct', false)
+            ->whereHas('conversation', static fn ($query) => $query->customerFacing())
+            ->findOrFail($feedback);
+
+        $decision = $validated['decision'] ?? 'reviewed';
+
+        if ($decision === 'approved') {
+            if ($record->expected_product_id === null) {
+                return back()->withErrors([
+                    'feedback' => 'Para aprobar una regla reutilizable indicá primero el código esperado en la corrección.',
+                ]);
+            }
+
+            $input = $this->feedbackInput($record);
+
+            if ($input === null) {
+                return back()->withErrors([
+                    'feedback' => 'No se pudo reconstruir la consulta original para crear una regla segura.',
+                ]);
+            }
+
+            AiCorrectionRule::query()->updateOrCreate(
+                ['feedback_id' => $record->id],
+                [
+                    'input_fingerprint' => $input['fingerprint'],
+                    'fingerprint_kind' => $input['kind'],
+                    'expected_product_id' => (int) $record->expected_product_id,
+                    'approved_by_admin_id' => $adminId,
+                    'approved_at' => now(),
+                    'active' => true,
+                ],
+            );
+        }
+
+        $record->update([
+            'review_status' => $decision,
+            'reviewed_by_admin_id' => $adminId,
+            'reviewed_at' => now(),
+            'admin_note' => $validated['admin_note'] ?? null,
+        ]);
+
+        return to_route('admin.ai-tests.index')->with('status', $decision === 'approved'
+            ? 'Corrección aprobada. Se priorizará sólo cuando vuelva a llegar la misma foto o el mismo texto, y seguirá pidiendo confirmación.'
+            : 'Corrección revisada. No se aplicó como regla reutilizable.');
+    }
+
+    /**
      * La referencia esperada debe existir en el catálogo. Un código puede ser
      * ambiguo porque el legado admite duplicados; un id, en cambio, siempre se
      * normaliza al código canónico de ese producto.
@@ -342,10 +411,7 @@ final class AiTestLabController extends Controller
             return [$product->id, $product->code];
         }
 
-        $products = $this->catalog->findByCode((string) $expectedCode);
-        if ($products === []) {
-            $products = $this->catalog->findByNormalizedCode((string) $expectedCode);
-        }
+        $products = $this->productsByCodeOrReadableVariant((string) $expectedCode);
 
         if ($products === []) {
             throw ValidationException::withMessages([
@@ -353,7 +419,63 @@ final class AiTestLabController extends Controller
             ]);
         }
 
-        return [null, $products[0]->code];
+        if (count($products) > 1) {
+            throw ValidationException::withMessages([
+                'expected_code' => 'El código esperado es ambiguo. Escribilo completo como figura en el catálogo.',
+            ]);
+        }
+
+        return [$products[0]->id, $products[0]->code];
+    }
+
+    /** @return list<\App\Domain\Catalog\DTO\ProductView> */
+    private function productsByCodeOrReadableVariant(string $code): array
+    {
+        $normalized = $this->foldCode($code);
+        $exact = $this->catalog->findByCode($code);
+
+        if ($exact === []) {
+            $exact = $this->catalog->findByNormalizedCode($code);
+        }
+
+        /** @var array<int,\App\Domain\Catalog\DTO\ProductView> $hits */
+        $hits = [];
+
+        foreach ($exact as $product) {
+            $hits[$product->id] = $product;
+        }
+
+        // En una foto o al copiar desde pantalla, O y 0 son indistinguibles.
+        // Se exploran pocas variantes y se exige que resuelvan un único artículo.
+        $variants = [$normalized];
+
+        for ($index = 0; $index < strlen($normalized) && count($variants) < 16; $index++) {
+            $character = $normalized[$index];
+
+            if ($character !== '0' && $character !== 'O') {
+                continue;
+            }
+
+            foreach ($variants as $variant) {
+                if (count($variants) >= 16) {
+                    break 2;
+                }
+
+                $alternate = substr_replace($variant, $character === '0' ? 'O' : '0', $index, 1);
+
+                if (! in_array($alternate, $variants, true)) {
+                    $variants[] = $alternate;
+                }
+            }
+        }
+
+        foreach ($variants as $variant) {
+            foreach ($this->catalog->findByNormalizedCode($variant) as $product) {
+                $hits[$product->id] = $product;
+            }
+        }
+
+        return array_values($hits);
     }
 
     private function foldCode(string $code): string
@@ -382,6 +504,37 @@ final class AiTestLabController extends Controller
             'incorrect' => $incorrect,
             'observed_rate' => $total > 0 ? round(($correct / $total) * 100, 1) : null,
         ];
+    }
+
+    /** @return \Illuminate\Support\Collection<int,AiFeedback> */
+    private function pendingCustomerFeedback()
+    {
+        return AiFeedback::query()
+            ->where('was_correct', false)
+            ->where('review_status', 'pending')
+            ->whereHas('conversation', static fn ($query) => $query->customerFacing())
+            ->with('message:id,content')
+            ->latest('id')
+            ->limit(20)
+            ->get();
+    }
+
+    /** @return array{fingerprint:string,kind:string}|null */
+    private function feedbackInput(AiFeedback $feedback): ?array
+    {
+        if ($feedback->message_id === null) {
+            return null;
+        }
+
+        $message = AiMessageRecord::query()
+            ->where('conversation_id', $feedback->conversation_id)
+            ->where('role', 'user')
+            ->where('id', '<', $feedback->message_id)
+            ->with('attachments')
+            ->latest('id')
+            ->first();
+
+        return $message === null ? null : $this->approvedCorrections->fingerprintForMessage($message);
     }
 
     private function conversation(int $id): AiConversation

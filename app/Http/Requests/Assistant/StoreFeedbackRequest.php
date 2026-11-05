@@ -21,6 +21,9 @@ final class StoreFeedbackRequest extends FormRequest
             'message_id' => ['required', 'integer', 'min:1'],
             'product_id' => ['nullable', 'integer', 'min:1'],
             'comment' => ['nullable', 'string', 'max:500'],
+            'reason' => ['nullable', 'string', 'max:500', 'required_if:was_correct,false,0'],
+            'expected_product_id' => ['nullable', 'integer', 'min:1'],
+            'expected_code' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

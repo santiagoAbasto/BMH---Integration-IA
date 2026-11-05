@@ -762,9 +762,10 @@
         {
           "id": "rotors.q02",
           "priority": 2,
-          "question": "¿Podés medir el ancho de la parte redonda de hierro del rotor, de un lado al otro, pasando por el centro?",
+          "question": "Para ubicarlo sin código, pasame sólo dos medidas: el diámetro de la parte redonda de hierro y el largo total de punta a punta del eje.",
           "fact_keys": [
-            "diameter"
+            "diameter",
+            "total_length"
           ],
           "kind": "catalog_attribute",
           "answer_type": "measurement",
