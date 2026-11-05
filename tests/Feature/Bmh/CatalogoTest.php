@@ -322,6 +322,13 @@ final class CatalogoTest extends BaseTestCase
         $this->assertContains($this->productos[2], $respuesta->viewData('productos')->pluck('id')->all());
     }
 
+    public function test_el_detalle_de_un_producto_inexistente_es_404(): void
+    {
+        $this->get(route('producto', ['id' => 999999999]))->assertNotFound();
+        $this->get(route('producto'))->assertNotFound();
+        $this->get('/producto?id=abc')->assertNotFound();
+    }
+
     public function test_el_detalle_reutiliza_los_filtros_de_su_categoria_para_visitantes_y_clientes(): void
     {
         $comprobar = function (): void {

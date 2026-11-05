@@ -127,7 +127,10 @@ class ProductoController extends Controller
         'aplicaciones',
         'partesRelacionadas.portadaImagen',
         'partesRelacionadas.imagenesGaleria',
-    ])->find($request->id);
+    ])->find($request->integer('id'));
+
+    // Un producto borrado (o un link viejo de buscadores) es un 404, no un 500.
+    abort_if($producto === null, 404);
 
     // Productos relacionados (mismo formato horizontal que el listado principal)
     if ($producto->categoria != null) {
