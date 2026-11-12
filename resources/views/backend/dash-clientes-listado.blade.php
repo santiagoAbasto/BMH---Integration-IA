@@ -1,4 +1,4 @@
-<table class="table table-striped" style='border: 1px solid #dddddd;'>
+<table class="table table-striped">
     <thead>
       <tr>
         <th>Usuario</th>
@@ -26,11 +26,11 @@
                 <button type="button" onclick='habilitar(event, {{$usuario->id}})' class="habilitar btn btn-warning btn-sm me-1">
                 {{$usuario->habilitado ? 'Deshabilitar' : 'Habilitar'}}
                 </button>
-                <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#{{'usuario'.$usuario->id}}">
-                <i class="fa-regular fa-pen-to-square"></i>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'usuario'.$usuario->id}}" aria-label="Editar">
+                <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$usuario->id}}">
-                <i class="fa-solid fa-trash-can"></i>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$usuario->id}}" aria-label="Eliminar">
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                 </button>
             </div>
             
@@ -45,8 +45,8 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
         <div class="modal-header">
-        Editar usuario
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h2 class="modal-title">Editar usuario</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
         <form id='form{{$usuario->id}}' method="POST" action="{{ route('cliente.update', ['id' => $usuario->id]) }}">
@@ -55,18 +55,18 @@
 
             <!-- username -->
             <div class="mt-4 col-12">
-                <x-input-label class='form-label' for="username" :value="__('Nombre de usuario*')" />
-                <x-text-input id="username" class="form-control" type="text" name="username" value="{{$usuario->username}}" autocomplete="username" />
+                <x-input-label class='form-label' for="username-{{ $usuario->id }}" :value="__('Nombre de usuario*')" />
+                <x-text-input id="username-{{ $usuario->id }}" class="form-control" type="text" name="username" value="{{$usuario->username}}" autocomplete="username" />
                 <x-input-error :messages="$errors->get('username')" class="mt-2"/>
             </div>
 
             <div class='row mt-4'>
                 <!-- Password -->
                 <div class="col-6">
-                    <x-input-label class='form-label' for="password" :value="__('Contraseña')" />
+                    <x-input-label class='form-label' for="password-{{ $usuario->id }}" :value="__('Contraseña')" />
 
                     <div class="password-wrap">
-                        <x-text-input id="password" class="form-control input-password contr{{$usuario->id}}"
+                        <x-text-input id="password-{{ $usuario->id }}" class="form-control input-password contr{{$usuario->id}}"
                                         type="password"
                                         name="password"
                                             autocomplete="new-password" disabled/>
@@ -82,10 +82,10 @@
     
                 <!-- Confirm Password -->
                 <div class="col-6">
-                    <x-input-label class='form-label' for="password_confirmation" :value="__('Confirmar contraseña')" />
+                    <x-input-label class='form-label' for="password_confirmation-{{ $usuario->id }}" :value="__('Confirmar contraseña')" />
 
                     <div class="password-wrap">
-                        <x-text-input id="password_confirmation" class="form-control input-password contr{{$usuario->id}}"
+                        <x-text-input id="password_confirmation-{{ $usuario->id }}" class="form-control input-password contr{{$usuario->id}}"
                                         type="password"
                                         name="password_confirmation"  autocomplete="new-password" disabled/>
 
@@ -105,14 +105,14 @@
             <div class='row'>
                 <!-- Name -->
                 <div class="mt-4 col-6">
-                    <x-input-label class='form-label' for="nombre" :value="__('Nombre y apellido / Razón social*')" />
-                    <x-text-input id="nombre" class="form-control" type="text" name="nombre" value="{{$usuario->name}}" autocomplete="nombre" />
+                    <x-input-label class='form-label' for="nombre-{{ $usuario->id }}" :value="__('Nombre y apellido / Razón social*')" />
+                    <x-text-input id="nombre-{{ $usuario->id }}" class="form-control" type="text" name="nombre" value="{{$usuario->name}}" autocomplete="nombre" />
                     <x-input-error :messages="$errors->get('nombre')" class="mt-2"/>
                 </div>
 
                 <div class="mt-4 col-6">
-                    <x-input-label class='form-label' for="dni" :value="__('DNI / CUIT*')" />
-                    <x-text-input id="dni" class="form-control" type="number" name="dni" value="{{$usuario->dni}}"  autocomplete="dni" />
+                    <x-input-label class='form-label' for="dni-{{ $usuario->id }}" :value="__('DNI / CUIT*')" />
+                    <x-text-input id="dni-{{ $usuario->id }}" class="form-control" type="number" name="dni" value="{{$usuario->dni}}"  autocomplete="dni" />
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
             </div>
@@ -120,14 +120,14 @@
             <div class='row'>
                 <!-- Email Address -->
                 <div class="mt-4 col-6">
-                    <x-input-label class='form-label' for="email" :value="__('Email*')" />
-                    <x-text-input id="email" class="form-control" type="email" name="email" value="{{$usuario->email}}"  autocomplete="email" />
+                    <x-input-label class='form-label' for="email-{{ $usuario->id }}" :value="__('Email*')" />
+                    <x-text-input id="email-{{ $usuario->id }}" class="form-control" type="email" name="email" value="{{$usuario->email}}"  autocomplete="email" />
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
                 <div class="mt-4 col-6">
-                    <x-input-label class='form-label' for="celular" :value="__('Celular*')" />
-                    <x-text-input id="celular" class="form-control" type="number" name="celular" value="{{$usuario->celular}}" autocomplete="celular" />
+                    <x-input-label class='form-label' for="celular-{{ $usuario->id }}" :value="__('Celular*')" />
+                    <x-text-input id="celular-{{ $usuario->id }}" class="form-control" type="number" name="celular" value="{{$usuario->celular}}" autocomplete="celular" />
                     <x-input-error :messages="$errors->get('celular')" class="mt-2"/>
                 </div>
             </div>
@@ -135,14 +135,14 @@
             
 
             <div class="mt-4 col-12">
-                <x-input-label class='form-label' for="direccion" :value="__('Dirección*')" />
-                <x-text-input id="direccion" class="form-control" type="text" name="direccion" value="{{$usuario->direccion}}" autocomplete="direccion" />
+                <x-input-label class='form-label' for="direccion-{{ $usuario->id }}" :value="__('Dirección*')" />
+                <x-text-input id="direccion-{{ $usuario->id }}" class="form-control" type="text" name="direccion" value="{{$usuario->direccion}}" autocomplete="direccion" />
                 <x-input-error :messages="$errors->get('direccion')" class="mt-2"/>
             </div>
 
             <div class='row mt-4'>
                 <div class="col-4">
-                    <label for="provincia" class="form-label">Provincia</label>
+                    <label for="provincia-{{ $usuario->id }}" class="form-label">Provincia</label>
                     <select data-id='{{$usuario->id}}' class="form-select select-provincia" name="provincia" >
                         @foreach ($provincias as $provincia)
                             <option {{$provincia['id'] == $usuario->provincia ? 'selected' : ''}} value="{{$provincia['id']}}">{{$provincia['nombre']}}</option>
@@ -152,7 +152,7 @@
                 </div>
 
                 <div class="col-4">
-                    <label for="localidad" class="form-label">Localidad</label>
+                    <label for="localidad-{{ $usuario->id }}" class="form-label">Localidad</label>
                     <select id='localidades{{$usuario->id}}' class="form-select" name="localidad" >
                         @foreach ($localidades as $localidad)
                             <option {{$localidad['nombre'] == $usuario->localidad ? 'selected' : ''}} value="{{$localidad['nombre']}}">{{$localidad['nombre']}}</option>
@@ -162,12 +162,12 @@
                 </div>
 
                 <div class="col-4">
-                    <x-input-label class='form-label' for="cp" :value="__('Código Postal*')" />
-                    <x-text-input id="cp" class="form-control" type="text" name="cp" value="{{$usuario->cp}}" autocomplete="cp" />
+                    <x-input-label class='form-label' for="cp-{{ $usuario->id }}" :value="__('Código Postal*')" />
+                    <x-text-input id="cp-{{ $usuario->id }}" class="form-control" type="text" name="cp" value="{{$usuario->cp}}" autocomplete="cp" />
                     <x-input-error :messages="$errors->get('cp')" class="mt-2"/>
                 </div>
                 <div class='col-4'>
-                    <label for="descuento" class='form-label mt-4'>Descuento (%)</label>
+                    <label for="descuento-{{ $usuario->id }}" class='form-label mt-4'>Descuento (%)</label>
                     <input type="number" name='descuento' class='form-control' value={{$usuario->descuento}} required>
                 </div>
             </div>
@@ -188,7 +188,7 @@
     <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content">
         <div class="modal-header">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body fs-4 d-flex justify-content-center">
         ¿Desea eliminar el cliente {{$usuario->username}}?

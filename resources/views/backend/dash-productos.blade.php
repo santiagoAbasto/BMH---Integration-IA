@@ -6,24 +6,42 @@
 @section('content')
 
 <section class="productos-page" aria-labelledby="productos-titulo">
-  <header class="productos-heading">
-    <div>
-      <p class="productos-eyebrow">Administración del catálogo</p>
-      <h1 id="productos-titulo">Productos</h1>
-      <p class="productos-intro">Buscá, organizá y actualizá tus productos.</p>
-    </div>
-    <a href="{{ route('producto.create') }}" class="btn btn-success productos-crear">
-      <i class="fa-solid fa-plus" aria-hidden="true"></i> Crear producto
-    </a>
-  </header>
+  @php
+      $hayFiltros = (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') || ($busqueda ?? '') !== '' || ! empty($soloOfertas);
+      // Conteo del filtro «Sólo ofertas» (lectura: no depende de la búsqueda ni de la categoría).
+      $totalOfertas = \App\Models\Producto::where('oferta', true)->count();
+  @endphp
+
+  <x-osole::admin-page-header.v1
+      eyebrow="Catálogo"
+      title="Productos"
+      title-id="productos-titulo"
+      description="Buscá, organizá y actualizá tus productos. Los que marques en la columna «Oferta» se muestran en Ofertas de la web."
+  >
+    <x-slot:actions>
+      {{-- Abre el modal para tildar los rubros (viene tildada la categoría filtrada, o todas). --}}
+      <button type="button" id="btn-exportar-excel" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#exportar-excel"
+         title="Descargar Excel: elegí los rubros" data-titulo="Descargar Excel: elegí los rubros">
+        <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+        <span data-rol="texto">Descargar Excel</span>
+      </button>
+      <a href="{{ route('dashboard.productos.excel.importar') }}" class="btn btn-secondary" title="Actualizar precio e imágenes de muchos productos con el Excel, con vista previa antes de aplicar">
+        <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+        <span>Importar Excel</span>
+      </a>
+      <a href="{{ route('producto.create') }}" class="btn btn-primary productos-crear">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> Crear producto
+      </a>
+    </x-slot:actions>
+  </x-osole::admin-page-header.v1>
 
   @if(session('success'))
-    <div class="alert alert-success">
+    <div class="alert alert-success" role="status">
         {{ session('success') }}
     </div>
   @endif
   @if(session('warning'))
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" role="alert">
         {{ session('warning') }}
     </div>
   @endif
@@ -97,105 +115,91 @@
       @endif
     </section>
   @endif
-  
-  @php
-      if (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') {
-          $catName = $categorias->firstWhere('id', $categoria_id)->nombre ?? 'la categoría';
-          $catLabel = ' de ' . $catName;
-      } else {
-          $catLabel = ' de todos los productos';
-      }
-      $hayFiltros = (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') || ($busqueda ?? '') !== '';
-  @endphp
 
-  <div class="productos-tools">
-    <form method="GET" action="{{ route('dashboard.productos') }}" class="productos-filtro">
-      {{-- Cambiar de categoría conserva lo escrito en el buscador. --}}
-      <input type="hidden" name="q" id="filtro-q" value="{{ $busqueda ?? '' }}">
-      <label for="categoria_id" class="form-label">Filtrar por categoría</label>
-      <div class="productos-filtro-fila">
-        <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
-            <option value="todos">Todas</option>
-            @foreach($categorias as $categoria)
-                <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
-                    {{ $categoria->nombre }}
-                </option>
-            @endforeach
-        </select>
-        {{-- Su lugar queda reservado aunque no se vea: al aparecer no mueve nada. --}}
-        <a href="{{ route('dashboard.productos') }}" class="productos-borrar-filtros" data-borrar-filtros @unless($hayFiltros) hidden @endunless title="Quitar la categoría y la búsqueda">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i> Borrar filtros
-        </a>
-      </div>
-    </form>
-
-    <div class="productos-descargas">
-    {{-- Abre el modal para tildar los rubros (viene tildada la categoría filtrada, o todas). --}}
-    <button type="button" id="btn-exportar-excel" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#exportar-excel"
-       title="Descargar Excel: elegí los rubros" data-titulo="Descargar Excel: elegí los rubros">
-      <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-      <span data-rol="texto">Descargar Excel</span>
-    </button>
-    <a href="{{ route('dashboard.productos.excel.importar') }}" class="btn btn-outline-primary" title="Actualizar precio e imágenes de muchos productos con el Excel, con vista previa antes de aplicar">
-      <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
-      <span>Importar Excel</span>
-    </a>
-    <a href="{{ route('dashboard.imagenes') }}" class="btn btn-outline-secondary" title="Subir imágenes masivamente y ver sus códigos">
-      <i class="fa-solid fa-images" aria-hidden="true"></i>
-      <span>Imágenes</span>
-    </a>
-
-    {{-- Un ZIP con las imágenes nombradas por código: las de la categoría elegida o,
-         sin categoría, las de todo el catálogo. El botón está siempre, así el bloque
-         no cambia de alto al filtrar. --}}
-    @if (isset($imagenesCategoria))
-      @if ($imagenesCategoria > 0)
-        <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
-           class="btn btn-outline-primary"
-           title="Cada imagen lleva el código del producto (CODIGO-1, CODIGO-2 si tiene varias)">
-          <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
-           <span>Descargar imágenes ({{ number_format($imagenesCategoria, 0, ',', '.') }})</span>
-        </a>
-      @else
-        <span class="btn btn-outline-secondary disabled" aria-disabled="true">
-          <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Esta categoría no tiene imágenes
-        </span>
-      @endif
-    @else
-      <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
-         class="btn btn-outline-primary"
-         title="Todas las imágenes del catálogo, cada una con el código del producto. Es un archivo grande: puede tardar en descargar">
-        <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
-        <span>Descargar todas las imágenes</span>
-      </a>
-    @endif
-    </div>
-  </div>
-
-
-    <div class="card productos-panel">
+  <div class="card productos-panel">
     <div class="card-header productos-toolbar">
       <form class="productos-buscador" role="search" id="productos-buscar-form">
         <label for="productos-busqueda" class="form-label">Buscar productos</label>
         <div class="productos-search-control">
+          <i class="fa fa-search productos-search-icono" aria-hidden="true"></i>
           <input type="search" id="productos-busqueda" value="{{ $busqueda ?? '' }}" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
-          <button type="submit" id="buscador-productos" class="productos-search-btn" aria-label="Buscar productos">
-            <i class="fa fa-search" aria-hidden="true"></i>
-          </button>
+          <button type="submit" id="buscador-productos" class="productos-search-btn">Buscar</button>
         </div>
         <p id="productos-busqueda-ayuda" class="productos-search-hint">Las coincidencias de código aparecen primero.</p>
       </form>
-      <div class="productos-importaciones" role="group" aria-label="Actualizaciones desde Excel">
-        <span class="productos-importaciones-label">Actualizar desde Excel</span>
-        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-precios">
-          <i class="fa-solid fa-tags" aria-hidden="true"></i> Precios
-        </button>
-        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-clientes">
-          <i class="fa-solid fa-users" aria-hidden="true"></i> Clientes
-        </button>
-        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-categoriasExcel">
-          <i class="fa-solid fa-layer-group" aria-hidden="true"></i> Categorías
-        </button>
+
+      <form method="GET" action="{{ route('dashboard.productos') }}" class="productos-filtro">
+        {{-- Cambiar de categoría conserva lo escrito en el buscador y el filtro de ofertas. --}}
+        <input type="hidden" name="q" id="filtro-q" value="{{ $busqueda ?? '' }}">
+        <div class="productos-filtro-categoria">
+          <label for="categoria_id" class="form-label">Categoría</label>
+          <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
+              <option value="todos">Todas</option>
+              @foreach($categorias as $categoria)
+                  <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
+                      {{ $categoria->nombre }}
+                  </option>
+              @endforeach
+          </select>
+        </div>
+        <div class="productos-filtro-fila">
+          <label class="adm-switch adm-switch--oferta productos-solo-ofertas" for="filtro-oferta">
+            <input type="checkbox" role="switch" id="filtro-oferta" name="oferta" value="1" @checked(! empty($soloOfertas)) aria-checked="{{ ! empty($soloOfertas) ? 'true' : 'false' }}">
+            <span>Sólo ofertas</span>
+            <span class="productos-ofertas-conteo" data-ofertas-conteo="{{ $totalOfertas }}" title="Productos en oferta">{{ number_format($totalOfertas, 0, ',', '.') }}</span>
+          </label>
+          {{-- Su lugar queda reservado aunque no se vea: al aparecer no mueve nada. --}}
+          <a href="{{ route('dashboard.productos') }}" class="productos-borrar-filtros" data-borrar-filtros @unless($hayFiltros) hidden @endunless title="Quitar la categoría, la búsqueda y el filtro de ofertas">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i> Borrar filtros
+          </a>
+        </div>
+      </form>
+
+      <div class="productos-herramientas">
+        <div class="productos-importaciones" role="group" aria-labelledby="productos-importaciones-label">
+          <span class="productos-importaciones-label" id="productos-importaciones-label">Actualizar desde Excel</span>
+          <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-precios">
+            <i class="fa-solid fa-tags" aria-hidden="true"></i> Precios
+          </button>
+          <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-clientes">
+            <i class="fa-solid fa-users" aria-hidden="true"></i> Clientes
+          </button>
+          <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#actualizar-categoriasExcel">
+            <i class="fa-solid fa-layer-group" aria-hidden="true"></i> Categorías
+          </button>
+        </div>
+
+        <div class="productos-descargas">
+          <a href="{{ route('dashboard.imagenes') }}" class="btn btn-sm btn-light" title="Subir imágenes masivamente y ver sus códigos">
+            <i class="fa-solid fa-images" aria-hidden="true"></i>
+            <span>Imágenes</span>
+          </a>
+
+          {{-- Un ZIP con las imágenes nombradas por código: las de la categoría elegida o,
+               sin categoría, las de todo el catálogo. El botón está siempre, así el bloque
+               no cambia de alto al filtrar. --}}
+          @if (isset($imagenesCategoria))
+            @if ($imagenesCategoria > 0)
+              <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
+                 class="btn btn-sm btn-light"
+                 title="Cada imagen lleva el código del producto (CODIGO-1, CODIGO-2 si tiene varias)">
+                <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+                 <span>Descargar imágenes ({{ number_format($imagenesCategoria, 0, ',', '.') }})</span>
+              </a>
+            @else
+              <span class="btn btn-sm btn-light disabled" aria-disabled="true">
+                <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Esta categoría no tiene imágenes
+              </span>
+            @endif
+          @else
+            <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
+               class="btn btn-sm btn-light"
+               title="Todas las imágenes del catálogo, cada una con el código del producto. Es un archivo grande: puede tardar en descargar">
+              <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+              <span>Descargar todas las imágenes</span>
+            </a>
+          @endif
+        </div>
       </div>
     </div>
 
@@ -207,7 +211,7 @@
     <div class="card-body productos-listado">
 
       <table class="table productos-table" role="table" aria-label="Listado de productos">
-        <caption class="visually-hidden">Productos con su código, imagen, categoría y acciones de administración.</caption>
+        <caption class="visually-hidden">Productos con su código, imagen, categoría, si están destacados o en oferta, y acciones de administración.</caption>
         <thead>
           <tr role="row">
             <th scope="col">Orden</th>
@@ -215,8 +219,9 @@
             <th scope="col">Portada</th>
             <th scope="col">Nombre</th>
             <th scope="col">Categoría</th>
-            <th scope="col">Destacada</th>
-            <th scope="col">Acciones</th>
+            <th scope="col">Destacado</th>
+            <th scope="col">Oferta</th>
+            <th scope="col"><span class="visually-hidden">Acciones</span></th>
           </tr>
         </thead>
          <tbody id='productos-contenedor' role="rowgroup">
@@ -226,13 +231,13 @@
         </tbody>
       </table>
 
-  </div>
-   <div class='card-footer productos-footer' @if(!$productos->hasPages()) hidden @endif>
-     <div id="productos-paginacion">
-       {{$productos->links('pagination::bootstrap-5')}}
+    </div>
+    <div class='card-footer productos-footer' @if(!$productos->hasPages()) hidden @endif>
+      <div id="productos-paginacion">
+        {{$productos->links('pagination::bootstrap-5')}}
+      </div>
     </div>
   </div>
-</div>
 
 {{-- MODAL CONFIRMAR ELIMINACION --}}
 <div class="modal fade" id="confirmar-eliminar-producto" tabindex="-1" aria-labelledby="confirmar-eliminar-titulo" aria-describedby="confirmar-eliminar-desc" aria-hidden="true">
@@ -348,7 +353,7 @@
   } catch (e) { /* sin sessionStorage: se abre sin filtros */ }
 </script>
 @endunless
-<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=5">
 @endsection
 
 @section('script')
@@ -452,6 +457,7 @@
         var texto = ($('#productos-busqueda').val() || '').trim();
         if (categoria && categoria !== 'todos') params.set('categoria_id', categoria);
         if (texto) params.set('q', texto);
+        if ($('#filtro-oferta').is(':checked')) params.set('oferta', '1');
         if (Number(pagina) > 1) params.set('page', pagina);
 
         var query = params.toString();
@@ -462,7 +468,7 @@
         } catch (e) { /* sin sessionStorage: quedan sólo en la URL */ }
 
         $('#filtro-q').val(texto);
-        $('[data-borrar-filtros]').prop('hidden', !(params.has('categoria_id') || params.has('q')));
+        $('[data-borrar-filtros]').prop('hidden', !(params.has('categoria_id') || params.has('q') || params.has('oferta')));
     }
 
     $('[data-cerrar-reporte]').on('click', function() {
@@ -491,6 +497,7 @@
                 _token: '{{ csrf_token() }}',
                 valor: valor,
                 categoria_id: $('#categoria_id').val(),
+                oferta: $('#filtro-oferta').is(':checked') ? 1 : 0,
                 page: pagina || 1,
             },
             success: function(response) {
@@ -541,10 +548,56 @@
         buscarProductos($('.search-input').val(), pagina);
     });
 
+    // «Sólo ofertas»: filtra en vivo, sin recargar, igual que el buscador.
+    $('#filtro-oferta').on('change', function() {
+        this.setAttribute('aria-checked', this.checked ? 'true' : 'false');
+        buscarProductos($('#productos-busqueda').val(), 1);
+    });
+
+    /*
+     * Oferta de cada producto (zona pública): el interruptor cambia al instante y, si el
+     * servidor no lo guarda, vuelve a como estaba y avisa. Manda el estado explícito, así dos
+     * clics seguidos no se pisan.
+     */
+    var conteoOfertas = $('[data-ofertas-conteo]');
+
+    function sumarOfertas(delta) {
+        var total = Math.max(0, (parseInt(conteoOfertas.attr('data-ofertas-conteo'), 10) || 0) + delta);
+        conteoOfertas.attr('data-ofertas-conteo', total).text(total.toLocaleString('es-AR'));
+    }
+
+    $(document).on('change', '.js-producto-oferta', function() {
+        var input = this;
+        var enOferta = input.checked;
+        var codigo = input.dataset.codigo || '';
+        input.setAttribute('aria-checked', enOferta ? 'true' : 'false');
+        $(input).closest('.producto-row').toggleClass('producto-row--oferta', enOferta);
+        sumarOfertas(enOferta ? 1 : -1);
+
+        $.ajax({
+            url: "{{ route('producto.oferta') }}",
+            type: 'POST',
+            dataType: 'json',
+            data: { _token: '{{ csrf_token() }}', producto_id: input.dataset.producto, oferta: enOferta ? 1 : 0 },
+        }).done(function(respuesta) {
+            $('#productos-estado').text(codigo + (respuesta && respuesta.oferta ? ' ahora está en Ofertas.' : ' ya no está en Ofertas.'));
+        }).fail(function() {
+            // Vuelta atrás: el interruptor, la fila y el conteo quedan como antes del clic.
+            input.checked = !enOferta;
+            input.setAttribute('aria-checked', !enOferta ? 'true' : 'false');
+            $(input).closest('.producto-row').toggleClass('producto-row--oferta', !enOferta);
+            sumarOfertas(enOferta ? -1 : 1);
+            var mensaje = 'No se pudo ' + (enOferta ? 'poner' : 'sacar') + ' ' + codigo + (enOferta ? ' en' : ' de') + ' Ofertas. Volvé a intentar.';
+            $('#productos-estado').text(mensaje);
+            iziToast.error({ title: 'Oferta sin guardar', message: mensaje, backgroundColor: '#b42318' });
+        });
+    });
+
     // Delegación de eventos para los checkboxes
     $(document).on('click', '.categoriaCheckbox', function() {
         var productoID = $(this).data('id');
         var estadoDestacada = $(this).is(':checked');
+        this.setAttribute('aria-checked', estadoDestacada ? 'true' : 'false');
 
         $.ajax({
           url: "{{ route('producto.destacada') }}",

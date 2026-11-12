@@ -1,0 +1,104 @@
+/*
+ * Tema del panel de BMH: la marca del sitio (azul #0098DA, tinta #0a0e14, Montserrat + Inter)
+ * llevada a una herramienta de trabajo. Va sin layer: le gana al paquete (osole) y a Bootstrap (legacy).
+ *
+ * El azul de marca tiene 3,2:1 sobre blanco: sirve para acentos, bordes, foco e íconos, pero no
+ * para texto ni para el fondo de un botón con texto blanco. Para eso está --adm-brand-strong (5:1).
+ */
+:root {
+    /* --- Paleta --- */
+    --adm-ink: #0a0e14;
+    --adm-ink-800: #111720;
+    --adm-ink-700: #1c2430;
+    --adm-text: #1c2430;
+    --adm-muted: #5b6575;          /* 5,9:1 sobre blanco */
+    --adm-faint: #8792a2;          /* solo decorativo */
+    --adm-border: #e2e7ee;
+    --adm-border-strong: #cbd3de;
+    --adm-bg: #f3f5f8;
+    --adm-surface: #ffffff;
+    --adm-surface-soft: #f8fafc;
+    --adm-brand: #0098da;
+    --adm-brand-strong: #0076a8;   /* 5:1 con blanco: botones y links */
+    --adm-brand-stronger: #005f87;
+    --adm-brand-soft: #e5f5fc;
+    --adm-brand-softer: #f2fafe;
+    --adm-success: #1b6e3d;
+    --adm-success-soft: #e8f5ec;
+    --adm-warning: #9a5b00;
+    --adm-warning-soft: #fff4e0;
+    --adm-danger: #b42318;
+    --adm-danger-strong: #9b1c13;
+    --adm-danger-soft: #fdecea;
+
+    --adm-font-body: "Inter", system-ui, sans-serif;
+    --adm-font-heading: "Montserrat", system-ui, sans-serif;
+    --adm-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+
+    --adm-radius-sm: 0.5rem;       /* 8px */
+    --adm-radius: 0.75rem;         /* 12px */
+    --adm-radius-lg: 0.875rem;     /* 14px */
+    --adm-shadow-sm: 0 1px 2px rgb(10 14 20 / 0.05);
+    --adm-shadow: 0 1px 2px rgb(10 14 20 / 0.04), 0 8px 24px rgb(10 14 20 / 0.05);
+    --adm-shadow-lg: 0 24px 64px rgb(10 14 20 / 0.22);
+    --adm-focus: 0 0 0 3px rgb(0 152 218 / 0.28);
+    --adm-control-height: 2.75rem; /* 44px */
+
+    --adm-sidebar-width: 16.5rem;  /* 264px */
+    --adm-topbar-height: 4rem;     /* 64px */
+
+    /* --- Globales de osole/ui --- */
+    --osole-font-body: var(--adm-font-body);
+    --osole-font-heading: var(--adm-font-heading);
+    --osole-color-primary: var(--adm-brand);
+    --osole-color-text: var(--adm-ink);
+    --osole-color-background: var(--adm-surface);
+
+    /* --- admin-sidebar.v1: tinta de la marca con el azul como acento --- */
+    --osole-admin-sidebar-width: var(--adm-sidebar-width);
+    --osole-admin-sidebar-bg: var(--adm-ink);
+    --osole-admin-sidebar-color: #b4bdca;
+    --osole-admin-sidebar-hover-bg: rgb(255 255 255 / 0.06);
+    --osole-admin-sidebar-hover-color: #ffffff;
+    --osole-admin-sidebar-active-bg: rgb(0 152 218 / 0.16);
+    --osole-admin-sidebar-active-color: #ffffff;
+    --osole-admin-sidebar-accent: var(--adm-brand);
+    --osole-admin-sidebar-section-title-color: #8792a2;
+    --osole-admin-sidebar-border-color: rgb(255 255 255 / 0.08);
+    --osole-admin-sidebar-font-size: 0.84375rem; /* 13.5px */
+    --osole-admin-sidebar-logo-height: 2.75rem;  /* 44px */
+    --osole-admin-sidebar-backdrop: rgb(5 7 10 / 0.6);
+
+    /* --- admin-page-header.v1 --- */
+    --osole-admin-page-header-eyebrow-color: var(--adm-brand-strong);
+    --osole-admin-page-header-title-color: var(--adm-ink);
+    --osole-admin-page-header-title-font-size: 1.75rem;     /* 28px */
+    --osole-admin-page-header-title-font-size-min: 1.375rem; /* 22px */
+    --osole-admin-page-header-description-color: var(--adm-muted);
+    --osole-admin-page-header-back-color: var(--adm-muted);
+    --osole-admin-page-header-back-hover-color: var(--adm-brand-strong);
+    --osole-admin-page-header-focus-color: var(--adm-brand);
+
+    /* --- admin-stats.v1 --- */
+    --osole-admin-stats-accent: var(--adm-brand-strong);
+    --osole-admin-stats-border-color: var(--adm-border);
+    --osole-admin-stats-label-color: var(--adm-muted);
+    --osole-admin-stats-hint-color: var(--adm-muted);
+    --osole-admin-stats-icon-bg: var(--adm-brand-soft);
+    --osole-admin-stats-shadow: var(--adm-shadow);
+    --osole-admin-stats-success-color: var(--adm-success);
+    --osole-admin-stats-warning-color: var(--adm-warning);
+    --osole-admin-stats-danger-color: var(--adm-danger);
+
+    /* --- admin-login.v1: el panel de marca en la tinta del sitio, no en el azul --- */
+    --osole-admin-login-primary: var(--adm-brand-strong);
+    --osole-admin-login-panel-bg: var(--adm-ink);
+    --osole-admin-login-panel-color: #ffffff;
+    --osole-admin-login-accent: var(--adm-brand);
+    --osole-admin-login-focus-color: var(--adm-brand);
+    --osole-admin-login-bg: var(--adm-bg);
+    --osole-admin-login-border-color: var(--adm-border-strong);
+    --osole-admin-login-muted-color: var(--adm-muted);
+    --osole-admin-login-panel-pattern-opacity: 0.1;
+    --osole-admin-login-logo-height: 3rem; /* 48px */
+}

@@ -2,28 +2,33 @@
 
 @section('content')
 
-  <h1 class='mb-4'>Novedades</h1>
+<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio" title="Novedades" description="Las notas que se publican en la sección Novedades del sitio.">
+    <x-slot:actions>
+      <a href="{{ route('novedad.crear') }}" class="btn btn-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Crear novedad</a>
+    </x-slot:actions>
+  </x-osole::admin-page-header.v1>
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
 
   <div class="card">
     <div class="card-header">
-      <a href='{{route('novedad.crear')}}'>
-        <button type="button" class="btn btn-success"><i class="fa-solid fa-plus"></i> CREAR</button>
-      </a>
+      <div class="adm-card-titulo">
+        <h2>Todas las novedades</h2>
+        <p>Las destacadas aparecen en el inicio del sitio.</p>
+      </div>
     </div>
     <div class="card-body">
 
-      <table class="table table-striped" style='border: 1px solid #dddddd;'>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>Orden</th>
@@ -32,7 +37,7 @@
             <th>Título</th>
             <th>Epígrafe</th>
             <th>Destacada</th>
-            <th>Acciones</th>
+            <th><span class="visually-hidden">Acciones</span></th>
           </tr>
         </thead>
         <tbody>
@@ -40,20 +45,18 @@
           @foreach ($novedades as $novedad)
             <tr>
               <td>{{$novedad->orden}}</td>
-              <td><img src="{{asset('imagenes/'.$novedad->portada)}}" class="img-thumbnail" style="max-width: 100px;"></td>
+              <td><img src="{{asset('imagenes/'.$novedad->portada)}}" class="adm-miniatura" alt="" loading="lazy"></td>
               <td>{{$novedad->etiqueta}}</td>
-              <td>{{$novedad->titulo}}</td>
+              <td class="fw-semibold">{{$novedad->titulo}}</td>
               <td>{{$novedad->epigrafe}}</td>
               <td>
-                  <input class='categoriaCheckbox form-check-input' style='cursor: pointer;' type="checkbox" data-id="{{$novedad->id}}" id="novedad{{$novedad->id}}" name="destacada" value="1" {{ $novedad->destacada ? 'checked' : '' }}>
+                  <label class="adm-switch" for="novedad{{$novedad->id}}"><input class='categoriaCheckbox' type="checkbox" role="switch" data-id="{{$novedad->id}}" id="novedad{{$novedad->id}}" name="destacada" value="1" {{ $novedad->destacada ? 'checked' : '' }}><span class="visually-hidden">Destacar {{ $novedad->titulo }}</span></label>
               </td>
               <td>
-                  <div class='d-flex'>
-                  <a href='{{route('novedad.editar', ['id' => $novedad->id])}}'>
-                      <button type="button" class="btn btn-primary btn-sm me-1" ><i class="fa-regular fa-pen-to-square"></i></button>
-                  </a>
-                  <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$novedad->id}}">
-                    <i class="fa-solid fa-trash-can"></i>
+                  <div class='adm-acciones'>
+                  <a href='{{route('novedad.editar', ['id' => $novedad->id])}}' class="btn btn-outline-primary btn-sm" aria-label="Editar"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></a>
+                  <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$novedad->id}}" aria-label="Eliminar">
+                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                   </button>
                   
                   </div>
@@ -66,9 +69,9 @@
               <div class="modal-dialog modal-dialog-centered modal-md">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                   </div>
-                  <div class="modal-body fs-4 d-flex justify-content-center" style='text-align:center;'>
+                  <div class="modal-body adm-confirmar-cuerpo"><span class="adm-confirmar__icono" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
                     ¿Desea eliminar la novedad "{{$novedad->titulo}}"?
                   </div>
                   <div class="modal-footer d-flex justify-content-center">

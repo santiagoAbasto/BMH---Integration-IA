@@ -6,15 +6,10 @@
 
 @section('content')
 <div class="ext" data-ext data-logos='@json(['favicon' => $faviconUrl])' data-errores="{{ $errors->any() ? 1 : 0 }}">
-  <div class="ext-encabezado">
-    <div>
-      <h1>Favicon</h1>
-      <p>El icono que se muestra en la pestaña del navegador. Al guardarlo se actualiza en todo el sitio, incluido este panel.</p>
-    </div>
-  </div>
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Favicon" description="El icono que se muestra en la pestaña del navegador. Al guardarlo se actualiza en todo el sitio, incluido este panel." />
 
   @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}. Ya se ve así en el sitio.</div>
+    <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
   @endif
   @if ($errors->any())
     <div class="alert alert-danger">No se guardó: revisá el archivo marcado.</div>

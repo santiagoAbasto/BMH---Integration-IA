@@ -39,21 +39,19 @@
 @endsection
 
 @section('content')
-<h1 class='mb-4'>Editar novedad</h1>
+<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio · Novedades" title="Editar novedad" :back-href="route('dashboard.novedades')" back-label="Volver a novedades" />
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
 
   <div class="card">
-    <div class="card-header">
-    </div>
     <div class="card-body">
 
       <form class='pb-3' id='actualizar' action="{{route('novedad.update', ['id' => $novedad->id])}}" method="POST" enctype="multipart/form-data">

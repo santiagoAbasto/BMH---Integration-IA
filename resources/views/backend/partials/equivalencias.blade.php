@@ -64,12 +64,12 @@
 
 @once
 <style>
-    .eqv-card { background:#fff; border:1px solid #e9ecef; border-radius:14px; padding:20px; margin-top:22px;
-        box-shadow:0 1px 2px rgba(16,24,40,.04); font-family:'Poppins',sans-serif; }
+    .eqv-card { background:#fff; border:1px solid var(--adm-border); border-radius:var(--adm-radius-lg); padding:20px; margin-top:22px;
+        box-shadow:0 1px 2px rgba(16,24,40,.04); font-family:var(--adm-font-body); }
     .eqv-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
-    .eqv-title { font-size:17px; font-weight:600; color:#212529; margin:0; }
-    .eqv-subtitle { font-size:13px; color:#6c757d; margin:2px 0 0; }
-    .eqv-count-badge { flex-shrink:0; background:#e7f1ff; color:#0b5ed7; font-size:12px; font-weight:600;
+    .eqv-title { font-family:var(--adm-font-heading); font-size:17px; font-weight:700; color:var(--adm-ink); margin:0; }
+    .eqv-subtitle { font-size:13px; color:var(--adm-muted); margin:2px 0 0; }
+    .eqv-count-badge { flex-shrink:0; background:var(--adm-brand-soft); color:var(--adm-brand-strong); font-size:12px; font-weight:600;
         border-radius:999px; padding:4px 10px; }
     .eqv-header-acciones { display:flex; align-items:center; gap:8px; flex-shrink:0; }
     .eqv-btn-borrar-todas { border:1px solid #ffc9cd; background:#fff; color:#dc3545; font-size:12px;
@@ -84,16 +84,16 @@
     .eqv-field { min-width:0; border:1px solid #dee2e6; border-radius:9px; background:#fff; outline:none;
         font-size:14px; color:#212529; font-family:inherit; padding:9px 12px;
         transition:border-color .15s, box-shadow .15s; }
-    .eqv-field::placeholder { color:#adb5bd; }
+    .eqv-field::placeholder { color:#8a94a3; }
     .eqv-field:hover { border-color:#ced4da; }
-    .eqv-field:focus { border-color:#0d6efd; box-shadow:0 0 0 3px rgba(13,110,253,.10); }
+    .eqv-field:focus { border-color:var(--adm-brand); box-shadow:0 0 0 3px rgba(0,152,218,.10); }
     .eqv-add-nombre { width:210px; flex-shrink:0; }
     .eqv-add-valor { flex:1; }
-    .eqv-btn-agregar { flex-shrink:0; border:none; background:#0b5ed7; color:#fff; font-size:13px; font-weight:600;
+    .eqv-btn-agregar { flex-shrink:0; border:none; background:var(--adm-brand-strong); color:#fff; font-size:13px; font-weight:600;
         font-family:inherit; border-radius:9px; padding:9px 16px; cursor:pointer; transition:background .15s; }
-    .eqv-btn-agregar:hover { background:#0a58ca; }
+    .eqv-btn-agregar:hover { background:var(--adm-brand-stronger); }
     .eqv-btn-agregar:active { transform:translateY(1px); }
-    .eqv-hint { font-size:12px; color:#adb5bd; margin:7px 2px 0; }
+    .eqv-hint { font-size:12px; color:var(--adm-muted); margin:7px 2px 0; }
     .eqv-hint code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px;
         background:#f1f3f5; border-radius:4px; padding:1px 5px; color:#495057; }
 
@@ -105,27 +105,27 @@
          .eqv-item, cualquier reordenamiento la volvería a disparar y taparía
          el marcado de duplicados. --}}
     .eqv-item.eqv-nueva { animation:eqv-flash .8s ease-out; }
-    @keyframes eqv-flash { 0% { background:#e7f1ff; border-color:#bcd7ff; } 100% { background:#fbfcfd; } }
+    @keyframes eqv-flash { 0% { background:var(--adm-brand-soft); border-color:#b9e1f2; } 100% { background:#fbfcfd; } }
     .eqv-item.eqv-arrastrando { opacity:.45; }
     .eqv-item .eqv-orden { width:64px; flex:0 0 64px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
         outline:none; font-size:13.5px; color:#212529; font-family:inherit; padding:7px 8px; text-align:center;
         transition:border-color .12s, box-shadow .12s; }
     .eqv-orden:hover { border-color:#ced4da; }
-    .eqv-orden:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); }
+    .eqv-orden:focus { border-color:var(--adm-brand); box-shadow:0 0 0 2px rgba(0,152,218,.12); }
     .eqv-orden--off { background:#f1f3f5; color:#adb5bd; cursor:not-allowed; border-color:#e9ecef; box-shadow:none; }
 
     .eqv-orden-mode-wrap { display:flex; align-items:center; gap:10px; margin:0 0 14px; flex-wrap:wrap; }
     .eqv-orden-mode-label { font-size:13px; font-weight:600; color:#495057; }
-    .eqv-orden-mode { font-family:'Poppins',sans-serif; font-size:13px; color:#212529; background:#fff;
+    .eqv-orden-mode { font-family:var(--adm-font-body); font-size:13px; color:#212529; background:#fff;
         border:1px solid #ced4da; border-radius:8px; padding:7px 10px; cursor:pointer; }
-    .eqv-orden-mode:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); outline:none; }
+    .eqv-orden-mode:focus { border-color:var(--adm-brand); box-shadow:0 0 0 2px rgba(0,152,218,.12); outline:none; }
     .eqv-in { flex:1; min-width:40px; border:1px solid #e9ecef; border-radius:8px; background:#fff;
         outline:none; font-size:13.5px; color:#212529; font-family:inherit; padding:7px 10px;
         transition:border-color .12s, box-shadow .12s; }
     .eqv-in:hover { border-color:#ced4da; }
-    .eqv-in:focus { border-color:#0d6efd; box-shadow:0 0 0 2px rgba(13,110,253,.12); }
+    .eqv-in:focus { border-color:var(--adm-brand); box-shadow:0 0 0 2px rgba(0,152,218,.12); }
     .eqv-in::placeholder { color:#ced4da; }
-    .eqv-in-nombre { flex:0 0 clamp(90px, 22%, 220px); color:#0b5ed7; font-weight:600; font-size:12.5px; }
+    .eqv-in-nombre { flex:0 0 clamp(90px, 22%, 220px); color:var(--adm-brand-strong); font-weight:600; font-size:12.5px; }
     .eqv-in-nombre:not(:placeholder-shown):not(:focus) { color:#495057; font-weight:500; }
     .eqv-in-valor { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing:.01em; }
     {{-- Valor duplicado: rojo fijo, sin animación que lo tape ni al agregar ni
@@ -142,7 +142,7 @@
     .eqv-btn:hover { background:#f1f3f5; }
     .eqv-btn-danger:hover { background:#fff5f5; color:#dc3545; border-color:#ffc9cd; }
     .eqv-vacio { border:1.5px dashed #dee2e6; border-radius:10px; padding:22px; text-align:center;
-        font-size:13px; color:#adb5bd; }
+        font-size:13px; color:var(--adm-muted); }
 
     @media (max-width:576px){
         .eqv-adder { flex-wrap:wrap; }

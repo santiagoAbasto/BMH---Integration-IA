@@ -1,0 +1,38 @@
+/*
+ * Login del panel (admin-login.v1): panel de marca en la tinta del sitio con los brillos en el azul
+ * de BMH, y el /// del logo como trama diagonal en la esquina.
+ */
+.adm-login body {
+    margin: 0;
+    background: var(--adm-bg);
+    font-family: var(--adm-font-body);
+}
+
+.adm-login .osole-admin-login-v1__panel {
+    /* Franjas diagonales del /// de la marca, abajo a la derecha. */
+    & .osole-admin-login-v1__panel-inner {
+        position: relative;
+    }
+
+    & .osole-admin-login-v1__panel-inner::after {
+        position: absolute;
+        inset-block-end: 0;
+        inset-inline-end: 0;
+        z-index: -1;
+        inline-size: min(22rem, 45%);
+        block-size: 9rem;
+        background: repeating-linear-gradient(-70deg, rgb(0 152 218 / 0.5) 0 0.875rem, transparent 0.875rem 1.75rem);
+        content: "";
+        mask-image: linear-gradient(to left, #000 10%, transparent 90%);
+        pointer-events: none;
+    }
+}
+
+.adm-login .osole-admin-login-v1__panel-title {
+    letter-spacing: -0.025em;
+}
+
+.adm-login .osole-admin-login-v1__brand img {
+    object-fit: contain;
+    object-position: left center;
+}

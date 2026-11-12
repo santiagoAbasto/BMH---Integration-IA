@@ -1,14 +1,14 @@
 @extends('layouts.plantilla-back')
 
 @section('content')
-<h1 class='mb-4'>Códigos Postales</h1>
+<x-osole::admin-page-header.v1 eyebrow="Carrito" title="Códigos postales" />
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
@@ -21,7 +21,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between">
             <div class="search-container" style='width:500px;'>
-                <input type="text" placeholder="Buscar..." class="search-input">
+                <input type="search" placeholder="Buscar..." class="search-input" aria-label="Buscar">
                 <button disabled id='buscador-productos' class="search-btn">
                     <i class="fa fa-search"></i>
                 </button>

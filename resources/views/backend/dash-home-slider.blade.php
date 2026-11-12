@@ -33,24 +33,23 @@
 
 @section('content')
 <div class="slider-admin">
-  <div class="slider-admin__intro">
-    <div>
-      <h1>Slider de inicio</h1>
-      <p>Cada slide puede tener una pieza horizontal para desktop y una versión vertical para mobile. Así el mensaje y la imagen principal conservan su encuadre en cualquier pantalla.</p>
-    </div>
-  </div>
+  <x-osole::admin-page-header.v1 eyebrow="Home" title="Slider de inicio" description="Cada slide puede tener una pieza horizontal para desktop y una versión vertical para mobile. Así el mensaje y la imagen principal conservan su encuadre en cualquier pantalla.">
+    <x-slot:actions>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crear-slider"><i class="fa-solid fa-plus" aria-hidden="true"></i> Crear slide</button>
+    </x-slot:actions>
+  </x-osole::admin-page-header.v1>
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
   @if ($errors->any())
-      <div class="alert alert-danger">No se guardó el slider. Revisá los archivos y volvé a intentarlo.</div>
+      <div class="alert alert-danger" role="alert">No se guardó el slider. Revisá los archivos y volvé a intentarlo.</div>
   @endif
 
   {{-- <div class="mb-3" style='margin-left:50px;margin-right:50px;'>
@@ -82,15 +81,18 @@
 
   <div class="card">
     <div class="card-header">
-      <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#crear-slider"><i class="fa-solid fa-plus"></i>  CREAR</button>
+      <div class="adm-card-titulo">
+        <h2>Slides</h2>
+        <p>Se muestran en el orden de la columna «Orden».</p>
+      </div>
 
       {{-- MODAL CREAR --}}
       <div class="modal fade" id="crear-slider" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content">
             <div class="modal-header">
-              Crear slider
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h2 class="modal-title">Crear slider</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
               <form id='agregar' class='mb-4 loading' action="{{ route('home-slider.store') }}" method="POST" enctype="multipart/form-data">
@@ -181,13 +183,13 @@
               
               <td>
                 <div class='d-flex'>
-                  <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#{{'editar'.$imagen->id}}">
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'editar'.$imagen->id}}">
                     <i class="fa-regular fa-pen-to-square"></i>
                   </button>
                   <form action="{{ route('imagen.delete', ['id' => $imagen->id]) }}" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i></button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-trash-can"></i></button>
                   </form>
                 </div>
                 
@@ -209,8 +211,8 @@
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            Editar slider
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h2 class="modal-title">Editar slider</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <form id='{{'form'.$imagen->id}}' action="{{ route('home-slider.update', $imagen) }}" method="post" enctype="multipart/form-data">

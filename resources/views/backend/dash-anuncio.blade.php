@@ -1,9 +1,9 @@
 @extends('layouts.plantilla-back')
 
 @section('content')
-<h1 class='mb-4'>Anuncio</h1>
+<x-osole::admin-page-header.v1 eyebrow="Carrito" title="Anuncio" description="El aviso que ven los clientes en el carrito." />
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif

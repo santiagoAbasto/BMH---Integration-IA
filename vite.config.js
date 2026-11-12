@@ -13,6 +13,9 @@ export default defineConfig({
                 // Sitio público y Zona de Clientes con osole/ui (rediseño 2026).
                 'resources/css/sitio.css',
                 'resources/js/sitio.js',
+                // Panel de administración con osole/ui (rediseño 2026).
+                'resources/css/admin.css',
+                'resources/js/admin.js',
                 // Asesor IA (Inertia + React).
                 'resources/css/assistant.css',
                 'resources/js/app.tsx',

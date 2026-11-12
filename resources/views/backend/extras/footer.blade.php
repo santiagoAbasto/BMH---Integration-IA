@@ -11,15 +11,10 @@
 
 <div class="ext" data-ext data-logos='@json(['footer' => $logoFooter])' data-errores="{{ $errors->any() ? 1 : 0 }}" style="{{ $vars }}">
 
-  <div class="ext-encabezado">
-    <div>
-      <h1>Footer</h1>
-      <p>El pie del sitio es igual en todas las páginas: se puede cambiar el logo, el fondo y el color de los textos, links e íconos. Nada cambia en el sitio hasta que guardás.</p>
-    </div>
-  </div>
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Footer" description="El pie del sitio es igual en todas las páginas: se puede cambiar el logo, el fondo y el color de los textos, links e íconos. Nada cambia en el sitio hasta que guardás." />
 
   @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}. Ya se ve así en el sitio.</div>
+    <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
   @endif
   @if ($errors->any())
     <div class="alert alert-danger">No se guardó: revisá los campos marcados.</div>

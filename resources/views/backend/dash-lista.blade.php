@@ -2,21 +2,29 @@
 
 @section('content')
 
-  <h1 class='mb-4'>Lista de precios</h1>
+<x-osole::admin-page-header.v1 eyebrow="Carrito" title="Lista de precios" description="El archivo de la lista de precios que descargan los clientes." />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
 
 
-    <table class="table" style='border: 1px solid #dddddd;'>
+  <div class="card">
+    <div class="card-header">
+      <div class="adm-card-titulo">
+        <h2>Archivos</h2>
+        <p>Editá cada lista para reemplazar el archivo o cambiarle el nombre.</p>
+      </div>
+    </div>
+    <div class="card-body">
+    <table class="table">
         <thead>
             <tr>
             <th>Nombre</th>
@@ -32,12 +40,12 @@
                 <td>{{ucfirst($lista->nombre)}}</td>
                 <td>{{$lista->archivo}}</td>
                 <td>
-                <div class='d-flex'>
-                    <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="{{'#editar'.$lista->id}}"><i class="fa-regular fa-pen-to-square"></i></button>
+                <div class='adm-acciones'>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="{{'#editar'.$lista->id}}" aria-label="Editar"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></button>
                     {{-- <form action="{{ route('descarga.delete', ['id' => $lista->id]) }}" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$lista->id}}"><i class="fa-solid fa-trash-can"></i></button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$lista->id}}" aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
                     </form> --}}
                 </div>
                 
@@ -47,6 +55,8 @@
 
         </tbody>
     </table>
+    </div>
+  </div>
 
     @foreach ($listas as $lista)
 
@@ -55,8 +65,8 @@
 <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
     <div class="modal-header">
-        Editar lista
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h2 class="modal-title">Editar lista</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
     </div>
     <div class="modal-body">
         <form id='agregar{{$lista->id}}' class='mb-4 loading' action="{{route('descarga.update', ['id' => $lista->id])}}" method="POST" enctype="multipart/form-data">

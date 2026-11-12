@@ -2,15 +2,15 @@
 
 @section('content')
 
-<h1 class='mb-4'>Vendedores</h1>
+<x-osole::admin-page-header.v1 eyebrow="Ventas" title="Vendedores" />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
@@ -23,8 +23,8 @@
         <div class="modal-dialog modal-dialog-centered modal-md">
           <div class="modal-content">
             <div class="modal-header">
-              Crear vendedor
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h2 class="modal-title">Crear vendedor</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
               <form id='crear-vendedor'  action="{{route('crear.usuario', ['rol' => 'vendedor'])}}" method="post" enctype="multipart/form-data">
@@ -102,7 +102,7 @@
     </div>
     <div class="card-body">
   
-      <table class="table table-striped" style='border: 1px solid #dddddd;'>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>Nombre</th>
@@ -119,11 +119,11 @@
               <td>{{$vendedor->username}}</td>
               <td>{{$vendedor->email}}</td>
               <td>
-                <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#{{'editar'.$vendedor->id}}">
-                <i class="fa-regular fa-pen-to-square"></i>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'editar'.$vendedor->id}}" aria-label="Editar">
+                <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$vendedor->id}}">
-                <i class="fa-solid fa-trash-can"></i>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$vendedor->id}}" aria-label="Eliminar">
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                 </button>
               </td>
             </tr>
@@ -133,8 +133,8 @@
               <div class="modal-dialog modal-dialog-centered modal-md">
                 <div class="modal-content">
                   <div class="modal-header">
-                    Editar vendedor
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h2 class="modal-title">Editar vendedor</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                   </div>
                   <div class="modal-body">
                     <form id='{{'form'.$vendedor->id}}'  action="{{route('vendedor.update', ['id' => $vendedor->id])}}" method="post" enctype="multipart/form-data">
@@ -216,7 +216,7 @@
               <div class="modal-dialog modal-dialog-centered modal-md">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                   </div>
                   <div class="modal-body fs-4 d-flex justify-content-center">
                     ¿Desea eliminar el vendedor {{$vendedor->username}}?

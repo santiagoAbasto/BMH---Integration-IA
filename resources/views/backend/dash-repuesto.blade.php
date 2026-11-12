@@ -2,15 +2,15 @@
 
 @section('content')
 
-  <h1 class='mb-4'>Repuestos</h1>
+<x-osole::admin-page-header.v1 eyebrow="Catálogo" title="Repuestos" />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
@@ -28,8 +28,8 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content">
             <div class="modal-header">
-              Crear repuesto
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h2 class="modal-title">Crear repuesto</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
               <form class='pb-3' id='formulario-crear' action="{{route('repuesto.store')}}" method="POST" enctype="multipart/form-data">
@@ -66,7 +66,7 @@
     </div>
     <div class="card-body">
 
-      <table class="table table-striped" style='border: 1px solid #dddddd;'>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>Codigo</th>
@@ -85,8 +85,8 @@
 
               <td>
                 <div class='d-flex'>
-                  <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="{{'#editar'.$repuesto->id}}"><i class="fa-regular fa-pen-to-square"></i></button>
-                  <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$repuesto->id}}"><i class="fa-solid fa-trash-can"></i></button>
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="{{'#editar'.$repuesto->id}}" aria-label="Editar"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></button>
+                  <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#{{'eliminar'.$repuesto->id}}" aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
                 </div>
                 
               </td>
@@ -107,8 +107,8 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          Editar repuesto
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h2 class="modal-title">Editar repuesto</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <form id='agregar{{$repuesto->id}}' class='mb-4 loading' action="{{route('repuesto.update', ['id' => $repuesto->id])}}" method="POST" enctype="multipart/form-data">
@@ -148,9 +148,9 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        <div class="modal-body fs-4 d-flex justify-content-center" style='text-align:center;'>
+        <div class="modal-body adm-confirmar-cuerpo"><span class="adm-confirmar__icono" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
           ¿Desea eliminar el repuesto {{ucfirst($repuesto->descripcion)}}?<br>
         </div>
         <div class="modal-footer d-flex justify-content-center">

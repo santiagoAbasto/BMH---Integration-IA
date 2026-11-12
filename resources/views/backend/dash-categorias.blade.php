@@ -1,132 +1,128 @@
 @extends('layouts.plantilla-back')
 
 @section('content')
-    <h1 class='mb-4'>Categorías</h1>
+    <x-osole::admin-page-header.v1 eyebrow="Catálogo" title="Categorías" description="Las familias del catálogo: su imagen, si se destacan y los campos de su ficha técnica.">
+        <x-slot:actions>
+            <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-primary">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Crear categoría
+            </button>
+        </x-slot:actions>
+    </x-osole::admin-page-header.v1>
 
     @if (session('success'))
-        <div class="alert alert-success">
+        <div class="alert alert-success" role="status">
             {{ session('success') }}
         </div>
     @endif
     @if (session('warning'))
-        <div class="alert alert-danger">
+        <div class="alert alert-danger" role="alert">
             {{ session('warning') }}
         </div>
     @endif
 
-    <div class="flex">
-        {{-- 1. En el header de la tarjeta, junto al botón CREAR categoría --}}
-        <div class="card-header d-flex align-items-center gap-2">
-            <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-success">
-                <i class="fa-solid fa-plus"></i> CREAR CATEGORÍA
-            </button>
-
-            <!-- Nuevo botón para crear equivalencia -->
-            {{-- <button data-bs-toggle="modal" data-bs-target="#crearEquivalencia" type="button" class="btn btn-warning">
-                <i class="fa-solid fa-flask"></i> CREAR EQUIVALENCIA
-            </button> --}}
-        </div>
-
-        <div class="row">
-            <div class="col-lg-6">
-                <form action="{{ route('categoria.actualizarPorcentaje') }}" method="POST" class="mb-4">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="categoria_select" class="form-label">Selecciona Categoría</label>
-                        <select name="categoria_id" id="categoria_select" class="form-control" required>
-                            <option value="todos">Todos</option>
-                            @foreach ($categorias as $categoria)
-                                <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="tipo" class="form-label">Tipo de ajuste</label>
-                        <select name="tipo" id="tipo" class="form-control" required>
-                            <option value="aumentar">Aumentar</option>
-                            <option value="descontar">Descontar</option>
-                            <option value="limpiar">Limpiar</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="tipo" class="form-label">Estado</label>
-                        <select name="estado" id="estado" class="form-control">
-                            <option value="0">General</option>
-                            <option value="1">Nuevo</option>
-                            <option value="2">Reconstruido</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="porcentaje" class="form-label">Porcentaje</label>
-                        <input type="number" name="porcentaje" id="porcentaje" class="form-control" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Actualizar</button>
-                </form>
-            </div>
-            <div class="col-lg-6">
-
-                <form action="{{ route('producto.actualizarPorcentaje') }}" method="POST" class="mb-4">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="producto_select" class="form-label">Buscar Producto</label>
-                        <select name="producto_id" id="producto_select" class="form-control" required>
-                            <option value="">Escribe el código del producto...</option>
-                            @foreach ($productos as $producto)
-                                <option value="{{ $producto->id }}">{{ $producto->codigo }} - {{ $producto->nombre }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="tipo" class="form-label">Tipo de ajuste</label>
-                        <select name="tipo" id="tipo" class="form-control" required>
-                            <option value="aumentar">Aumentar</option>
-                            <option value="descontar">Descontar</option>
-                        </select>
-                    </div>
-
-
-
-                    <div class="mb-3">
-                        <label for="porcentaje" class="form-label">Porcentaje</label>
-                        <input type="number" name="porcentaje" id="porcentaje" class="form-control" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Actualizar</button>
-                </form>
-            </div>
-
-        </div>
-
-    </div>
-    
-    
-    
-
-
-
-
-
-
-
-
-    <div class="card">
+    <section class="card mb-4" aria-labelledby="ajuste-precios">
         <div class="card-header">
+            <div class="adm-card-titulo">
+                <h2 id="ajuste-precios">Ajustar precios por porcentaje</h2>
+                <p>Sube o baja los precios de una categoría completa o de un solo producto.</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <form action="{{ route('categoria.actualizarPorcentaje') }}" method="POST" class="adm-ajuste">
+                        @csrf
+                        <h3 class="adm-subtitulo">Por categoría</h3>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="categoria_select" class="form-label">Categoría</label>
+                                <select name="categoria_id" id="categoria_select" class="form-select" required>
+                                    <option value="todos">Todas</option>
+                                    @foreach ($categorias as $categoria)
+                                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="tipo" class="form-label">Ajuste</label>
+                                <select name="tipo" id="tipo" class="form-select" required>
+                                    <option value="aumentar">Aumentar</option>
+                                    <option value="descontar">Descontar</option>
+                                    <option value="limpiar">Limpiar</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select name="estado" id="estado" class="form-select">
+                                    <option value="0">General</option>
+                                    <option value="1">Nuevo</option>
+                                    <option value="2">Reconstruido</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="porcentaje" class="form-label">Porcentaje</label>
+                                <div class="input-group">
+                                    <input type="number" name="porcentaje" id="porcentaje" class="form-control" required>
+                                    <span class="input-group-text" aria-hidden="true">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Aplicar a la categoría</button>
+                    </form>
+                </div>
+                <div class="col-lg-6">
+                    <form action="{{ route('producto.actualizarPorcentaje') }}" method="POST" class="adm-ajuste">
+                        @csrf
+                        <h3 class="adm-subtitulo">Por producto</h3>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="producto_select" class="form-label">Producto</label>
+                                <select name="producto_id" id="producto_select" class="form-select" required>
+                                    <option value="">Escribí el código del producto…</option>
+                                    @foreach ($productos as $producto)
+                                        <option value="{{ $producto->id }}">{{ $producto->codigo }} - {{ $producto->nombre }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="tipo-producto" class="form-label">Ajuste</label>
+                                <select name="tipo" id="tipo-producto" class="form-select" required>
+                                    <option value="aumentar">Aumentar</option>
+                                    <option value="descontar">Descontar</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="porcentaje-producto" class="form-label">Porcentaje</label>
+                                <div class="input-group">
+                                    <input type="number" name="porcentaje" id="porcentaje-producto" class="form-control" required>
+                                    <span class="input-group-text" aria-hidden="true">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Aplicar al producto</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card" aria-labelledby="categorias-listado">
+        <div class="card-header">
+            <div class="adm-card-titulo">
+                <h2 id="categorias-listado">Todas las categorías</h2>
+                <p>{{ count($categorias) }} {{ count($categorias) === 1 ? 'categoría' : 'categorías' }}. Las destacadas se muestran primero en el sitio.</p>
+            </div>
             {{-- <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-success"><i
                     class="fa-solid fa-plus"></i> CREAR</button> --}}
 
             {{-- MODAL CREAR --}}
-            <div class="modal fade" id="crear" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal fade" id="crear" tabindex="-1" aria-labelledby="crear-titulo" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
-                            Crear categoría
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h2 class="modal-title" id="crear-titulo">Crear categoría</h2>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                         </div>
                         <div class="modal-body">
                             <form class='pb-3' id='formulario-crear' action="{{ route('categoria.store') }}"
@@ -144,7 +140,7 @@
                                         <input type="text" class="form-control" name='nombre' required>
                                     </div>
 
-                                    <h3>Seleccionar atributos</h3>
+                                    <h3 class="adm-subtitulo mt-2">Atributos de la ficha técnica</h3>
                                     <div class="checkbox-group">
                                         <label><input type="checkbox" name="columna_1" value="VOLTAJE"> VOLTAJE</label>
                                         <label><input type="checkbox" name="columna_2" value="DIAMETRO"> DIAMETRO</label>
@@ -326,7 +322,7 @@
         </div>
         <div class="card-body">
 
-            <table class="table table-striped" style='border: 1px solid #dddddd;'>
+            <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>Orden</th>
@@ -334,7 +330,7 @@
                         <th>Nombre</th>
                         {{-- <th>Descuento</th> --}}
                         <th>Destacada</th>
-                        <th>Acciones</th>
+                        <th><span class="visually-hidden">Acciones</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -342,19 +338,18 @@
                     @foreach ($categorias as $categoria)
                         <tr>
                             <td>{{ $categoria->orden }}</td>
-                            <td><img src="{{ asset('imagenes/' . $categoria->portada) }}" class="img-thumbnail"
-                                    style="max-width: 100px; height:70px;"></td>
-                            <td>{{ ucfirst($categoria->nombre) }}</td>
+                            <td><img src="{{ asset('imagenes/' . $categoria->portada) }}" class="adm-miniatura adm-miniatura--contener" alt="" loading="lazy"></td>
+                            <td class="fw-semibold">{{ ucfirst($categoria->nombre) }}</td>
                             {{-- <td>{{$categoria->descuento.'%'}}</td> --}}
-                            <td><input class='categoriaCheckbox form-check-input' style='cursor: pointer;'
-                                    type="checkbox" data-id="{{ $categoria->id }}" id="categoria{{ $categoria->id }}"
-                                    name="destacada" value="1" {{ $categoria->destacada ? 'checked' : '' }}></td>
+                            <td><label class="adm-switch" for="categoria{{ $categoria->id }}"><input class='categoriaCheckbox'
+                                    type="checkbox" role="switch" data-id="{{ $categoria->id }}" id="categoria{{ $categoria->id }}"
+                                    name="destacada" value="1" {{ $categoria->destacada ? 'checked' : '' }}><span class="visually-hidden">Destacar {{ $categoria->nombre }}</span></label></td>
                             <td>
-                                <div class='d-flex'>
-                                    <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal"
+                                <div class='adm-acciones'>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                         data-bs-target="{{ '#editar' . $categoria->id }}"><i
                                             class="fa-regular fa-pen-to-square"></i></button>
-                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
                                         data-bs-target="#{{ 'eliminar' . $categoria->id }}"><i
                                             class="fa-solid fa-trash-can"></i></button>
                                 </div>
@@ -367,17 +362,17 @@
             </table>
 
         </div>
-    </div>
+    </section>
 
     @foreach ($categorias as $categoria)
         {{-- MODAL EDITAR --}}
-        <div class="modal fade" id="editar{{ $categoria->id }}" tabindex="-1" aria-labelledby="exampleModalLabel"
+        <div class="modal fade" id="editar{{ $categoria->id }}" tabindex="-1" aria-labelledby="editar{{ $categoria->id }}-titulo"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        Editar categoria
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <h2 class="modal-title" id="editar{{ $categoria->id }}-titulo">Editar categoría</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
                         <form id='agregar{{ $categoria->id }}' class='mb-4 loading'
@@ -650,10 +645,10 @@
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
-                    <div class="modal-body fs-4 d-flex justify-content-center" style='text-align:center;'>
-                        ¿Desea eliminar el categoria {{ ucfirst($categoria->nombre) }}?<br>
+                    <div class="modal-body adm-confirmar-cuerpo"><span class="adm-confirmar__icono" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
+                        ¿Eliminar la categoría {{ ucfirst($categoria->nombre) }}?<br>
                     </div>
                     <div class="modal-footer d-flex justify-content-center">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

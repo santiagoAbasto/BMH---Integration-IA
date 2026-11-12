@@ -2,15 +2,15 @@
 
 @section('content')
 
-    <h1 class='mb-4'>CONTENIDO</h1>
+<x-osole::admin-page-header.v1 eyebrow="Home" title="Contenido del home" description="Logos, textos y secciones de la página de inicio." />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
@@ -77,10 +77,10 @@
                     
                     <td>
                       <div class='d-flex'>
-                        <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#{{'editar'.$nosotros_slider->id}}">
-                          <i class="fa-regular fa-pen-to-square"></i>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'editar'.$nosotros_slider->id}}" aria-label="Editar">
+                          <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm delete-slider" data-id='{{$nosotros_slider->id}}'><i class="fa-solid fa-trash-can"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm delete-slider" data-id='{{$nosotros_slider->id}}' aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
 
                       </div>
                       
@@ -122,8 +122,8 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          Crear slider
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h2 class="modal-title">Crear slider</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <form id='agregar' class='mb-4 loading' action="{{route('imagen.store')}}" method="POST" enctype="multipart/form-data">
@@ -164,8 +164,8 @@
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            Editar slider
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h2 class="modal-title">Editar slider</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <form id='{{'form'.$nosotros_slider->id}}'  action="{{route('slider.update',['id'=>$nosotros_slider->id])}}" method="post" enctype="multipart/form-data">

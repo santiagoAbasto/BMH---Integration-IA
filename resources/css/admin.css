@@ -1,0 +1,22 @@
+/*
+ * Panel de administración (rediseño 2026), con los componentes de administración de osole/ui.
+ *
+ * Capas, igual que el sitio (resources/css/sitio.css): «legacy» (Bootstrap, Summernote, Select2,
+ * iziToast; ver layouts/plantilla-back) queda por debajo de «osole» (el paquete). El tema del
+ * admin y las piezas propias van sin layer: les ganan a las dos.
+ */
+@layer legacy, osole;
+
+@import "../../vendor/osole/ui/resources/css/osole-ui.css";
+@import "../../vendor/osole/ui/resources/components/admin-sidebar/v1/admin-sidebar.css";
+@import "../../vendor/osole/ui/resources/components/admin-login/v1/admin-login.css";
+@import "../../vendor/osole/ui/resources/components/admin-page-header/v1/admin-page-header.css";
+@import "../../vendor/osole/ui/resources/components/admin-stats/v1/admin-stats.css";
+
+@import "./admin/tema.css";
+@import "./admin/layout.css";
+@import "./admin/bootstrap.css";
+@import "./admin/piezas.css";
+@import "./admin/login.css";
+@import "./admin/dashboard.css";
+@import "./admin/pedidos.css";

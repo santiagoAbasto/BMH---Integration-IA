@@ -1,14 +1,14 @@
 @extends('layouts.plantilla-back')
 
 @section('content')
-<h1 class='mb-4'>Envío masivo</h1>
+<x-osole::admin-page-header.v1 eyebrow="Comunicación" title="Envío masivo" />
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
@@ -29,7 +29,7 @@
     <button {{count($newsletter) > 0 ? '' : 'disabled'}} data-form-id="formulario" type="submit" class="btn btn-success submit">Enviar a todos los clientes</button>
 </form>
 {{--   
-  <table class="table table-striped mt-4" style='border: 1px solid #dddddd;'>
+  <table class="table table-striped mt-4">
     <thead>
       <tr>
         <th>Mail</th>
@@ -47,7 +47,7 @@
               <form action="{{ route('newsletter.delete', ['id' => $mail->id]) }}" method="POST">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
               </form>
             </div>
             

@@ -57,15 +57,10 @@
 
 <div class="ext" data-ext data-logos='@json($logos)' data-errores="{{ $errors->any() ? 1 : 0 }}" style="{{ $vars }}">
 
-  <div class="ext-encabezado">
-    <div>
-      <h1>Header</h1>
-      <p>Los logos y los colores del encabezado del sitio. El header no es siempre igual: cambia según la página y según si el visitante hizo scroll. Elegí abajo cuál querés editar; a la derecha ves cómo queda mientras editás y nada cambia en el sitio hasta que guardás.</p>
-    </div>
-  </div>
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Header" description="Los logos y los colores del encabezado del sitio. El header no es siempre igual: cambia según la página y según si el visitante hizo scroll. Elegí abajo cuál querés editar; a la derecha ves cómo queda mientras editás y nada cambia en el sitio hasta que guardás." />
 
   @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}. Ya se ve así en el sitio.</div>
+    <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
   @endif
   @if ($errors->any())
     <div class="alert alert-danger">No se guardó: revisá los campos marcados.</div>

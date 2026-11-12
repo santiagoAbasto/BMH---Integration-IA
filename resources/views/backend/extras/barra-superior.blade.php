@@ -80,20 +80,16 @@
 
 <div class="ext" data-ext data-errores="{{ $errors->any() ? 1 : 0 }}" style="{{ $vars }}">
 
-  <div class="ext-encabezado">
-    <div>
-      <h1>Barra superior</h1>
-      <p>La franja de arriba del header con el teléfono, el mail y las redes sociales. Lo que cambies se ve en la vista previa al instante; en el sitio, recién cuando guardás.</p>
-      <div class="tb-chips">
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Barra superior" description="La franja de arriba del header con el teléfono, el mail y las redes sociales. Lo que cambies se ve en la vista previa al instante; en el sitio, recién cuando guardás.">
+    <div class="tb-chips">
         <span class="tb-chip"><i class="fa-solid fa-desktop" aria-hidden="true"></i> Sólo en computadora</span>
         <span class="tb-chip"><i class="fa-regular fa-clone" aria-hidden="true"></i> Igual en todas las páginas</span>
         <span class="tb-chip"><i class="fa-solid fa-arrows-up-to-line" aria-hidden="true"></i> Se oculta al hacer scroll</span>
-      </div>
-    </div>
+  </x-osole::admin-page-header.v1>
   </div>
 
   @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}. Ya se ve así en el sitio.</div>
+    <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
   @endif
   @if ($errors->any())
     <div class="alert alert-danger">No se guardó: revisá los campos marcados.</div>

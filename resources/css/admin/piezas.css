@@ -1,0 +1,630 @@
+/*
+ * Piezas propias del panel de BMH, compartidas por varias pantallas.
+ */
+
+/* --- Encabezado de página (admin-page-header.v1) con el /// del logo de BMH en el antetítulo --- */
+.adm-content .osole-admin-page-header-v1:not(:last-child) {
+    margin-block-end: 1.5rem;
+}
+
+.osole-admin-page-header-v1__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &::before {
+        inline-size: 1.125rem;
+        block-size: 0.6875rem;
+        background: repeating-linear-gradient(-70deg, var(--adm-brand) 0 0.1875rem, transparent 0.1875rem 0.375rem);
+        content: "";
+    }
+}
+
+/* El título viejo de cada pantalla (sin encabezado nuevo todavía). */
+.adm-content > h1:first-child {
+    margin-block-end: 1.5rem;
+}
+
+/* --- Pila de bloques de una pantalla --- */
+.adm-pila {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-inline-size: 0;
+
+    & > .card + .card {
+        margin-block-start: 0;
+    }
+}
+
+/* --- Tarjeta con cabecera rica: título, texto y acciones --- */
+.adm-card-titulo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-inline-size: 0;
+    margin-inline-end: auto;
+
+    & :is(h2, h3) {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    & p {
+        margin: 0;
+        color: var(--adm-muted);
+        font-family: var(--adm-font-body);
+        font-size: 0.8125rem;
+        font-weight: 400;
+    }
+}
+
+.adm-card-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* --- Interruptor (checkbox con role="switch") --- */
+.adm-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-block-size: 2.75rem;
+    margin: 0;
+    color: var(--adm-ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.adm-switch input {
+    position: relative;
+    flex-shrink: 0;
+    inline-size: 2.5rem;
+    block-size: 1.375rem;
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background-color: #c3ccd7;
+    cursor: pointer;
+    appearance: none;
+    transition: background-color 0.18s ease;
+
+    &::after {
+        position: absolute;
+        inset-block-start: 0.1875rem;
+        inset-inline-start: 0.1875rem;
+        inline-size: 1rem;
+        block-size: 1rem;
+        border-radius: 50%;
+        background-color: #ffffff;
+        box-shadow: 0 1px 2px rgb(10 14 20 / 0.3);
+        content: "";
+        transition: translate 0.18s ease;
+    }
+
+    &:checked {
+        background-color: var(--adm-brand-strong);
+    }
+
+    &:checked::after {
+        translate: 1.125rem 0;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        cursor: progress;
+        opacity: 0.6;
+    }
+}
+
+/* Variante de oferta: el interruptor se pinta con el color de la etiqueta de oferta. */
+.adm-switch--oferta input:checked {
+    background-color: #c2410c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .adm-switch input,
+    .adm-switch input::after {
+        transition: none;
+    }
+}
+
+/* --- Etiquetas chicas --- */
+.adm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 999px;
+    background-color: #eef1f5;
+    color: var(--adm-ink-700);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.adm-chip--marca { background-color: var(--adm-brand-soft); color: var(--adm-brand-stronger); }
+.adm-chip--ok { background-color: var(--adm-success-soft); color: var(--adm-success); }
+.adm-chip--alerta { background-color: var(--adm-warning-soft); color: var(--adm-warning); }
+.adm-chip--peligro { background-color: var(--adm-danger-soft); color: var(--adm-danger); }
+.adm-chip--oferta { background-color: #fff1e7; color: #9a3412; }
+
+/* --- Acciones de una fila de tabla --- */
+.adm-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+
+    & form {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    & .btn {
+        min-inline-size: 2.5rem;
+    }
+}
+
+.adm-content td:last-child:has(> .adm-acciones) {
+    inline-size: 1%;
+    white-space: nowrap;
+}
+
+/* --- Miniatura en tablas --- */
+.adm-miniatura {
+    display: block;
+    inline-size: 4.5rem;
+    block-size: 3.25rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface-soft);
+    object-fit: cover;
+}
+
+.adm-miniatura--contener {
+    object-fit: contain;
+}
+
+/* --- Estado vacío --- */
+.adm-vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1rem;
+    color: var(--adm-muted);
+    text-align: center;
+
+    & > i,
+    & > svg {
+        display: grid;
+        place-items: center;
+        inline-size: 3rem;
+        block-size: 3rem;
+        margin-block-end: 0.25rem;
+        border-radius: 50%;
+        background-color: var(--adm-brand-soft);
+        color: var(--adm-brand-strong);
+        font-size: 1.125rem;
+    }
+
+    & strong {
+        color: var(--adm-ink);
+        font-family: var(--adm-font-heading);
+        font-size: 1rem;
+    }
+
+    & p {
+        max-inline-size: 26rem;
+        margin: 0;
+    }
+}
+
+/* --- Confirmar eliminación (modal) --- */
+.adm-confirmar .modal-body {
+    padding: 1.75rem 1.5rem 1.25rem;
+    text-align: center;
+}
+
+.adm-confirmar__icono {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    margin-block-end: 1rem;
+    border-radius: 50%;
+    background-color: var(--adm-danger-soft);
+    color: var(--adm-danger);
+    font-size: 1.25rem;
+}
+
+.adm-confirmar__titulo {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+}
+
+.adm-confirmar__texto {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 0.875rem;
+}
+
+.adm-confirmar__nombre {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--adm-radius-sm);
+    background-color: #f1f4f7;
+    color: var(--adm-ink);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.adm-confirmar .modal-footer {
+    justify-content: center;
+}
+
+/* --- Barra de guardado al pie de formularios largos --- */
+.adm-form-pie {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin: 1.5rem calc(-1 * var(--bs-card-spacer-x, 1.25rem)) calc(-1 * var(--bs-card-spacer-y, 1.25rem));
+    padding: 0.875rem var(--bs-card-spacer-x, 1.25rem);
+    border-block-start: 1px solid var(--adm-border);
+    border-end-start-radius: calc(var(--adm-radius-lg) - 1px);
+    border-end-end-radius: calc(var(--adm-radius-lg) - 1px);
+    background-color: rgb(248 250 252 / 0.94);
+    backdrop-filter: blur(8px);
+
+    & .adm-form-pie__ayuda {
+        margin: 0 auto 0 0;
+        color: var(--adm-muted);
+        font-size: 0.8125rem;
+    }
+}
+
+/* --- Grilla de campos --- */
+.adm-campos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.25rem;
+
+    @media (width >= 768px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    & > .adm-campos__ancho {
+        grid-column: 1 / -1;
+    }
+
+    & > * {
+        min-inline-size: 0;
+        margin: 0;
+    }
+}
+
+/* --- Subtítulo de grupo dentro de una tarjeta --- */
+.adm-subtitulo {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 1.75rem 0 1rem;
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+
+    &::after {
+        flex: 1;
+        block-size: 1px;
+        background-color: var(--adm-border);
+        content: "";
+    }
+
+    &:first-child {
+        margin-block-start: 0;
+    }
+}
+
+/* --- Vista previa de imagen en formularios --- */
+.adm-preview {
+    display: block;
+    max-inline-size: 100%;
+    max-block-size: 11rem;
+    margin-block-start: 0.75rem;
+    padding: 0.375rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background:
+        conic-gradient(#f1f4f7 25%, #ffffff 0 50%, #f1f4f7 0 75%, #ffffff 0) 0 0 / 1rem 1rem;
+    object-fit: contain;
+}
+
+/* Las secciones de equivalencias, aplicaciones y partes relacionadas ya son tarjetas. */
+.adm-pila > :is(.eqv-card, .app-card, .prt-card) {
+    margin-block-start: 0;
+    box-shadow: var(--adm-shadow);
+}
+
+/* --- Barra de guardado fija al pie de la pantalla (formularios largos) --- */
+.adm-barra-guardar {
+    position: sticky;
+    inset-block-end: 0.75rem;
+    z-index: 50;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.625rem 0.75rem;
+    margin-block-start: 1.5rem;
+    padding: 0.75rem 0.875rem 0.75rem 1.25rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-lg);
+    background-color: rgb(255 255 255 / 0.92);
+    box-shadow: 0 12px 32px rgb(10 14 20 / 0.14);
+    backdrop-filter: saturate(1.4) blur(12px);
+
+    & p {
+        flex: 1 1 16rem;
+        margin: 0;
+        color: var(--adm-muted);
+        font-size: 0.8125rem;
+    }
+}
+
+/* Cuerpo de los modales viejos de "¿Desea eliminar…?": centrado, con ícono. */
+.adm-confirmar-cuerpo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1.75rem 1.5rem 1.5rem;
+    color: var(--adm-ink);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    overflow-wrap: anywhere;
+
+    & .adm-confirmar__icono {
+        margin: 0;
+    }
+}
+
+.modal-content:has(.adm-confirmar-cuerpo) .modal-header {
+    padding-block-end: 0;
+    border-block-end: 0;
+}
+
+.modal-content:has(.adm-confirmar-cuerpo) .modal-footer {
+    justify-content: center;
+}
+
+/* Casillas de atributos (categorías): una grilla de opciones tildables. */
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+    gap: 0.375rem;
+    margin-block: 0.5rem 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background-color: var(--adm-surface-soft);
+
+    & label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-block-size: 2.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--adm-surface);
+        }
+
+        &:has(input:checked) {
+            background-color: var(--adm-brand-soft);
+            color: var(--adm-brand-stronger);
+            font-weight: 600;
+        }
+    }
+
+    & input[type="checkbox"] {
+        flex-shrink: 0;
+        inline-size: 1rem;
+        block-size: 1rem;
+        accent-color: var(--adm-brand-strong);
+    }
+
+    & > .row {
+        grid-column: 1 / -1;
+        margin: 0.5rem 0 0;
+        padding-block-start: 0.5rem;
+        border-block-start: 1px dashed var(--adm-border-strong);
+    }
+}
+
+/* --- Buscador de los listados viejos (.search-container) --- */
+.search-container {
+    position: relative;
+    display: flex;
+    flex: 1 1 22rem;
+    align-items: center;
+    max-inline-size: 32rem;
+    min-inline-size: 0;
+    border: 1px solid var(--adm-border-strong);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus-within {
+        border-color: var(--adm-brand);
+        box-shadow: var(--adm-focus);
+    }
+
+    & .search-container__icono {
+        position: absolute;
+        inset-inline-start: 0.875rem;
+        color: var(--adm-faint);
+        pointer-events: none;
+    }
+
+    & .search-input {
+        flex: 1;
+        min-inline-size: 0;
+        min-block-size: 2.75rem;
+        padding: 0.5rem 0.75rem;
+        border: 0;
+        border-radius: var(--adm-radius-sm);
+        background: transparent;
+        color: var(--adm-ink);
+        font-family: var(--adm-font-body);
+        font-size: 0.9375rem;
+        font-weight: 400;
+        outline: none;
+    }
+
+    & .search-container__icono + .search-input {
+        padding-inline-start: 2.375rem;
+    }
+
+    & .search-btn {
+        display: grid;
+        place-items: center;
+        inline-size: 2.25rem;
+        block-size: 2.25rem;
+        margin: 0.25rem;
+        border: 0;
+        border-radius: 0.375rem;
+        background-color: var(--adm-ink);
+        color: #ffffff;
+    }
+
+    & .search-container__icono ~ .search-btn {
+        display: none;
+    }
+}
+
+.adm-ayuda-tabla {
+    color: var(--adm-muted);
+    font-family: var(--adm-font-body);
+    font-size: 0.8125rem;
+    font-weight: 400;
+}
+
+/* --- Estados de pedidos (botón que abre el menú para cambiarlo) --- */
+.adm-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-block-size: 2rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: #eef1f5;
+    color: var(--adm-ink-700);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &::after {
+        margin-inline-start: 0.125rem;
+        opacity: 0.6;
+    }
+
+    &:hover {
+        border-color: currentColor;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 2px;
+    }
+}
+
+.adm-estado--ok { background-color: var(--adm-success-soft); color: var(--adm-success); }
+.adm-estado--alerta { background-color: var(--adm-warning-soft); color: var(--adm-warning); }
+.adm-estado--peligro { background-color: var(--adm-danger-soft); color: var(--adm-danger); }
+
+.dropdown-header {
+    margin: 0;
+    padding: 0.375rem 0.75rem;
+    color: var(--adm-muted);
+    font-family: var(--adm-font-body);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.adm-celda-numero {
+    color: var(--adm-brand-strong);
+    font-family: var(--adm-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.adm-celda-importe {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+    white-space: nowrap;
+}
+
+/* Aviso de pedidos nuevos arriba del listado. */
+.adm-aviso-pedidos {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #b7dcc3;
+    border-radius: var(--adm-radius);
+    background-color: var(--adm-success-soft);
+    color: var(--adm-success);
+}
+
+.adm-subtitulo:first-of-type {
+    margin-block-start: 0;
+}
+
+td > .adm-acciones {
+    flex-wrap: nowrap;
+}
+
+@media (width < 640px) {
+    .adm-barra-guardar {
+        inset-block-end: 0.5rem;
+        padding: 0.625rem;
+
+        & p {
+            display: none;
+        }
+
+        & .btn {
+            flex: 1;
+        }
+    }
+}

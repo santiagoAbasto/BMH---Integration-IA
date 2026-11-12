@@ -2,15 +2,15 @@
 
 @section('content')
 
-  <h1 class='mb-4'>Bonificaciones</h1>
+<x-osole::admin-page-header.v1 eyebrow="Carrito" title="Bonificaciones" />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif

@@ -1,0 +1,367 @@
+/*
+ * Estructura del panel: sidebar (admin-sidebar.v1) + columna con barra superior y contenido.
+ * Mobile first; la sidebar pasa a columna fija desde 1024px (el corte del componente).
+ */
+html.adm {
+    background-color: var(--adm-bg);
+    scrollbar-gutter: stable;
+}
+
+.adm body {
+    min-block-size: 100dvb;
+    margin: 0;
+    background:
+        radial-gradient(56rem 28rem at 100% -6rem, rgb(0 152 218 / 0.07), transparent 70%),
+        var(--adm-bg);
+    background-attachment: fixed;
+    color: var(--adm-text);
+    font-family: var(--adm-font-body);
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+.adm ::selection {
+    background-color: var(--adm-brand);
+    color: #ffffff;
+}
+
+/* --- Saltar al contenido --- */
+.adm-skip {
+    position: fixed;
+    inset-block-start: 0.75rem;
+    inset-inline-start: 0.75rem;
+    z-index: 1100;
+    padding: 0.625rem 1rem;
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-ink);
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+    translate: 0 -200%;
+
+    &:focus {
+        translate: 0 0;
+        color: #ffffff;
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 2px;
+    }
+}
+
+/* --- Esqueleto --- */
+.adm-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-block-size: 100dvb;
+}
+
+.adm-main {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+}
+
+@media (width >= 1024px) {
+    .adm-shell {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .adm-sidebar {
+        align-self: start;
+    }
+}
+
+/* Sidebar: la marca de BMH arriba, con aire, y el link activo con la barra azul de la marca. */
+.adm-sidebar {
+    .osole-admin-sidebar-v1__header {
+        min-block-size: var(--adm-topbar-height);
+        padding-block: 0.875rem;
+    }
+
+    .osole-admin-sidebar-v1__logo img {
+        max-inline-size: 10.5rem;
+        object-fit: contain;
+        object-position: left center;
+    }
+
+    .osole-admin-sidebar-v1__link[aria-current],
+    .osole-admin-sidebar-v1__sublink[aria-current] {
+        box-shadow: inset 3px 0 0 var(--adm-brand);
+    }
+
+    .osole-admin-sidebar-v1__section-title {
+        letter-spacing: 0.12em;
+    }
+
+    /* La marca y el pie quedan fijos; solo scrollea la lista de links, con una barra fina del
+       color de los bordes que se marca un poco más al pasar el mouse o mientras se scrollea.
+       scrollbar-gutter reserva su lugar: el contenido no se corre cuando aparece. */
+    .osole-admin-sidebar-v1__nav {
+        min-block-size: 0;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: rgb(255 255 255 / 0.12) transparent;
+    }
+
+    .osole-admin-sidebar-v1__nav:is(:hover, :focus-within, .is-scrolling) {
+        scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+    }
+
+    /* Navegadores sin scrollbar-color (Safari y Chrome viejos). */
+    @supports not (scrollbar-color: auto) {
+        .osole-admin-sidebar-v1__nav::-webkit-scrollbar {
+            inline-size: 6px;
+        }
+
+        .osole-admin-sidebar-v1__nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .osole-admin-sidebar-v1__nav::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background-color: rgb(255 255 255 / 0.12);
+        }
+
+        .osole-admin-sidebar-v1__nav:is(:hover, .is-scrolling)::-webkit-scrollbar-thumb {
+            background-color: rgb(255 255 255 / 0.3);
+        }
+    }
+}
+
+.adm-sidebar__marca {
+    color: #ffffff;
+    font-family: var(--adm-font-heading);
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* --- Barra superior --- */
+.adm-topbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-block-size: var(--adm-topbar-height);
+    padding-inline: 1rem;
+    border-block-end: 1px solid var(--adm-border);
+    background-color: rgb(255 255 255 / 0.86);
+    backdrop-filter: saturate(1.4) blur(14px);
+}
+
+.adm-topbar__menu {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    margin-inline-start: -0.375rem;
+    padding: 0;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface);
+    color: var(--adm-ink);
+    cursor: pointer;
+
+    & svg {
+        inline-size: 1.25rem;
+        block-size: 1.25rem;
+    }
+
+    &:hover {
+        border-color: var(--adm-border-strong);
+        background-color: var(--adm-surface-soft);
+    }
+
+    @media (width >= 1024px) {
+        display: none;
+    }
+}
+
+.adm-topbar__miga {
+    flex: 1;
+    min-inline-size: 0;
+
+    & ol {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+
+    & li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-inline-size: 0;
+        color: var(--adm-muted);
+    }
+
+    & li + li::before {
+        flex-shrink: 0;
+        inline-size: 0.375rem;
+        block-size: 0.375rem;
+        border-block-start: 1.5px solid var(--adm-faint);
+        border-inline-end: 1.5px solid var(--adm-faint);
+        content: "";
+        rotate: 45deg;
+    }
+
+    & span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    & a {
+        color: var(--adm-muted);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--adm-brand-strong);
+        }
+    }
+
+    & [aria-current] {
+        color: var(--adm-ink);
+        font-weight: 600;
+    }
+
+    /* En el celular, solo la página actual. */
+    @media (width < 640px) {
+        & li:not(:last-child) {
+            display: none;
+        }
+
+        & li + li::before {
+            display: none;
+        }
+    }
+}
+
+.adm-topbar__acciones {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+}
+
+.adm-topbar__pedidos,
+.adm-topbar__sitio {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: 2.25rem;
+    padding-inline: 0.875rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.adm-topbar__pedidos {
+    background-color: var(--adm-success-soft);
+    color: var(--adm-success);
+
+    &:hover {
+        background-color: #d7eedf;
+        color: var(--adm-success);
+    }
+
+    @media (width < 640px) {
+        display: none;
+    }
+}
+
+.adm-topbar__pulso {
+    position: relative;
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 50%;
+    background-color: currentColor;
+
+    @media (prefers-reduced-motion: no-preference) {
+        &::after {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background-color: currentColor;
+            content: "";
+            animation: adm-pulso 1.8s ease-out infinite;
+        }
+    }
+}
+
+@keyframes adm-pulso {
+    from { opacity: 0.6; transform: scale(1); }
+    to { opacity: 0; transform: scale(2.6); }
+}
+
+.adm-topbar__sitio {
+    border: 1px solid var(--adm-border);
+    background-color: var(--adm-surface);
+    color: var(--adm-ink);
+
+    & svg {
+        inline-size: 1rem;
+        block-size: 1rem;
+        color: var(--adm-brand-strong);
+    }
+
+    &:hover {
+        border-color: var(--adm-brand);
+        color: var(--adm-brand-strong);
+    }
+}
+
+.adm-topbar :is(a, button):focus-visible {
+    outline: 2px solid var(--adm-brand);
+    outline-offset: 2px;
+}
+
+/* --- Contenido --- */
+.adm-content {
+    flex: 1;
+    inline-size: 100%;
+    max-inline-size: 90rem; /* 1440px */
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding: 1.25rem 1rem 3rem;
+    outline: none;
+
+    @media (width >= 640px) {
+        padding: 1.75rem 1.5rem 3.5rem;
+    }
+
+    @media (width >= 1280px) {
+        padding: 2rem 2.25rem 4rem;
+    }
+}
+
+/* Entrada de la página: un fundido corto, solo con movimiento permitido.
+   «backwards» y no «both»: al terminar, la animación deja de aplicarse. Con «both» el bloque
+   quedaba como contexto de apilamiento y los modales de Bootstrap que viven adentro quedaban
+   por debajo de su fondo oscuro (que va en <body>). */
+@media (prefers-reduced-motion: no-preference) {
+    .adm-content > * {
+        animation: adm-entrada 0.35s ease-out backwards;
+    }
+
+    .adm-content > :nth-child(2) { animation-delay: 0.04s; }
+    .adm-content > :nth-child(3) { animation-delay: 0.08s; }
+    .adm-content > :nth-child(n + 4) { animation-delay: 0.12s; }
+}
+
+@keyframes adm-entrada {
+    from { opacity: 0; transform: translateY(0.5rem); }
+    to { opacity: 1; transform: none; }
+}

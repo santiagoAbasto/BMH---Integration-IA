@@ -6,30 +6,31 @@
     <style>
         * { box-sizing: border-box; }
         body {
-            font-family: 'Poppins', Arial, Helvetica, sans-serif;
-            color: #212529;
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
+            color: #0a0e14;
             margin: 0;
             padding: 24px;
             font-size: 13px;
         }
         .no-print { text-align: right; margin: 0 0 18px; }
         .btn-print {
-            background: #C10B17; color: #fff; border: none; padding: 10px 18px;
+            background: #0076a8; color: #fff; border: none; padding: 10px 18px;
             border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;
         }
-        .btn-print:hover { background: #a30d15; }
+        .btn-print:hover { background: #005f87; }
+        .btn-print:focus-visible { outline: 2px solid #0098da; outline-offset: 2px; }
 
         .doc-header {
             display: flex; justify-content: space-between; align-items: flex-start;
-            border-bottom: 3px solid #C10B17; padding-bottom: 12px; margin-bottom: 18px;
+            border-bottom: 3px solid #0098da; padding-bottom: 12px; margin-bottom: 18px;
         }
         .doc-header img { height: 56px; width: auto; }
         .doc-title { text-align: right; }
-        .doc-title h1 { margin: 0; font-size: 20px; color: #C10B17; }
+        .doc-title h1 { margin: 0; font-size: 20px; color: #0a0e14; }
         .doc-title .fecha { font-size: 13px; color: #555; margin-top: 6px; }
 
         .section-title {
-            font-size: 15px; font-weight: 600; text-transform: uppercase; color: #C10B17;
+            font-size: 15px; font-weight: 600; text-transform: uppercase; color: #0076a8; letter-spacing: .04em;
             margin: 20px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;
         }
 
@@ -39,13 +40,13 @@
 
         table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
         th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
-        thead th { background: #C10B17; color: #fff; }
+        thead th { background: #0a0e14; color: #fff; }
         tbody tr:nth-child(even) { background: #f7f7f7; }
         tfoot td, tfoot th { font-weight: 700; }
 
         .doc-footer {
             margin-top: 26px; padding-top: 10px; border-top: 1px solid #eee;
-            font-size: 11px; color: #999; text-align: center;
+            font-size: 11px; color: #5b6575; text-align: center;
         }
 
         @media print {

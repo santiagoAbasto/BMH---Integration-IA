@@ -1,9 +1,9 @@
 @extends('layouts.plantilla-back')
 
 @section('content')
-<h1 class='mb-4'>Nosotros</h1>
+<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio" title="Nosotros" description="Textos e imágenes de la página Nosotros." />
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
@@ -68,10 +68,10 @@
                     
                     <td>
                       <div class='d-flex'>
-                        <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#{{'editar'.$imagen->id}}">
-                          <i class="fa-regular fa-pen-to-square"></i>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'editar'.$imagen->id}}" aria-label="Editar">
+                          <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm delete-slider" data-id='{{$imagen->id}}'><i class="fa-solid fa-trash-can"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm delete-slider" data-id='{{$imagen->id}}' aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
 
                       </div>
                       
@@ -118,8 +118,8 @@
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            Crear proceso
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h2 class="modal-title">Crear proceso</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <form id='agregar' class='mb-4 loading' action="{{route('imagen.store')}}" method="POST" enctype="multipart/form-data">
@@ -172,8 +172,8 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          Editar slider
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h2 class="modal-title">Editar slider</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <form id='{{'form'.$imagen->id}}'  action="{{route('slider.update',['id'=>$imagen->id])}}" method="post" enctype="multipart/form-data">

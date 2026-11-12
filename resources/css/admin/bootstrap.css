@@ -1,0 +1,901 @@
+/*
+ * Piel del panel sobre Bootstrap 5.2 (capa legacy): las pantallas siguen usando sus clases
+ * (.card, .table, .btn, .form-control, .modal…) y heredan el lenguaje nuevo sin reescribirse.
+ * Va sin layer: le gana a Bootstrap sin !important. Las utilidades de Bootstrap con !important
+ * (d-flex, mb-3…) siguen ganando, como corresponde.
+ */
+.adm {
+    --bs-body-font-family: var(--adm-font-body);
+    --bs-body-color: var(--adm-text);
+    --bs-body-bg: var(--adm-bg);
+    --bs-border-color: var(--adm-border);
+    --bs-primary: var(--adm-brand-strong);
+    --bs-primary-rgb: 0, 118, 168;
+    --bs-success-rgb: 27, 110, 61;
+    --bs-danger-rgb: 180, 35, 24;
+    --bs-warning-rgb: 154, 91, 0;
+    --bs-info-rgb: 0, 118, 168;
+    --bs-secondary-rgb: 91, 101, 117;
+    --bs-secondary-color: #5b6575;
+    --bs-link-color: var(--adm-brand-strong);
+    --bs-link-hover-color: var(--adm-brand-stronger);
+    --bs-border-radius: var(--adm-radius-sm);
+}
+
+/* --- Tipografía --- */
+:is(.adm-content, .modal) :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+:is(.adm-content, .modal) h1 { font-size: 1.625rem; }
+:is(.adm-content, .modal) h2 { font-size: 1.25rem; }
+:is(.adm-content, .modal) h3 { font-size: 1.0625rem; }
+:is(.adm-content, .modal) h4 { font-size: 1rem; }
+:is(.adm-content, .modal) :is(h5, h6) { font-size: 0.9375rem; }
+
+:is(.adm-content, .modal) :where(a:not(.btn, .page-link, .dropdown-item, .nav-link, [class*="osole-"])) {
+    color: var(--adm-brand-strong);
+    text-underline-offset: 0.18em;
+
+    &:hover {
+        color: var(--adm-brand-stronger);
+    }
+}
+
+:is(.adm-content, .modal) :is(code, kbd, samp) {
+    font-family: var(--adm-font-mono);
+}
+
+:is(.adm-content, .modal) code {
+    padding: 0.0625rem 0.3125rem;
+    border-radius: 0.3125rem;
+    background-color: var(--adm-brand-softer);
+    color: var(--adm-brand-stronger);
+    font-size: 0.85em;
+}
+
+.text-muted {
+    --bs-secondary-color: var(--adm-muted);
+}
+
+.adm .recomendada {
+    color: var(--adm-muted);
+    font-size: 0.8125rem;
+    opacity: 1;
+}
+
+.adm .visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* --- Foco visible en todo el panel --- */
+:is(.adm-content, .modal) :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--adm-brand);
+    outline-offset: 2px;
+}
+
+:is(.adm-content, .modal) :is(.form-control, .form-select, .form-check-input):focus-visible {
+    outline: none;
+}
+
+/* --- Botones --- */
+.btn {
+    --bs-btn-font-family: var(--adm-font-body);
+    --bs-btn-font-size: 0.875rem;
+    --bs-btn-font-weight: 600;
+    --bs-btn-padding-x: 1rem;
+    --bs-btn-padding-y: 0.5rem;
+    --bs-btn-border-radius: var(--adm-radius-sm);
+    --bs-btn-focus-box-shadow: var(--adm-focus);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-block-size: 2.5rem; /* 40px */
+    letter-spacing: 0;
+    line-height: 1.25;
+    text-decoration: none;
+    box-shadow: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus-visible {
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 2px;
+        box-shadow: none;
+    }
+
+    & > i {
+        font-size: 0.9em;
+    }
+}
+
+.btn-sm {
+    --bs-btn-padding-x: 0.75rem;
+    --bs-btn-padding-y: 0.3125rem;
+    --bs-btn-font-size: 0.8125rem;
+
+    min-block-size: 2.125rem; /* 34px */
+}
+
+.btn-lg {
+    --bs-btn-padding-x: 1.375rem;
+    --bs-btn-font-size: 1rem;
+
+    min-block-size: 3rem;
+}
+
+/* Principal: azul de marca oscurecido (5:1 con blanco). Éxito y "crear" van igual: una sola acción principal. */
+.btn-primary,
+.btn-success {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: var(--adm-brand-strong);
+    --bs-btn-border-color: var(--adm-brand-strong);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: var(--adm-brand-stronger);
+    --bs-btn-hover-border-color: var(--adm-brand-stronger);
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: #004f70;
+    --bs-btn-active-border-color: #004f70;
+    --bs-btn-disabled-color: #ffffff;
+    --bs-btn-disabled-bg: var(--adm-brand-strong);
+    --bs-btn-disabled-border-color: var(--adm-brand-strong);
+
+    box-shadow: 0 1px 2px rgb(0 76 108 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+/* Secundario: superficie con borde. */
+.btn-secondary,
+.btn-light,
+.btn-outline-secondary,
+.btn-outline-dark {
+    --bs-btn-color: var(--adm-ink);
+    --bs-btn-bg: var(--adm-surface);
+    --bs-btn-border-color: var(--adm-border-strong);
+    --bs-btn-hover-color: var(--adm-ink);
+    --bs-btn-hover-bg: var(--adm-surface-soft);
+    --bs-btn-hover-border-color: #b3bdca;
+    --bs-btn-active-color: var(--adm-ink);
+    --bs-btn-active-bg: #eef1f5;
+    --bs-btn-active-border-color: #b3bdca;
+    --bs-btn-disabled-color: var(--adm-muted);
+    --bs-btn-disabled-bg: var(--adm-surface);
+    --bs-btn-disabled-border-color: var(--adm-border);
+
+    box-shadow: var(--adm-shadow-sm);
+}
+
+.btn-outline-primary,
+.btn-outline-success,
+.btn-outline-info {
+    --bs-btn-color: var(--adm-brand-strong);
+    --bs-btn-bg: var(--adm-surface);
+    --bs-btn-border-color: #9fd3ea;
+    --bs-btn-hover-color: var(--adm-brand-stronger);
+    --bs-btn-hover-bg: var(--adm-brand-softer);
+    --bs-btn-hover-border-color: var(--adm-brand);
+    --bs-btn-active-color: var(--adm-brand-stronger);
+    --bs-btn-active-bg: var(--adm-brand-soft);
+    --bs-btn-active-border-color: var(--adm-brand);
+    --bs-btn-disabled-color: var(--adm-muted);
+    --bs-btn-disabled-bg: var(--adm-surface);
+    --bs-btn-disabled-border-color: var(--adm-border);
+}
+
+.btn-danger {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: var(--adm-danger);
+    --bs-btn-border-color: var(--adm-danger);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: var(--adm-danger-strong);
+    --bs-btn-hover-border-color: var(--adm-danger-strong);
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: #7f170f;
+    --bs-btn-active-border-color: #7f170f;
+    --bs-btn-disabled-bg: var(--adm-danger);
+    --bs-btn-disabled-border-color: var(--adm-danger);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--adm-danger);
+    --bs-btn-bg: var(--adm-surface);
+    --bs-btn-border-color: #f1b8b2;
+    --bs-btn-hover-color: var(--adm-danger-strong);
+    --bs-btn-hover-bg: var(--adm-danger-soft);
+    --bs-btn-hover-border-color: var(--adm-danger);
+    --bs-btn-active-color: var(--adm-danger-strong);
+    --bs-btn-active-bg: #fbd9d5;
+    --bs-btn-active-border-color: var(--adm-danger);
+}
+
+.btn-warning,
+.btn-outline-warning {
+    --bs-btn-color: var(--adm-warning);
+    --bs-btn-bg: var(--adm-warning-soft);
+    --bs-btn-border-color: #f3d39b;
+    --bs-btn-hover-color: #7a4800;
+    --bs-btn-hover-bg: #ffe9c2;
+    --bs-btn-hover-border-color: #e9b55c;
+    --bs-btn-active-color: #7a4800;
+    --bs-btn-active-bg: #ffe0a8;
+    --bs-btn-active-border-color: #e9b55c;
+}
+
+.btn-link {
+    --bs-btn-color: var(--adm-brand-strong);
+    --bs-btn-hover-color: var(--adm-brand-stronger);
+}
+
+.btn-close {
+    --bs-btn-close-focus-shadow: var(--adm-focus);
+
+    inline-size: 1rem;
+    block-size: 1rem;
+    border-radius: var(--adm-radius-sm);
+    opacity: 0.55;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+.loading-spinner {
+    display: inline-block;
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    border: 2px solid rgb(255 255 255 / 0.4);
+    border-block-start-color: #ffffff;
+    border-radius: 50%;
+    vertical-align: middle;
+    animation: adm-girar 0.7s linear infinite;
+}
+
+.btn:is(.btn-secondary, .btn-light, [class*="btn-outline"]) .loading-spinner {
+    border-color: var(--adm-border-strong);
+    border-block-start-color: var(--adm-brand-strong);
+}
+
+@keyframes adm-girar {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Formularios --- */
+.form-label,
+:is(.adm-content, .modal) label.col-form-label {
+    margin-block-end: 0.375rem;
+    color: var(--adm-ink-700);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+:is(.adm-content, .modal) :where(label) {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Etiquetas de campo sin .form-label (pantallas viejas): con el mismo peso que las nuevas. */
+:is(.adm-content, .modal) .card-body :where(label:not(:has(input, select, textarea))) {
+    color: var(--adm-ink-700);
+    font-weight: 600;
+}
+
+.form-control,
+.form-select {
+    min-block-size: var(--adm-control-height);
+    padding: 0.5rem 0.75rem;
+    border-color: var(--adm-border-strong);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface);
+    color: var(--adm-ink);
+    font-size: 0.9375rem;
+    box-shadow: inset 0 1px 1px rgb(10 14 20 / 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::placeholder {
+        color: #8a94a3;
+    }
+
+    &:hover:not(:disabled, [readonly]) {
+        border-color: #aeb9c7;
+    }
+
+    &:focus {
+        border-color: var(--adm-brand);
+        box-shadow: var(--adm-focus);
+    }
+
+    &:disabled,
+    &[readonly] {
+        background-color: #f1f4f7;
+        color: var(--adm-muted);
+    }
+
+    &.is-invalid {
+        border-color: var(--adm-danger);
+    }
+}
+
+.form-select {
+    padding-inline-end: 2.25rem;
+}
+
+textarea.form-control {
+    min-block-size: 6rem;
+    line-height: 1.5;
+}
+
+.form-control[type="file"] {
+    padding: 0.375rem;
+    color: var(--adm-muted);
+    font-size: 0.875rem;
+
+    &::file-selector-button {
+        margin: -0.125rem 0.75rem -0.125rem 0;
+        padding: 0.375rem 0.875rem;
+        border: 1px solid var(--adm-border-strong);
+        border-radius: 0.375rem;
+        background-color: var(--adm-surface-soft);
+        color: var(--adm-ink);
+        font-weight: 600;
+    }
+
+    &:hover:not(:disabled)::file-selector-button {
+        background-color: var(--adm-brand-softer);
+    }
+}
+
+.form-control-color {
+    inline-size: 3.5rem;
+    padding: 0.3125rem;
+}
+
+.form-check-input {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    border-color: #a9b4c2;
+    cursor: pointer;
+
+    &:checked {
+        border-color: var(--adm-brand-strong);
+        background-color: var(--adm-brand-strong);
+    }
+
+    &:focus {
+        border-color: var(--adm-brand);
+        box-shadow: var(--adm-focus);
+    }
+}
+
+.form-switch .form-check-input {
+    inline-size: 2.25rem;
+}
+
+.form-text,
+.invalid-feedback {
+    font-size: 0.8125rem;
+}
+
+.form-text {
+    color: var(--adm-muted);
+}
+
+.invalid-feedback {
+    color: var(--adm-danger);
+}
+
+.input-group-text {
+    border-color: var(--adm-border-strong);
+    background-color: var(--adm-surface-soft);
+    color: var(--adm-muted);
+}
+
+/* --- Tarjetas: superficie blanca con borde y sombra suave --- */
+.card {
+    --bs-card-border-color: var(--adm-border);
+    --bs-card-border-radius: var(--adm-radius-lg);
+    --bs-card-inner-border-radius: calc(var(--adm-radius-lg) - 1px);
+    --bs-card-cap-bg: var(--adm-surface);
+    --bs-card-cap-padding-y: 1rem;
+    --bs-card-cap-padding-x: 1.25rem;
+    --bs-card-spacer-y: 1.25rem;
+    --bs-card-spacer-x: 1.25rem;
+
+    min-inline-size: 0;
+    box-shadow: var(--adm-shadow);
+}
+
+.card + .card {
+    margin-block-start: 1.25rem;
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.card-footer {
+    background-color: var(--adm-surface-soft);
+}
+
+.card-title {
+    font-family: var(--adm-font-heading);
+    font-weight: 700;
+}
+
+@media (width < 640px) {
+    .card {
+        --bs-card-spacer-x: 1rem;
+        --bs-card-cap-padding-x: 1rem;
+    }
+}
+
+/* --- Tablas --- */
+.table {
+    --bs-table-color: var(--adm-text);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--adm-border);
+    --bs-table-striped-bg: #f7f9fb;
+    --bs-table-striped-color: var(--adm-text);
+    --bs-table-hover-bg: var(--adm-brand-softer);
+    --bs-table-hover-color: var(--adm-text);
+
+    margin-block-end: 0;
+    border-color: var(--adm-border);
+    font-size: 0.875rem;
+    vertical-align: middle;
+
+    & > :not(caption) > * > * {
+        padding: 0.75rem 0.875rem;
+    }
+
+    & > thead > tr > :is(th, td) {
+        border-block-end-width: 1px;
+        background-color: #f4f6f9;
+        color: var(--adm-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    & > :is(thead, tbody, tfoot) {
+        border-top: 0;
+    }
+
+    & > thead > tr > :is(th, td) {
+        border-block-end-color: var(--adm-border);
+    }
+
+    & > tbody > tr:last-child > * {
+        border-block-end-width: 0;
+    }
+
+    & > tbody > tr {
+        transition: background-color 0.12s ease;
+    }
+
+    & .img-thumbnail {
+        padding: 0.1875rem;
+        border-color: var(--adm-border);
+        border-radius: var(--adm-radius-sm);
+        object-fit: cover;
+    }
+}
+
+.table > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--adm-brand-softer);
+}
+
+/* Tablas sueltas dentro de una tarjeta: con borde y esquinas redondeadas, y scroll horizontal
+   cuando no entran. Los menús desplegables de una tabla usan Popper con strategy "fixed" para
+   que el scroll no los recorte (data-bs-popper-config en el botón). */
+.card-body:has(> .table) {
+    overflow-x: auto;
+}
+
+
+.card-body > .table:not(.productos-table),
+.adm-tabla {
+    border: 1px solid var(--adm-border);
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--adm-radius);
+
+    & > :first-child > tr:first-child > :first-child { border-start-start-radius: calc(var(--adm-radius) - 1px); }
+    & > :first-child > tr:first-child > :last-child { border-start-end-radius: calc(var(--adm-radius) - 1px); }
+    & > :last-child > tr:last-child > :first-child { border-end-start-radius: calc(var(--adm-radius) - 1px); }
+    & > :last-child > tr:last-child > :last-child { border-end-end-radius: calc(var(--adm-radius) - 1px); }
+}
+
+:is(.adm-content, .modal) .table td {
+    overflow-wrap: anywhere;
+}
+
+:is(.adm-content, .modal) .table td:has(.btn, .adm-switch, .adm-estado) {
+    overflow-wrap: normal;
+}
+
+.table-responsive {
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+
+    & > .table {
+        border: 0;
+    }
+}
+
+/* --- Modales --- */
+/* Ancho cómodo para los formularios de edición (Bootstrap trae 500px; .modal-md no existe en
+   Bootstrap y quedaba en 500px). .modal-lg y .modal-xl siguen con su ancho. En el celular, el
+   ancho disponible. */
+.modal {
+    --bs-modal-width: 40rem; /* 640px */
+}
+
+.modal-dialog:has(.adm-confirmar-cuerpo, .confirmar-eliminar) {
+    --bs-modal-width: 28rem; /* 448px: confirmaciones */
+}
+
+.modal {
+    --bs-modal-border-radius: var(--adm-radius-lg);
+    --bs-modal-inner-border-radius: calc(var(--adm-radius-lg) - 1px);
+    --bs-modal-border-color: transparent;
+    --bs-modal-box-shadow: var(--adm-shadow-lg);
+    --bs-modal-header-padding: 1.125rem 1.375rem;
+    --bs-modal-padding: 1.375rem;
+    --bs-modal-footer-gap: 0.5rem;
+    --bs-modal-header-border-color: var(--adm-border);
+    --bs-modal-footer-border-color: var(--adm-border);
+}
+
+.modal-backdrop {
+    --bs-backdrop-bg: #05070a;
+    --bs-backdrop-opacity: 0.55;
+}
+
+.modal-content {
+    box-shadow: var(--adm-shadow-lg);
+}
+
+.modal-header {
+    gap: 1rem;
+}
+
+.modal .modal-title,
+.modal .modal-header :is(h1, h2, h3, h4, h5) {
+    margin: 0;
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+.modal-body {
+    font-size: 0.9375rem;
+}
+
+/* Los modales de confirmación viejos traen el texto en .fs-4. */
+.modal-body.fs-4 {
+    padding-block: 1.75rem 1.25rem;
+    color: var(--adm-ink);
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.modal-footer {
+    padding: 0.875rem 1.375rem;
+    background-color: var(--adm-surface-soft);
+    border-end-start-radius: var(--bs-modal-inner-border-radius);
+    border-end-end-radius: var(--bs-modal-inner-border-radius);
+
+    & > * {
+        margin: 0;
+    }
+
+    & form {
+        display: inline-flex;
+    }
+}
+
+/* --- Avisos --- */
+.alert {
+    --bs-alert-border-radius: var(--adm-radius);
+    --bs-alert-padding-y: 0.875rem;
+    --bs-alert-padding-x: 1rem;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-width: 1px;
+    border-inline-start-width: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+
+    &::before {
+        flex-shrink: 0;
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+        margin-block-start: 0.0625rem;
+        background-color: currentColor;
+        content: "";
+        mask: var(--adm-alert-icono) center / contain no-repeat;
+    }
+
+    & > :last-child {
+        margin-block-end: 0;
+    }
+
+    & ul {
+        margin-block-end: 0;
+        padding-inline-start: 1.125rem;
+    }
+}
+
+/* Avisos que ya traen su propio ícono o botón de cierre: sin el ícono genérico. */
+.alert:has(> i:first-child, > .btn-close)::before {
+    content: none;
+}
+
+.alert-success {
+    --bs-alert-color: var(--adm-success);
+    --bs-alert-bg: var(--adm-success-soft);
+    --bs-alert-border-color: #b7dcc3;
+    --adm-alert-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.5 2.5 5.5-6'/%3E%3C/svg%3E");
+}
+
+.alert-danger {
+    --bs-alert-color: var(--adm-danger);
+    --bs-alert-bg: var(--adm-danger-soft);
+    --bs-alert-border-color: #f3c3bd;
+    --adm-alert-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E");
+}
+
+.alert-warning {
+    --bs-alert-color: var(--adm-warning);
+    --bs-alert-bg: var(--adm-warning-soft);
+    --bs-alert-border-color: #f1d49e;
+    --adm-alert-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20h19z'/%3E%3Cpath d='M12 10v4M12 17h.01'/%3E%3C/svg%3E");
+}
+
+.alert-info,
+.alert-primary,
+.alert-secondary,
+.alert-light {
+    --bs-alert-color: var(--adm-brand-stronger);
+    --bs-alert-bg: var(--adm-brand-softer);
+    --bs-alert-border-color: #b9e1f2;
+    --adm-alert-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5.5M12 7.5h.01'/%3E%3C/svg%3E");
+}
+
+.alert-success,
+.alert-danger,
+.alert-warning,
+.alert-info,
+.alert-primary,
+.alert-secondary,
+.alert-light {
+    border-inline-start-color: currentColor;
+}
+
+/* --- Etiquetas --- */
+.badge {
+    --bs-badge-font-weight: 600;
+    --bs-badge-border-radius: 999px;
+    --bs-badge-padding-x: 0.625rem;
+    --bs-badge-padding-y: 0.3125rem;
+
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+}
+
+
+/* --- Paginación --- */
+.pagination {
+    --bs-pagination-color: var(--adm-ink);
+    --bs-pagination-bg: var(--adm-surface);
+    --bs-pagination-border-color: var(--adm-border);
+    --bs-pagination-hover-color: var(--adm-brand-strong);
+    --bs-pagination-hover-bg: var(--adm-brand-softer);
+    --bs-pagination-hover-border-color: var(--adm-border-strong);
+    --bs-pagination-focus-box-shadow: var(--adm-focus);
+    --bs-pagination-active-color: #ffffff;
+    --bs-pagination-active-bg: var(--adm-brand-strong);
+    --bs-pagination-active-border-color: var(--adm-brand-strong);
+    --bs-pagination-disabled-color: #8a94a3;
+    --bs-pagination-disabled-bg: var(--adm-surface);
+    --bs-pagination-border-radius: var(--adm-radius-sm);
+
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.875rem;
+
+    & .page-link {
+        display: grid;
+        place-items: center;
+        min-inline-size: 2.5rem;
+        min-block-size: 2.5rem;
+        border-radius: var(--adm-radius-sm) !important;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    & .page-item:not(:first-child) .page-link {
+        margin-inline-start: 0;
+    }
+}
+
+nav[role="navigation"] p.small {
+    color: var(--adm-muted);
+}
+
+/* --- Pestañas y dropdowns --- */
+.nav-tabs {
+    --bs-nav-tabs-border-color: var(--adm-border);
+    --bs-nav-tabs-link-active-color: var(--adm-ink);
+    --bs-nav-tabs-link-active-border-color: var(--adm-border) var(--adm-border) var(--adm-surface);
+    --bs-nav-link-color: var(--adm-muted);
+    --bs-nav-link-hover-color: var(--adm-brand-strong);
+
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.nav-pills {
+    --bs-nav-pills-link-active-bg: var(--adm-brand-strong);
+    --bs-nav-link-color: var(--adm-muted);
+    --bs-nav-link-hover-color: var(--adm-brand-strong);
+
+    gap: 0.25rem;
+}
+
+.dropdown-menu {
+    --bs-dropdown-border-color: var(--adm-border);
+    --bs-dropdown-border-radius: var(--adm-radius);
+    --bs-dropdown-box-shadow: var(--adm-shadow);
+    --bs-dropdown-link-active-bg: var(--adm-brand-strong);
+    --bs-dropdown-font-size: 0.875rem;
+
+    padding: 0.375rem;
+    box-shadow: var(--adm-shadow);
+
+    & .dropdown-item {
+        border-radius: 0.375rem;
+    }
+}
+
+.list-group {
+    --bs-list-group-border-color: var(--adm-border);
+    --bs-list-group-border-radius: var(--adm-radius);
+    --bs-list-group-active-bg: var(--adm-brand-strong);
+    --bs-list-group-active-border-color: var(--adm-brand-strong);
+}
+
+.accordion {
+    --bs-accordion-border-color: var(--adm-border);
+    --bs-accordion-border-radius: var(--adm-radius);
+    --bs-accordion-inner-border-radius: calc(var(--adm-radius) - 1px);
+    --bs-accordion-active-bg: var(--adm-brand-softer);
+    --bs-accordion-active-color: var(--adm-ink);
+    --bs-accordion-btn-focus-box-shadow: var(--adm-focus);
+    --bs-accordion-btn-focus-border-color: var(--adm-brand);
+}
+
+.img-thumbnail {
+    border-color: var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+}
+
+hr {
+    border-color: var(--adm-border);
+    opacity: 1;
+}
+
+/* --- Summernote --- */
+.note-editor.note-frame {
+    overflow: hidden;
+    border: 1px solid var(--adm-border-strong);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface);
+
+    &:focus-within {
+        border-color: var(--adm-brand);
+        box-shadow: var(--adm-focus);
+    }
+
+    & .note-toolbar {
+        border-block-end: 1px solid var(--adm-border);
+        background-color: var(--adm-surface-soft);
+    }
+
+    & .note-btn {
+        border-color: var(--adm-border);
+        border-radius: 0.375rem;
+        background-color: var(--adm-surface);
+    }
+
+    & .note-editable {
+        color: var(--adm-ink);
+        font-family: var(--adm-font-body);
+        font-size: 0.9375rem;
+    }
+
+    & .note-statusbar {
+        border-block-start: 1px solid var(--adm-border);
+        background-color: var(--adm-surface-soft);
+    }
+}
+
+/* --- Select2 --- */
+.select2-container--default {
+    & .select2-selection--single,
+    & .select2-selection--multiple {
+        min-block-size: var(--adm-control-height);
+        border-color: var(--adm-border-strong);
+        border-radius: var(--adm-radius-sm);
+    }
+
+    & .select2-selection--single .select2-selection__rendered {
+        line-height: calc(var(--adm-control-height) - 2px);
+    }
+
+    & .select2-selection--single .select2-selection__arrow {
+        block-size: calc(var(--adm-control-height) - 2px);
+    }
+
+    &.select2-container--focus .select2-selection--multiple,
+    &.select2-container--open .select2-selection {
+        border-color: var(--adm-brand);
+        box-shadow: var(--adm-focus);
+    }
+
+    & .select2-selection--multiple .select2-selection__choice {
+        border-color: #b9e1f2;
+        border-radius: 999px;
+        background-color: var(--adm-brand-soft);
+        color: var(--adm-brand-stronger);
+    }
+
+    & .select2-results__option--highlighted.select2-results__option--selectable {
+        background-color: var(--adm-brand-strong);
+    }
+}
+
+/* --- iziToast: avisos flotantes en la tinta del panel --- */
+.iziToast {
+    border-radius: var(--adm-radius) !important;
+    font-family: var(--adm-font-body) !important;
+    box-shadow: var(--adm-shadow-lg) !important;
+}
+
+/* Bordes de tabla siempre del gris del panel (Bootstrap los hereda de currentColor). */
+.table > :not(caption) > *,
+.table > :not(caption) > * > * {
+    border-color: var(--adm-border);
+}
+
+.table-bordered {
+    border-color: var(--adm-border);
+}
+
+:is(.adm-content, .modal) .card-header :is(h2, h3) {
+    margin: 0;
+    font-size: 1rem;
+}

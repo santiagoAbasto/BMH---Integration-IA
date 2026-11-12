@@ -1,16 +1,12 @@
 @extends('layouts.plantilla-back')
 
 @section('styles')
-<style>
-    table .btn{
-        height: 31px;
-    }
-</style>
+
 @endsection
 
 @section('content')
 
-  <h1 class='mb-4'>Pedidos</h1>
+  <x-osole::admin-page-header.v1 eyebrow="Ventas" title="Pedidos" description="Los pedidos que hacen los clientes desde la web, del más nuevo al más viejo." />
 
   @if(session('success'))
       <div class="alert alert-success">
@@ -24,30 +20,32 @@
   @endif
 
   @if($nuevosPedidos > 0)
-  <div class="mb-3 text-end">
-    <span class="badge bg-primary" style="font-size: 16px; padding: 10px 20px; border-radius: 20px;">
-      Pedidos en las últimas 24 hs: {{ $nuevosPedidos }}
-    </span>
-  </div>
+  <p class="adm-aviso-pedidos" role="status">
+    <span class="adm-topbar__pulso" aria-hidden="true"></span>
+    <strong>{{ $nuevosPedidos }} {{ $nuevosPedidos === 1 ? 'pedido nuevo' : 'pedidos nuevos' }}</strong> en las últimas 24 horas.
+  </p>
 @endif
 
 
 <div class="card">
-    
-    <div class="card-header d-flex justify-content-between">
-      <div class="search-container">
-        <input type="text" placeholder="Buscar..." class="search-input">
-        <button id='buscador-productos' class="search-btn">
-          <i class="fa fa-search"></i>
+
+    <div class="card-header">
+      <div class="search-container" role="search">
+        <label for="pedidos-busqueda" class="visually-hidden">Buscar pedidos</label>
+        <i class="fa fa-search search-container__icono" aria-hidden="true"></i>
+        <input type="search" id="pedidos-busqueda" placeholder="Buscar por número, cliente, CUIT, estado o fecha" class="search-input" autocomplete="off">
+        <button id='buscador-productos' class="search-btn" type="button" aria-label="Buscar">
+          <i class="fa fa-search" aria-hidden="true"></i>
         </button>
       </div>
+      <p class="adm-ayuda-tabla mb-0">Tocá el estado de un pedido para cambiarlo.</p>
     </div>
     <div class="card-body">
 
       <table class="table table-striped" style='border: 1px solid #dddddd;'>
         <thead>
           <tr>
-            <th>ID</th>
+            <th>N.º</th>
             <th>Razón social</th>
             <th>Fecha</th>
             <th>Estado de la compra</th>
@@ -55,7 +53,7 @@
             {{-- <th>Método de envío</th> --}}
             <th>Estado de la orden</th>
             <th>Importe</th>
-            <th style='text-align:center;'>Acciones</th>
+            <th><span class="visually-hidden">Acciones</span></th>
           </tr>
         </thead>
         <tbody id='productos-contenedor'>
@@ -67,14 +65,13 @@
 
     </div>
     <div class='card-footer'>
-        {{$pedidos->links()}}
+        {{ $pedidos->links('pagination::bootstrap-5') }}
     </div>
 </div>
 
 @endsection
 
 @section('script')
-<script src="https://cdn.tailwindcss.com"></script>
 <script>
 
     // Estado de la compra
@@ -119,7 +116,7 @@
                     document.getElementById('estado-orden' + id).innerText = nuevoEstado
                     event.target.innerText = anteriorEstado
                 }
-                
+
             },
             error: function(xhr) {
                 console.error(xhr.responseText);

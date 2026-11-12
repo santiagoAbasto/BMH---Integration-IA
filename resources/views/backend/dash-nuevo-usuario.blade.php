@@ -2,21 +2,25 @@
 
 @section('content')
 
-<h1 class='mb-4'>Crear usuario</h1>
+<x-osole::admin-page-header.v1 eyebrow="Administración · Usuarios" title="Crear usuario" description="Usuarios con acceso a este panel." :back-href="route('usuarios')" back-label="Volver a usuarios" />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
 
-  <div class="card" style='margin-right:400px;margin-left:400px;'>
+  <div class="card" style="max-width: 40rem;">
     <div class="card-header">
+      <div class="adm-card-titulo">
+        <h2>Datos de acceso</h2>
+        <p>Con el usuario y la contraseña se ingresa a este panel.</p>
+      </div>
     </div>
     <div class="card-body">
 

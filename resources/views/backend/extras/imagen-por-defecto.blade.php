@@ -124,19 +124,15 @@
      data-lado-minimo="{{ $ladoMinimo }}"
      data-peso-maximo="{{ $pesoMaximoKb * 1024 }}">
 
-  <div class="ext-encabezado">
-    <div>
-      <h1>Imagen por defecto</h1>
-      <p>Es la imagen que se muestra cuando un producto no tiene foto: en el catálogo, en la ficha del producto, en las partes relacionadas y en el carrito. A la derecha ves cómo queda antes de guardar.</p>
-      <span class="idef-dato">
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Imagen por defecto" description="Es la imagen que se muestra cuando un producto no tiene foto: en el catálogo, en la ficha del producto, en las partes relacionadas y en el carrito. A la derecha ves cómo queda antes de guardar.">
+    <span class="idef-dato">
         <strong>{{ number_format($productosSinPortada, 0, ',', '.') }}</strong>
         {{ $productosSinPortada === 1 ? 'producto la usa hoy' : 'productos la usan hoy' }}
       </span>
-    </div>
-  </div>
+  </x-osole::admin-page-header.v1>
 
   @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}. Ya se ve así en el sitio.</div>
+    <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
   @endif
   @if ($errors->any())
     <div class="alert alert-danger">No se guardó: {{ $errors->first('imagen') }}</div>

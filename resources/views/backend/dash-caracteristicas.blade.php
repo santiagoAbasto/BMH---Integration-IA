@@ -2,20 +2,20 @@
 
 @section('content')
 
-<h1 class='mb-4'>Caracteristicas</h1>
+<x-osole::admin-page-header.v1 eyebrow="Catálogo" title="Características" description="Atributos que se asignan a las familias para completar la ficha técnica." />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
   @if(session('warning'))
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
           {{ session('warning') }}
       </div>
   @endif
   @if($errors->any())
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" role="alert">
         <ul class='mb-0'>
           @foreach ($errors->all() as $error)
             <li>{{ $error }}</li>
@@ -58,7 +58,7 @@
         <small class='text-muted'>{{ $caracteristicas->total() }} característica(s)</small>
       </div>
 
-      <table class="table table-striped" style='border: 1px solid #dddddd;'>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>Orden</th>
@@ -80,14 +80,14 @@
                   <button type="button" class="btn btn-primary btn-sm me-1 js-editar"
                           data-id="{{ $dato->id }}"
                           data-nombre="{{ $dato->nombre }}"
-                          data-orden="{{ $dato->orden }}">
-                    <i class="fa-regular fa-pen-to-square"></i>
+                          data-orden="{{ $dato->orden }}" aria-label="Editar">
+                    <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
                   </button>
                   <form action="{{ route('caracteristicas.delete', ['id' => $dato->id]) }}" method="POST" class='js-borrar'
                         data-nombre="{{ $dato->nombre }}">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i></button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
                   </form>
                 </div>
               </td>
@@ -109,7 +109,7 @@
     </div>
 
     <div class='card-footer'>
-      {{ $caracteristicas->links() }}
+      {{ $caracteristicas->links('pagination::bootstrap-5') }}
     </div>
   </div>
 
@@ -119,7 +119,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class='modal-title' id='crearLabel'>Crear caracteristica</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <form class='pb-3' id='formulario-crear' action="{{ route('caracteristicas.store') }}" method="POST">
@@ -146,7 +146,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class='modal-title' id='editarLabel'>Editar caracteristica</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <form id='formulario-editar' action="{{ route('caracteristicas.update') }}" method="post">
@@ -176,7 +176,6 @@
 @endsection
 
 @section('script')
-<script src="https://cdn.tailwindcss.com"></script>
 <script>
   (function () {
     var modalEditar = document.getElementById('editar');

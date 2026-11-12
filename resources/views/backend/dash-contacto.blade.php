@@ -2,10 +2,10 @@
 
 @section('content')
 
-<h1 class='mb-4'>Contacto</h1>
+<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio" title="Contacto" description="Los datos de contacto que se muestran en el sitio." />
 
   @if(session('success'))
-      <div class="alert alert-success">
+      <div class="alert alert-success" role="status">
           {{ session('success') }}
       </div>
   @endif
