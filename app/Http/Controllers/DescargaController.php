@@ -25,23 +25,60 @@ class DescargaController extends Controller
         return view('frontend/datos-kc', compact('modelo', 'datos'));
     }
 
+    /**
+     * Sube el Excel de «datos KC» (página pública /datos-kc).
+     *
+     * SEGURIDAD: antes guardaba en public/archivos cualquier archivo con la extensión que mandaba el cliente,
+     * sin login: un .php subido así se podía ejecutar en el servidor. Ahora sólo acepta planillas (se revisa el
+     * contenido, no el nombre), la extensión la decide el servidor según ese contenido, pesa hasta 10 MB y la
+     * ruta pasa por el filtro anti-bots y un límite de envíos.
+     */
     public function datos_kc_update(Request $request){
-        if($request->hasFile('file')){
-            $file = $request->file;
-            if ($file->isValid()) {
-                $anterior = Descarga::where('sector', 'datos-actual')->first();
-                File::delete(public_path('archivos/'.$anterior->path));
+        $tipo = null;
+        $request->validate(
+            ['file' => ['required', 'file', 'max:10240', 'mimes:xlsx,xls,csv',
+                // El nombre no alcanza: tiene que abrirse como planilla y no traer código.
+                function (string $atributo, mixed $archivo, \Closure $falla) use (&$tipo): void {
+                    $inicio = (string) file_get_contents($archivo->getRealPath(), false, null, 0, 4096);
+                    try {
+                        $tipo = \PhpOffice\PhpSpreadsheet\IOFactory::identify($archivo->getRealPath(), ['Xlsx', 'Xls', 'Csv']);
+                    } catch (\Throwable) {
+                        $tipo = null;
+                    }
+                    if ($tipo === null || preg_match('/<\?(php|=)?|<script/i', $inicio) === 1) {
+                        $falla('Subí una planilla de Excel (.xlsx o .xls) o un .csv.');
+                    }
+                },
+            ]],
+            [
+                'file.required' => 'Elegí el archivo.',
+                'file.mimes' => 'Subí una planilla de Excel (.xlsx o .xls) o un .csv.',
+                'file.max' => 'El archivo puede pesar hasta 10 MB.',
+            ],
+        );
 
-                $nombreArchivo = 'datoskc_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move('archivos', $nombreArchivo);
-    
-                $anterior->archivo = $file->getClientOriginalName();
-                $anterior->path = $nombreArchivo;
-                $anterior->save();
-            }
+        $file = $request->file('file');
+        // La extensión sale del tipo real del archivo, nunca del nombre que manda el navegador.
+        $extension = match ($tipo) {
+            'Xlsx' => 'xlsx',
+            'Xls' => 'xls',
+            default => 'csv',
+        };
+
+        $anterior = Descarga::where('sector', 'datos-actual')->firstOrFail();
+        $nombreArchivo = 'datoskc_' . uniqid() . '.' . $extension;
+        $file->move(public_path('archivos'), $nombreArchivo);
+
+        // El anterior se borra sólo si es un archivo de esta carpeta (nunca una ruta con «..» o «/»).
+        if ($anterior->path && ! str_contains($anterior->path, '..') && ! str_contains($anterior->path, '/')) {
+            File::delete(public_path('archivos/'.$anterior->path));
         }
 
-        return redirect()->back();
+        $anterior->archivo = mb_substr(basename((string) $file->getClientOriginalName()), 0, 150);
+        $anterior->path = $nombreArchivo;
+        $anterior->save();
+
+        return redirect()->back()->with('success', 'Archivo actualizado.');
     }
 
     public function dash_descargas(){

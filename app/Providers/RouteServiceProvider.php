@@ -128,6 +128,16 @@ class RouteServiceProvider extends ServiceProvider
             });
         }
 
+        // Subida de los datos KC (/datos-kc): 5 por minuto y 30 por día desde una IP.
+        RateLimiter::for('datos-kc', function (Request $request) use ($demasiados) {
+            $aviso = $demasiados('file', 'Hiciste varios intentos seguidos. Esperá un rato antes de volver a intentar.');
+
+            return [
+                Limit::perMinute(5)->by('datos-kc:ip:'.$request->ip())->response($aviso),
+                Limit::perDay(30)->by('datos-kc:ip-dia:'.$request->ip())->response($aviso),
+            ];
+        });
+
         // Newsletter (hoy sin formulario en el sitio): 5 por minuto y 20 por día desde una IP.
         RateLimiter::for('newsletter', function (Request $request) use ($demasiados) {
             $aviso = $demasiados('mail', 'Hiciste varios intentos seguidos. Esperá un rato antes de volver a intentar.');

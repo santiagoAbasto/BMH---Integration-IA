@@ -93,10 +93,18 @@
     <div class='d-flex justify-content-center'>
         <form class='pb-3' id='formulario-crear' action="{{route('datos.update')}}" method="POST" enctype="multipart/form-data">
             @csrf
-    
+            <x-anti-bots />
+
+            @if (session('success'))
+                <div class="alert alert-success" role="status">{{ session('success') }}</div>
+            @endif
+            @if ($errors->any())
+                <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
+            @endif
+
             <div class="mb-3">
-                <label for="file" class="form-label">Archivo</label>
-                <input class="form-control preview" type="file" name='file' accept="file/*" required>
+                <label for="file" class="form-label">Archivo (Excel o CSV)</label>
+                <input class="form-control preview" type="file" id="file" name='file' accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" required>
             </div>
     
             <button type="submit" class='btn btn-primary'>Subir</button>
