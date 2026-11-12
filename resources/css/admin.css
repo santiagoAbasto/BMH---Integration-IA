@@ -12,6 +12,7 @@
 @import "../../vendor/osole/ui/resources/components/admin-login/v1/admin-login.css";
 @import "../../vendor/osole/ui/resources/components/admin-page-header/v1/admin-page-header.css";
 @import "../../vendor/osole/ui/resources/components/admin-stats/v1/admin-stats.css";
+@import "../../vendor/osole/ui/resources/components/admin-inbox/v1/admin-inbox.css";
 
 @import "./admin/tema.css";
 @import "./admin/layout.css";
@@ -20,3 +21,4 @@
 @import "./admin/login.css";
 @import "./admin/dashboard.css";
 @import "./admin/pedidos.css";
+@import "./admin/contacto.css";

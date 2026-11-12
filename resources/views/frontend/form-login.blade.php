@@ -9,6 +9,8 @@
 
 <form class="ingreso bmh-ingreso__form" method="POST" action="{{ route('user.login') }}" novalidate>
     @csrf
+    {{-- Anti-bots: honeypot + token de tiempo (EnsureHumanFormSubmission); el script renueva el token si falla. --}}
+    <x-anti-bots id="ingreso" />
 
     <div class="bmh-ingreso__campo">
         <label for="input_type" class="visually-hidden">Usuario o email</label>

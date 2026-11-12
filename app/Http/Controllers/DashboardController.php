@@ -88,8 +88,10 @@ class DashboardController extends Controller
         return view('backend/dash-ofertas', compact('ofertas', 'productos'));
     }
 
+    /** Contacto › Contenido (la bandeja de mensajes está en ContactoMensajeController). */
     public function contacto(){
-        $contacto = Contacto::find(1);
-        return view('backend/dash-contacto', compact('contacto'));
+        $contacto = Contacto::actual();
+        $sinLeer = \App\Models\ContactoMensaje::sinLeer();
+        return view('backend/dash-contacto', compact('contacto', 'sinLeer'));
     }
 }

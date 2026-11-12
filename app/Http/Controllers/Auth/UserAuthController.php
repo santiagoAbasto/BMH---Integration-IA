@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureHumanFormSubmission;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UserAuthController extends Controller
@@ -26,6 +28,11 @@ class UserAuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
+        // Cayó en el campo trampa del anti-bots: se le contesta como a un usuario o contraseña incorrectos.
+        if (EnsureHumanFormSubmission::isTrapped($request)) {
+            throw ValidationException::withMessages(['username' => trans('auth.failed')]);
+        }
+
         // Autenticación
         $request->authenticate('web');
     

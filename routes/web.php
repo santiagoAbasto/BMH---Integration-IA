@@ -54,13 +54,18 @@ use App\Http\Controllers\RepuestosController;
 
 // Rutas para usuarios
 Route::prefix('user')->name('user.')->group(function () {
-    Route::post('/login', [UserAuthController::class, 'login'])->name('login'); // las rutas de esto se definen en el ajax
+    // Anti-bots: rate limit por IP y por cuenta + honeypot y token de tiempo (ver EnsureHumanFormSubmission).
+    Route::post('/login', [UserAuthController::class, 'login'])
+        ->middleware(['throttle:login-clientes', 'human-form:username'])
+        ->name('login'); // las rutas de esto se definen en el ajax
 });
 
 // Rutas para administradores
 Route::get('/login/admin', [AdminAuthController::class, 'create'])->name('admin');
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])
+        ->middleware(['throttle:login-admin', 'human-form:username'])
+        ->name('login');
     Route::post('/logout', [AdminAuthController::class, 'destroy'])->name('logout');
 });
 
@@ -270,7 +275,8 @@ Route::controller(ContactoController::class)->group(function () {
     
     
     Route::put('contacto/update', 'update')->middleware('admin')->name('contacto.update');
-    Route::post('contacto/enviar', 'mailContacto')->name('enviar.mail');
+    // Sin reCAPTCHA: rate limit por IP y por email + honeypot y token de tiempo (EnsureHumanFormSubmission).
+    Route::post('contacto/enviar', 'mailContacto')->middleware(['throttle:contacto', 'human-form'])->name('enviar.mail');
 });
 
 Route::controller(PedidoController::class)->middleware('admin')->group(function () {
@@ -346,7 +352,8 @@ Route::controller(MailController::class)->middleware('admin')->group(function ()
 });
 
 Route::controller(NewsletterController::class)->group(function () {
-    Route::post('newsletter/crear', 'crear')->name('newsletter.crear');
+    // Hoy no hay formulario de newsletter en el sitio: si vuelve, tiene que llevar <x-anti-bots />.
+    Route::post('newsletter/crear', 'crear')->middleware(['throttle:newsletter', 'human-form:mail'])->name('newsletter.crear');
     
     Route::middleware('admin')->group(function(){
         Route::get('dashboard/newsletter', 'newsletter')->name('newsletter');
@@ -380,7 +387,9 @@ Route::controller(AnuncioController::class)->middleware('admin')->group(function
     Route::post('anuncio/mostrar', 'mostrar')->name('anuncio.mostrar');
 });
 
+// Registro público de clientes y alta de usuarios desde el panel: el anti-bots sólo se aplica sin sesión del panel.
 Route::post('dashboard/crear-usuario', [RegisteredUserController::class, 'store'])
+                ->middleware(['throttle:registro', 'human-form:username,excepto-admin'])
                 ->name('crear.usuario');
 
 Route::controller(UserController::class)->group(function () {
@@ -445,6 +454,7 @@ Route::controller(DashboardController::class)->middleware(['admin'])->group(func
 
     Route::get('dashboard/nosotros', 'nosotros')->name('dashboard.nosotros');
     
+    // Contacto › Contenido (datos, mapa, redes y a quién llegan las consultas). Mensajes: ContactoMensajeController.
     Route::get('dashboard/contacto', 'contacto')->name('dashboard.contacto');
     
 
@@ -452,6 +462,14 @@ Route::controller(DashboardController::class)->middleware(['admin'])->group(func
     Route::get('dashboard/repuestos', 'repuestos')->name('dashboard.repuestos');
     Route::get('dashboard/bonificaciones', 'bonificaciones')->name('dashboard.bonificaciones');
 
+});
+
+// Contacto › Mensajes: la bandeja de consultas de /contacto (como en Conelec).
+Route::controller(\App\Http\Controllers\ContactoMensajeController::class)->middleware('admin')->group(function () {
+    Route::get('dashboard/contacto/mensajes', 'index')->name('dashboard.contacto.mensajes');
+    Route::delete('dashboard/contacto/mensajes', 'destroyMany')->name('contacto.mensajes.destroy-many');
+    Route::patch('dashboard/contacto/mensajes/{mensaje}/leido', 'leido')->whereNumber('mensaje')->name('contacto.mensajes.leido');
+    Route::delete('dashboard/contacto/mensajes/{mensaje}', 'destroy')->whereNumber('mensaje')->name('contacto.mensajes.destroy');
 });
 
 Route::controller(ImagenController::class)->middleware('admin')->group(function () {

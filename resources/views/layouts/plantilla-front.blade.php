@@ -58,9 +58,6 @@ $cart = Cart::content();
   
   
 
-  {{-- CAPTCHA --}}
-<script src="https://www.google.com/recaptcha/api.js?render=6LfjNywqAAAAAKlfuav604AgIuv_qsZLXYtLqlPw"></script>
-
   {{-- MERCADOPAGO --}}
   <script src="https://sdk.mercadopago.com/js/v2"></script>
   
@@ -308,17 +305,21 @@ if (_togglePwd) _togglePwd.addEventListener("click", function () {
           type: 'POST',
           data: formData,
           success: function(response) {
-              // Manejo de respuesta exitosa
-              console.log(response);
               window.location.href = response;
           },
           error: function(xhr) {
-              // Manejo de error
-              console.error(xhr.responseText);
-              var response = JSON.parse(xhr.responseText);
+              // Anti-bots (EnsureHumanFormSubmission): cada respuesta trae un token nuevo para poder reintentar.
+              var nuevoToken = xhr.getResponseHeader('X-Form-Token');
+              if (nuevoToken) form.find('[data-form-token]').val(nuevoToken);
+              btn.innerHTML = 'Iniciar sesión';
+
+              var response = {};
+              try { response = JSON.parse(xhr.responseText); } catch (e) {}
+              if (xhr.status === 419) {
+                  response = { errors: { username: ['La página estuvo abierta mucho tiempo. Recargala y volvé a intentar.'] } };
+              }
 
               if (response.errors) {
-                  btn.innerHTML = 'Iniciar sesión';
                   // Muestra los nuevos mensajes de error
                   if (response.errors.username || response.errors.email) {
                     

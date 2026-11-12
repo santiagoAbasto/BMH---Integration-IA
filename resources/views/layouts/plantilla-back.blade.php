@@ -10,6 +10,8 @@ $logo2 = Imagen::where('sector', 'logo2')->first();
 $user = Auth::guard('admin')->user();
 $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->count();
 $esAdministrador = $user?->rol == 'administrador';
+// Consultas de /contacto sin leer: contador junto a Contacto › Mensajes (lo pinta resources/js/admin.js).
+$contactoSinLeer = \App\Models\ContactoMensaje::sinLeer();
 
 // Íconos de la sidebar que no trae osole/ui (trazos de 24×24, como los del paquete).
 $icono = fn (string $trazos) => new HtmlString('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'.$trazos.'</svg>');
@@ -41,7 +43,11 @@ $secciones = [
         ]],
         ['label' => 'Nosotros', 'href' => route('dashboard.nosotros'), 'icon' => $icono('<path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h3M8 12h3M8 16h3"/>')],
         ['label' => 'Novedades', 'href' => route('dashboard.novedades'), 'icon' => $icono('<path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/>'), 'active' => request()->routeIs('dashboard.novedades', 'novedad.crear', 'novedad.editar') ? 'page' : null],
-        ['label' => 'Contacto', 'href' => route('dashboard.contacto'), 'icon' => $icono('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>')],
+        // Contacto (como en Conelec): la bandeja de consultas y los datos que se muestran en el sitio.
+        ['label' => 'Contacto', 'icon' => $icono('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>'), 'items' => [
+            ['label' => 'Mensajes', 'href' => route('dashboard.contacto.mensajes'), 'active' => request()->routeIs('dashboard.contacto.mensajes') ? 'page' : false],
+            ['label' => 'Contenido', 'href' => route('dashboard.contacto'), 'active' => request()->routeIs('dashboard.contacto') ? 'page' : false],
+        ]],
         ['label' => 'Extras', 'icon' => $icono('<path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.6 0-.9-.6-1.4-.6-2.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.7-4-8.6-9-8.6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="7.5" r="1"/>'), 'items' => [
             ['label' => 'Favicon', 'href' => route('dashboard.extras.favicon')],
             ['label' => 'Barra superior', 'href' => route('dashboard.extras.barra-superior')],
@@ -114,7 +120,7 @@ foreach ($secciones as $seccion) {
   {{-- Estilos propios de cada pantalla: después del tema, así le ganan en un empate. --}}
   @yield('styles')
 </head>
-<body class="@yield('body-class')">
+<body class="@yield('body-class')" data-contacto-sin-leer="{{ $contactoSinLeer }}" data-contacto-mensajes="{{ route('dashboard.contacto.mensajes') }}">
   <a class="adm-skip" href="#adm-contenido">Saltar al contenido</a>
 
   <div class="adm-shell">

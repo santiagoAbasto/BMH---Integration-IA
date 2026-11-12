@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureHumanFormSubmission;
 use App\Http\Requests\Auth\LoginAdminRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminAuthController extends Controller
@@ -25,6 +27,11 @@ class AdminAuthController extends Controller
      */
     public function login(LoginAdminRequest $request)
     {
+        // Cayó en el campo trampa del anti-bots: se le contesta como a un usuario o contraseña incorrectos.
+        if (EnsureHumanFormSubmission::isTrapped($request)) {
+            throw ValidationException::withMessages(['username' => trans('auth.failed')]);
+        }
+
         $request->authenticate('admin');
         
         // $request->session()->regenerate();

@@ -22,6 +22,50 @@ class Contacto extends Model
         'facebook' => 'Facebook',
     ];
 
+    /** Asunto del aviso de cada consulta cuando no se cargó uno propio. */
+    public const ASUNTO_AVISO = 'Nueva consulta desde la web';
+
+    protected $casts = [
+        'acuse_recibo' => 'boolean',
+    ];
+
+    /**
+     * Separa una lista de emails escrita a mano (comas, punto y coma, espacios o saltos de línea),
+     * sin repetidos y en minúsculas. No valida: eso lo hace quien la usa.
+     *
+     * @return list<string>
+     */
+    public static function separarEmails(?string $texto): array
+    {
+        $emails = preg_split('/[\s,;]+/u', mb_strtolower(trim((string) $texto)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_values(array_unique($emails));
+    }
+
+    /**
+     * A quién le llegan las consultas de /contacto: los emails de «¿A qué mail querés que lleguen los mensajes?»
+     * o, si no se cargó ninguno, el email de contacto del sitio.
+     *
+     * @return list<string>
+     */
+    public function destinatariosAviso(): array
+    {
+        $validos = fn (array $emails) => array_values(array_filter($emails, fn (string $email) => filter_var($email, FILTER_VALIDATE_EMAIL) !== false));
+
+        return $validos(self::separarEmails($this->emails_aviso)) ?: $validos(self::separarEmails($this->mail));
+    }
+
+    public function asuntoAviso(): string
+    {
+        return filled($this->asunto_aviso) ? trim($this->asunto_aviso) : self::ASUNTO_AVISO;
+    }
+
+    /** Si se le manda el acuse de recibo a quien escribió (por defecto, sí). */
+    public function mandaAcuse(): bool
+    {
+        return $this->acuse_recibo ?? true;
+    }
+
     /** La fila vigente, o una vacía si todavía no se cargó ninguna. */
     public static function actual(): self
     {

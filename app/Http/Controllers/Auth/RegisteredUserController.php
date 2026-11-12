@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureHumanFormSubmission;
 use App\Models\User;
 use App\Models\Admin;
 use App\Providers\RouteServiceProvider;
@@ -76,6 +77,11 @@ class RegisteredUserController extends Controller
         }
         
 
+        // Registro público que cayó en el campo trampa del anti-bots: se finge el alta, pero no se crea nada.
+        if ($request->rol === 'cliente' && EnsureHumanFormSubmission::isTrapped($request)) {
+            return redirect()->route('home', ['registro' => true]);
+        }
+
         switch($request->rol){
             case 'cliente':
                 $user = User::create([
@@ -98,8 +104,9 @@ class RegisteredUserController extends Controller
                     $subject = MailAviso::find(1)->registro_titulo;
                     $email = new CompraMail($subject, $content, null);
                     Mail::to($user->email)->send($email);
-                } catch (Exception $e) {
-                    echo 'Se ha producido una excepción: ' . $e->getMessage();
+                } catch (\Throwable $e) {
+                    // Un SMTP caído no frena el alta (antes este catch no atrapaba nada: faltaba el use).
+                    report($e);
                 }
 
                 // Auth::login($user);

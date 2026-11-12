@@ -1,0 +1,119 @@
+/*
+ * Contacto › Mensajes (admin-inbox.v1 de osole/ui con la piel del panel) y el contador de consultas
+ * sin leer en la sidebar.
+ */
+:root {
+    --osole-admin-inbox-accent: var(--adm-brand-strong);
+    --osole-admin-inbox-accent-soft: var(--adm-brand-softer);
+    --osole-admin-inbox-ink: var(--adm-ink);
+    --osole-admin-inbox-muted: var(--adm-muted);
+    --osole-admin-inbox-border: var(--adm-border);
+    --osole-admin-inbox-surface: var(--adm-surface-soft);
+    --osole-admin-inbox-panel-bg: var(--adm-surface);
+    --osole-admin-inbox-radius: var(--adm-radius-lg);
+    --osole-admin-inbox-unread-color: var(--adm-brand);
+    --osole-admin-inbox-danger-color: var(--adm-danger);
+    --osole-admin-inbox-font-family: var(--adm-font-body);
+    --osole-admin-inbox-heading-font: var(--adm-font-heading);
+    /* El lector queda fijo debajo de la barra superior (sticky). */
+    --osole-admin-inbox-sticky-top: calc(var(--adm-topbar-height) + 1rem);
+}
+
+/* --- Contador de no leídos en la sidebar (Contacto y Contacto › Mensajes) --- */
+.adm-sidebar__contador {
+    display: inline-grid;
+    place-items: center;
+    min-inline-size: 1.25rem;
+    block-size: 1.25rem;
+    margin-inline-start: auto;
+    padding-inline: 0.375rem;
+    border-radius: 999px;
+    background-color: var(--adm-brand);
+    color: var(--adm-ink);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.osole-admin-sidebar-v1__sublink:has(.adm-sidebar__contador) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* En el grupo abierto el contador ya está en «Mensajes»: no se repite en «Contacto». */
+.osole-admin-sidebar-v1__group[open] > summary .adm-sidebar__contador {
+    display: none;
+}
+
+.osole-admin-sidebar-v1__summary .adm-sidebar__contador {
+    margin-inline-end: 0.25rem;
+}
+
+/* --- Bandeja --- */
+.contacto-bandeja__pie {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-block-start: 1rem;
+    color: var(--adm-muted);
+    font-size: 0.8125rem;
+}
+
+.contacto-bandeja__texto {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1.125rem;
+    border-inline-start: 3px solid var(--adm-brand);
+    border-radius: 0 var(--adm-radius-sm) var(--adm-radius-sm) 0;
+    background-color: var(--adm-surface-soft);
+    color: var(--adm-text);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.contacto-bandeja__texto--vacio {
+    color: var(--adm-muted);
+    font-style: italic;
+}
+
+.contacto-bandeja__nota {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    color: var(--adm-muted);
+    font-size: 0.8125rem;
+}
+
+.contacto-bandeja .osole-admin-inbox-v1__message-footer form {
+    display: contents;
+}
+
+/* --- Contenido: destinatarios de los avisos --- */
+.contacto-avisos__ayuda {
+    margin: 0.375rem 0 0;
+    color: var(--adm-muted);
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+/* Los links sin clase del panel (bootstrap.css) se pintan del azul de los links y le ganan a la capa osole:
+   las pestañas y los datos de la bandeja vuelven a los colores del componente. */
+.contacto-bandeja .osole-admin-inbox-v1__tabs a {
+    color: var(--adm-muted);
+
+    &:hover { color: var(--adm-ink); }
+    &[aria-current] { color: #ffffff; }
+}
+
+.contacto-bandeja .osole-admin-inbox-v1__data a {
+    text-decoration: none;
+    overflow-wrap: anywhere;
+
+    &:hover { text-decoration: underline; }
+}

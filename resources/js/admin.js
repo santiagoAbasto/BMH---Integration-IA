@@ -2,6 +2,7 @@
 // Sin Turbo: el JS viejo del panel (jQuery, Bootstrap, Summernote) espera recargas completas.
 import '../../vendor/osole/ui/resources/components/admin-sidebar/v1/admin-sidebar.js';
 import '../../vendor/osole/ui/resources/components/admin-login/v1/admin-login.js';
+import '../../vendor/osole/ui/resources/components/admin-inbox/v1/admin-inbox.js';
 
 /*
  * Modales de Bootstrap: se mudan al final del <body>. Muchas pantallas los dejan dentro de una
@@ -30,9 +31,39 @@ function marcarScrollDelMenu() {
     }, { passive: true });
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { mudarModales(); marcarScrollDelMenu(); });
-} else {
+/*
+ * Contacto › Mensajes: contador de consultas sin leer en la sidebar (admin-sidebar.v1 no trae contadores).
+ * El número lo deja el layout en <body data-contacto-sin-leer>; se repite en «Contacto» mientras el grupo
+ * está cerrado (contacto.css lo oculta al abrirlo).
+ */
+function contarMensajesSinLeer() {
+    const sinLeer = Number(document.body.dataset.contactoSinLeer || 0);
+    const link = document.querySelector(`.adm-sidebar a[href="${document.body.dataset.contactoMensajes}"]`);
+    if (!link || sinLeer < 1) return;
+
+    const contador = () => {
+        const span = document.createElement('span');
+        span.className = 'adm-sidebar__contador';
+        span.textContent = sinLeer > 99 ? '99+' : String(sinLeer);
+        const oculto = document.createElement('span');
+        oculto.className = 'visually-hidden';
+        oculto.textContent = sinLeer === 1 ? ' consulta sin leer' : ' consultas sin leer';
+        span.append(oculto);
+        return span;
+    };
+
+    link.append(contador());
+    link.closest('details')?.querySelector('summary .osole-admin-sidebar-v1__chevron')?.before(contador());
+}
+
+function iniciar() {
     mudarModales();
     marcarScrollDelMenu();
+    contarMensajesSinLeer();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciar);
+} else {
+    iniciar();
 }

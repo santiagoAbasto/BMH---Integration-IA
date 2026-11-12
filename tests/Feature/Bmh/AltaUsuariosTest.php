@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use App\Http\Middleware\EnsureHumanFormSubmission;
 use App\Models\Admin;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -50,11 +51,25 @@ final class AltaUsuariosTest extends TestCase
         return ['rol' => $rol, 'name' => 'Nuevo', 'username' => 'nuevo'.$rol, 'password' => 'Clave-Segura-123', 'password_confirmation' => 'Clave-Segura-123'];
     }
 
+    /** Los campos del anti-bots (sin sesión del panel, la ruta exige <x-anti-bots />): formulario abierto hace segundos. */
+    private function antiBots(): array
+    {
+        $token = EnsureHumanFormSubmission::token();
+        $this->travel(3)->seconds();
+
+        return [EnsureHumanFormSubmission::HONEYPOT => '', EnsureHumanFormSubmission::TOKEN => $token];
+    }
+
     public function test_sin_sesion_de_administrador_no_se_puede_crear_un_acceso_al_panel(): void
     {
         foreach (['administrador', 'usuario', 'vendedor', 'clienteadm', ''] as $rol) {
-            $this->post(route('crear.usuario'), $this->datosAdmin($rol))->assertForbidden();
+            $this->post(route('crear.usuario'), [...$this->datosAdmin($rol), ...$this->antiBots()])->assertForbidden();
         }
+        // Sin los campos del anti-bots ni siquiera llega al controlador.
+        // (Otra IP: la de arriba ya usó sus 5 intentos por minuto del rate limit `registro`.)
+        $this->withServerVariables(['REMOTE_ADDR' => '10.20.30.40'])
+            ->post(route('crear.usuario'), $this->datosAdmin('administrador'))
+            ->assertSessionHasErrors(['username' => EnsureHumanFormSubmission::MESSAGE]);
         $this->assertSame(0, Admin::query()->count());
         $this->assertSame(0, User::query()->count());
     }

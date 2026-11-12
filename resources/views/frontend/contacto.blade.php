@@ -23,7 +23,7 @@
         }
         $datos[] = ['icono' => 'reloj', 'etiqueta' => 'Horario de atención', 'texto' => 'Lunes a viernes de 8 a 17 hs', 'href' => null];
 
-        $motivos = ['Consulta comercial', 'Consulta técnica', 'Precios y disponibilidad', 'Quiero ser cliente', 'Otro'];
+        $motivos = \App\Models\ContactoMensaje::MOTIVOS;
     @endphp
 
     @include('layouts.partials.sitio-migas', ['items' => [['label' => 'Contacto']]])
@@ -48,10 +48,11 @@
                 @endforeach
             </ul>
 
-            {{-- Envío con reCAPTCHA v3 (ContactoController@mailContacto), como antes. --}}
-            <form id="formulario" class="bmh-contacto__form" action="{{ route('enviar.mail') }}" method="POST" enctype="multipart/form-data" novalidate>
+            {{-- ContactoController@mailContacto: la consulta queda en Admin › Contacto › Mensajes y llega por email.
+                 Sin reCAPTCHA: anti-bots propio (<x-anti-bots />, rate limit por IP y por email). --}}
+            <form id="formulario" class="bmh-contacto__form" action="{{ route('enviar.mail') }}" method="POST" novalidate>
                 @csrf
-                <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
+                <x-anti-bots id="contacto" />
 
                 <div class="bmh-contacto__encabezado">
                     <h2 id="bmh-contacto-titulo" class="bmh-contacto__titulo">Envianos tu consulta</h2>
@@ -101,7 +102,7 @@
                     <p class="bmh-form__nota">* Campos obligatorios</p>
                     <button type="submit" class="bmh-btn bmh-btn--primario bmh-contacto__enviar" data-enviar>Enviar consulta</button>
                 </div>
-                <p class="bmh-form__error" data-error role="alert" hidden>Completá los campos obligatorios.</p>
+                <p class="bmh-form__error" data-error role="alert" @unless ($errors->any()) hidden @endunless>{{ $errors->first() ?: 'Completá los campos obligatorios.' }}</p>
             </form>
         </x-osole::container.v1>
     </section>
@@ -126,16 +127,27 @@
         var form = document.getElementById('formulario');
         var boton = form.querySelector('[data-enviar]');
         var error = form.querySelector('[data-error]');
+        var token = form.querySelector('[data-form-token]');
+        var textoBoton = boton.textContent;
 
+        function exito(mensaje) {
+            iziToast.success({ title: '¡Gracias por contactarnos!', message: mensaje || 'Te respondemos a la brevedad.', position: 'bottomRight', timeout: 7000 });
+        }
+        function falla(mensaje) {
+            iziToast.error({ title: 'No se pudo enviar la consulta', message: mensaje || 'Probá de nuevo o escribinos por WhatsApp.', position: 'bottomRight', timeout: 7000 });
+        }
+
+        // Sin JS (o si fetch falla del todo) el formulario se envía igual y vuelve con estos avisos.
         @if (session('success'))
-            iziToast.success({ title: '¡Gracias por contactarnos!', message: 'Te respondemos a la brevedad.', position: 'bottomRight', timeout: 7000 });
-        @elseif (session('warning'))
-            iziToast.error({ title: 'No se pudo enviar la consulta', message: 'Probá de nuevo o escribinos por WhatsApp.', position: 'bottomRight', timeout: 7000 });
+            exito(@json(session('success')));
+        @elseif (session('warning') || $errors->any())
+            falla(@json(session('warning') ?: $errors->first()));
         @endif
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
+                error.textContent = 'Completá los campos obligatorios.';
                 error.hidden = false;
                 var primero = form.querySelector(':invalid');
                 if (primero) primero.focus();
@@ -144,11 +156,37 @@
             error.hidden = true;
             boton.disabled = true;
             boton.textContent = 'Enviando…';
-            grecaptcha.ready(function () {
-                grecaptcha.execute('6LfjNywqAAAAAKlfuav604AgIuv_qsZLXYtLqlPw', { action: 'submit' }).then(function (token) {
-                    document.getElementById('g-recaptcha-response').value = token;
-                    form.submit();
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            }).then(function (respuesta) {
+                // Cada respuesta trae un token anti-bots nuevo: con él se puede reintentar sin recargar.
+                var nuevo = respuesta.headers.get('X-Form-Token');
+                if (nuevo) token.value = nuevo;
+                return respuesta.json().catch(function () { return {}; }).then(function (datos) {
+                    if (datos.formToken) token.value = datos.formToken;
+                    if (respuesta.ok && datos.success) {
+                        form.reset();
+                        exito(datos.message);
+                        return;
+                    }
+                    var errores = datos.errors ? Object.values(datos.errors) : [];
+                    var mensaje = errores.length ? errores[0][0] : (datos.message || null);
+                    if (respuesta.status === 419) mensaje = 'La página estuvo abierta mucho tiempo. Recargala y volvé a enviar la consulta.';
+                    if (mensaje) {
+                        error.textContent = mensaje;
+                        error.hidden = false;
+                    }
+                    falla(mensaje);
                 });
+            }).catch(function () {
+                falla();
+            }).finally(function () {
+                boton.disabled = false;
+                boton.textContent = textoBoton;
             });
         });
     })();

@@ -38,6 +38,9 @@
             :forgot-password-href="Route::has('password.request') ? route('password.request') : null"
             :status="session('status')"
         >
+            {{-- Anti-bots: honeypot + token de tiempo (EnsureHumanFormSubmission) y rate limit `login-admin`. --}}
+            <x-anti-bots id="login-admin" />
+
             <x-slot:panel-footer>BMH Distribuidora · Acceso exclusivo para administradores</x-slot:panel-footer>
             <x-slot:footer>© {{ date('Y') }} BMH Distribuidora</x-slot:footer>
         </x-osole::admin-login.v1>

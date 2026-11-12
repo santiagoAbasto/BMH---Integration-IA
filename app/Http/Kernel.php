@@ -75,5 +75,7 @@ class Kernel extends HttpKernel
         // Beta cerrada del asesor: permite una lista explícita de clientes.
         'assistant.access' => \App\Http\Middleware\EnsureAssistantAccess::class,
         'vendedor' => \App\Http\Middleware\VendedorAuthenticate::class,
+        // Anti-bots de los formularios públicos y los logins (honeypot + token de tiempo firmado y de un solo uso).
+        'human-form' => \App\Http\Middleware\EnsureHumanFormSubmission::class,
     ];
 }

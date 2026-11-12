@@ -24,6 +24,8 @@
 
             <form id='formulario' method="POST" action="{{ route('crear.usuario', ['rol' => 'cliente']) }}" style='max-width:734px;'>
                 @csrf
+                {{-- Anti-bots: honeypot + token de tiempo (EnsureHumanFormSubmission) y rate limit `registro`. --}}
+                <x-anti-bots id="registro" />
 
                 <div class='row'>
 
