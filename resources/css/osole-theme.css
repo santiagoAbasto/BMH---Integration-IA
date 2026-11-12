@@ -81,30 +81,33 @@
     --osole-header-catalog-mega-all-color: var(--bmh-brand);
 }
 
-/* Home: sobre el hero, transparente y con los links en mayúsculas (Figma: «Header / home transparente»). */
+/* Disposición de la Home en todas las páginas y al scrollear (pedido del cliente): links y botón en
+   mayúsculas, logo de 64px y "Nosotros | Contacto" arriba a la derecha. Lo único que cambia entre
+   la Home sobre el hero y el resto son los colores (Figma: «Header / Productos»). */
+:root {
+    --osole-header-catalog-topbar-link-font-size: 0.875rem; /* 14px */
+    --osole-header-catalog-topbar-link-text-transform: uppercase;
+    --osole-header-catalog-logo-height: 4.0469rem; /* 64,7px: el PNG de 360×90 escalado como en el Figma */
+    --osole-header-catalog-link-text-transform: uppercase;
+    --osole-header-catalog-button-text-transform: uppercase;
+}
+
+/* Home: transparente sobre el hero (Figma: «Header / home transparente»). Al scrollear toma los
+   colores del resto de las páginas (los de :root). */
 .bmh-header--home {
     --osole-header-catalog-bg: rgb(255 255 255 / 0.05);
     --osole-header-catalog-scrolled-bg: var(--bmh-ink-900);
     --osole-header-catalog-topbar-bg: transparent;
     --osole-header-catalog-topbar-color: var(--bmh-white);
-    --osole-header-catalog-topbar-link-font-size: 0.875rem; /* 14px */
-    --osole-header-catalog-topbar-link-text-transform: uppercase;
-    --osole-header-catalog-logo-height: 4rem; /* 64px */
-    --osole-header-catalog-scrolled-logo-height: 2.875rem; /* 46px */
     --osole-header-catalog-link-color: var(--bmh-white);
     --osole-header-catalog-scrolled-link-color: var(--bmh-text-on-dark);
-    --osole-header-catalog-link-text-transform: uppercase;
-    --osole-header-catalog-scrolled-link-text-transform: none;
     --osole-header-catalog-link-indicator-color: var(--bmh-white);
     --osole-header-catalog-scrolled-link-indicator-color: var(--bmh-brand);
     --osole-header-catalog-button-bg: rgb(15 95 214 / 0.7);
     --osole-header-catalog-scrolled-button-bg: transparent;
     --osole-header-catalog-button-hover-bg: rgb(15 95 214 / 0.9);
     --osole-header-catalog-scrolled-button-hover-bg: rgb(255 255 255 / 0.1);
-    --osole-header-catalog-button-text-transform: uppercase;
-    --osole-header-catalog-scrolled-button-text-transform: none;
 }
-
 /* Anchos intermedios: menos aire entre las partes de la barra para que entre todo. */
 @media (width >= 1200px) and (width < 1400px) {
     :root {

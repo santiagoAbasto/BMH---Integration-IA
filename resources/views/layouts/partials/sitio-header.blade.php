@@ -34,11 +34,11 @@
         $redes[] = ['label' => Contacto::REDES_BARRA[$red].' de BMH', 'href' => $url, 'icon' => $icono($red)];
     }
 
-    $linksBarra = match (true) {
-        $zonaPrivada => [],
-        $enHome => [['label' => 'Nosotros', 'href' => route('nosotros')], ['label' => 'Contacto', 'href' => route('contacto')]],
-        default => [['label' => 'Contacto', 'href' => route('contacto'), 'active' => $ruta === 'contacto']],
-    };
+    // Misma barra en todas las páginas (como la Home): datos y redes a la izquierda, secciones a la derecha.
+    $linksBarra = [
+        ['label' => 'Nosotros', 'href' => route('nosotros'), 'active' => $ruta === 'nosotros'],
+        ['label' => 'Contacto', 'href' => route('contacto'), 'active' => $ruta === 'contacto'],
+    ];
 
     $enProductos = in_array($ruta, ['categorias', 'productos', 'producto', 'search', 'productos.clientes', 'productos.home'], true);
     $categoriaActual = $ruta === 'productos' ? (int) request()->query('categoria') : null;
@@ -61,7 +61,7 @@
     :topbar-items="$datosBarra"
     :social-links="$redes"
     :topbar-links="$linksBarra"
-    :topbar-layout="$enHome ? 'split' : 'end'"
+    topbar-layout="split"
     :overlay="$enHome"
     :scrolled-after="$enHome ? 40 : 0"
     collapse-at="xl"
@@ -90,19 +90,12 @@
                 <x-osole::header-catalog.v1.link :href="route('vendedor.clientes')" :active="$ruta === 'vendedor.clientes'">Clientes</x-osole::header-catalog.v1.link>
             @endif
         @else
-            @unless ($enHome)
-                <x-osole::header-catalog.v1.link :href="route('nosotros')" :active="$ruta === 'nosotros'">Nosotros</x-osole::header-catalog.v1.link>
-            @endunless
+            {{-- Los mismos links que la Home en todas las páginas públicas (Nosotros y Contacto van arriba). --}}
             <x-osole::header-catalog.v1.dropdown label="Productos" :href="route('categorias')" :active="$enProductos" panel-id="menu-productos-panel">
                 <x-osole::header-catalog.v1.mega title="Líneas de productos" all-label="Ver todas las categorías" :all-href="route('categorias')" :items="$itemsMenu" />
             </x-osole::header-catalog.v1.dropdown>
-            @if ($enHome)
-                <x-osole::header-catalog.v1.link :href="route('ofertas')" :active="false">Ofertas</x-osole::header-catalog.v1.link>
-            @endif
+            <x-osole::header-catalog.v1.link :href="route('ofertas')" :active="$ruta === 'ofertas'">Ofertas</x-osole::header-catalog.v1.link>
             <x-osole::header-catalog.v1.link :href="route('novedades')" :active="in_array($ruta, ['novedades', 'novedad'], true)">Novedades</x-osole::header-catalog.v1.link>
-            @unless ($enHome)
-                <x-osole::header-catalog.v1.link :href="route('contacto')" :active="$ruta === 'contacto'">Contacto</x-osole::header-catalog.v1.link>
-            @endunless
         @endif
 
         {{-- Asesor IA: sólo para los clientes de la beta (AssistantAccess). --}}

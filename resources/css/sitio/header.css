@@ -3,9 +3,27 @@
  * la capa legacy) dentro de la barra de osole::header-catalog.v1, con el aspecto del Figma.
  */
 
-/* styles2.css le pone `max-height: 112px` a todo <header> (el del sitio viejo): recortaba el fondo. */
+/* styles2.css le pone `max-height: 112px` y `height: 117px` a todo <header> (el del sitio viejo):
+   recortaban el fondo y el logo. */
 .bmh-header {
     max-height: none;
+    height: auto;
+}
+
+/* Logo: el PNG (360×90) tiene margen transparente a los costados. Como en el Figma, se agranda y
+   se recortan esos márgenes: la marca ocupa 198 × 64px. Los márgenes negativos son proporcionales
+   al alto (32,4 y 29px a 64,7px). */
+.bmh-header .osole-header-catalog-v1__logo :is(img) {
+    --bmh-logo-alto: 2.5rem;
+    max-inline-size: none;
+    block-size: var(--bmh-logo-alto);
+    margin-inline: calc(var(--bmh-logo-alto) * -0.5) calc(var(--bmh-logo-alto) * -0.45);
+}
+
+@media (width >= 1366px) {
+    .bmh-header .osole-header-catalog-v1__logo :is(img) {
+        --bmh-logo-alto: 4.0469rem; /* 64,7px */
+    }
 }
 .bmh-header .buscador-header {
     max-inline-size: none;
