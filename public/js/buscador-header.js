@@ -9,12 +9,22 @@
  *   - búsquedas recientes y ejemplos de qué se puede buscar;
  *   - atajo «/» para enfocar el campo;
  *   - en celular, se abre a pantalla completa desde la lupa del header.
+ *
+ * Con Turbo el header se reemplaza en cada visita: se inicializa en turbo:load (una vez por formulario) y los
+ * listeners de document/window del buscador anterior se sueltan con un AbortController.
  */
 (function () {
   'use strict';
 
+  var anterior = null;
+
+  function iniciar() {
   var form = document.getElementById('buscador-header');
-  if (!form) return;
+  if (!form || form.dataset.buscadorListo) return;
+  form.dataset.buscadorListo = '1';
+  if (anterior) anterior.abort();
+  anterior = new AbortController();
+  var global = { signal: anterior.signal };
 
   var DEBOUNCE_MS = 250;
   var MAX_RECIENTES = 5;
@@ -473,7 +483,7 @@
 
   document.addEventListener('click', function (e) {
     if (!form.contains(e.target) && !e.target.closest('[data-buscador-abrir]')) cerrarPanel();
-  });
+  }, global);
 
   /*
    * ¿El visitante está escribiendo en otro campo? Un campo fuera de la
@@ -493,7 +503,7 @@
     if (escribiendoEn(e.target)) return;
     e.preventDefault();
     if (esCelular()) abrirCelular(); else input.focus();
-  });
+  }, global);
 
   // ---------------------------------------------------------------- celular
 
@@ -525,7 +535,7 @@
   window.addEventListener('resize', function () {
     if (!esCelular()) cerrarCelular();
     ajustarPlaceholder();
-  });
+  }, global);
 
   // ------------------------------------------------------------ placeholder
 
@@ -559,7 +569,12 @@
   window.addEventListener('pageshow', function () {
     cerrarPanel();
     cerrarCelular();
-  });
+  }, global);
 
   limpiar.hidden = input.value === '';
+  }
+
+  document.addEventListener('turbo:load', iniciar);
+  if (document.readyState !== 'loading') iniciar();
+  else document.addEventListener('DOMContentLoaded', iniciar);
 })();

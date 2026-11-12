@@ -1,5 +1,8 @@
 @extends('layouts.plantilla-front')
 
+{{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
+@section('turbo', true)
+
 @section('metadatos')
     @php $metadatos = App\Models\Metadatos::query()->first(); @endphp
     <meta name='keyword' content='{{ $metadatos?->keyword ?? '' }}'>
@@ -109,10 +112,15 @@
         </x-osole::container.v1>
     </section>
 
-    @if (filled($contacto?->iframe))
+    {{-- Mapa como el de Conelec: Leaflet en gris con el pin azul (components/contact-map). Sólo se acepta
+         un iframe de Google Maps u OpenStreetMap (App\Support\MapaEmbed). --}}
+    @php $mapa = $contacto?->iframe ? \App\Support\MapaEmbed::url($contacto->iframe) : null; @endphp
+    @if ($mapa)
         <section class="bmh-contacto-mapa" aria-label="Cómo llegar">
             <x-osole::container.v1>
-                <div class="bmh-contacto-mapa__marco">{!! $contacto->iframe !!}</div>
+                <div class="bmh-contacto-mapa__marco">
+                    <x-contact-map :src="$mapa" :address="$contacto->direccion" title="Mapa: cómo llegar a BMH" />
+                </div>
             </x-osole::container.v1>
         </section>
     @endif

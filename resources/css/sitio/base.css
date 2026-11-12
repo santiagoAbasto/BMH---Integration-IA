@@ -352,3 +352,16 @@ body {
 .bmh-wa {
     background: var(--bmh-whatsapp) !important;
 }
+
+/* Sin pantalla de carga: styles2.css escondía el contenido y el footer hasta el evento load, que no
+   existe en las visitas de Turbo. */
+main,
+#site-footer {
+    display: block;
+}
+
+/* Barra de progreso de Turbo, con el azul de la marca. */
+.turbo-progress-bar {
+    height: 3px;
+    background-color: var(--bmh-brand);
+}

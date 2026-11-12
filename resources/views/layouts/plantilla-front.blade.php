@@ -80,6 +80,42 @@ $cart = Cart::content();
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   
+  {{-- Bootstrap y los scripts globales del sitio van en el head (defer): con Turbo el head queda y el
+       body se reemplaza en cada visita, así no se vuelven a ejecutar. --}}
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+  <script defer src="{{ asset('js/galeria-producto.js') }}?v=1"></script>
+  <script defer src="{{ asset('js/carrito.js') }}?v=4"></script>
+  <script defer src="{{ asset('js/buscador-header.js') }}?v=4"></script>
+  <script>
+    // Shim: Bootstrap 5 quitó $.fn.modal (jQuery). El sitio viejo todavía usa $('#aviso').modal('show').
+    (function () {
+      if (window.jQuery && !window.jQuery.fn.modal && window.bootstrap) {
+        window.jQuery.fn.modal = function (action) {
+          return this.each(function () {
+            var instance = bootstrap.Modal.getOrCreateInstance(this);
+            if (action === 'hide') instance.hide();
+            else if (action === 'toggle') instance.toggle();
+            else instance.show();
+          });
+        };
+      }
+    })();
+    // Corre fn cuando el DOM está listo: en la carga completa y en cada visita de Turbo (el script del body se
+    // vuelve a ejecutar con la página nueva ya en el documento).
+    window.bmhAlListo = function (fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+      else fn();
+    };
+  </script>
+
+  {{-- Turbo (navegación sin recarga): cada página lo activa con @section('turbo', true) cuando su JS ya es
+       compatible; las demás se cargan completas, como siempre. --}}
+  @hasSection('turbo')
+  @else
+    <meta name="turbo-visit-control" content="reload">
+  @endif
+
   @yield('styles')
   <script>
     // Abre o cierra un modal de Bootstrap por id (carrito, home, listados).
@@ -116,12 +152,6 @@ $cart = Cart::content();
 
 <body>
   @include('layouts.partials.sitio-header')
-
-  <div class='loading-screen'>
-    <div class='d-flex justify-content-center'>
-      <img id='loading-img' src="{{asset('imagenes/ISO-1.png')}}" alt="" style='height:100%;width:40px;'>
-    </div>
-  </div>
 
   <main>
     @yield('content')
@@ -169,32 +199,7 @@ $cart = Cart::content();
   
   
   
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
-  <script>
-  // Shim: Bootstrap 5 quitó $.fn.modal (jQuery). El layout legacy aún usa $('#aviso').modal('show')
-  // Este shim lo polyfillea con la API nativa de Bootstrap 5 para no romper el sitio.
-  (function() {
-    if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.modal === 'undefined') {
-      window.jQuery.fn.modal = function(action) {
-        return this.each(function() {
-          try {
-            var instance = bootstrap.Modal.getOrCreateInstance(this);
-            if (action === 'show') instance.show();
-            else if (action === 'hide') instance.hide();
-            else if (action === 'toggle') instance.toggle();
-            else if (!action) instance.show();
-          } catch(e) { console.warn('modal shim', e); }
-        });
-      };
-      // También para eventos jQuery type `shown.bs.modal` ya funciona nativo, no hace falta más.
-    }
-  })();
-  </script>
   @include('frontend.components.galeria-modal')
-  <script src="{{ asset('js/galeria-producto.js') }}?v=1"></script>
-  <script src="js/carrito.js?v=4"></script>
-  <script src="{{ asset('js/buscador-header.js') }}?v=3"></script>
   @yield('script')
   {{-- TAILWIND --}}
   {{-- <script src="https://cdn.tailwindcss.com"></script>  --}}
@@ -243,24 +248,11 @@ if (_togglePwd) _togglePwd.addEventListener("click", function () {
 
 
 
-    window.addEventListener('load', function() {
-      $('#anuncio').modal('show');
-      
-
-      
-      // Mostrar la página después de cargar todos los elementos
-      document.querySelector('.loading-screen').style.opacity = '0'
-      document.querySelector('main').style.display = 'block'
-      document.querySelector('footer').style.display = 'block'
-      document.querySelector('.loading-screen').style.zIndex = '-1'
-      AOS.init({
-        once:true,
-        duration: 650,
-        offset: 100 
-        
-      });
-        
-    });
+    // Anuncio y animaciones de entrada: en la carga completa y en cada visita de Turbo.
+    document.addEventListener('turbo:load', function () {
+      if (window.jQuery && jQuery('#anuncio').length) jQuery('#anuncio').modal('show');
+      if (window.AOS) AOS.init({ once: true, duration: 650, offset: 100 });
+    }, { once: true });
 
 
 
@@ -378,7 +370,7 @@ if (_togglePwd) _togglePwd.addEventListener("click", function () {
       // });
     });
     
-      document.addEventListener("DOMContentLoaded", function () {
+      bmhAlListo(function () {
     const buscador = document.querySelector("input[name='buscadorPrincipal']");
     const checkboxNuevo = document.querySelector("input[name='nuevo']");
     const checkboxReconstruido = document.querySelector("input[name='reconstruido']");
@@ -565,7 +557,7 @@ if (_selectCat) _selectCat.addEventListener('change', function () {
 });
 
 // Ejecutar al cargar la página si ya había categoría seleccionada
-document.addEventListener("DOMContentLoaded", function () {
+bmhAlListo(function () {
     const categoriaSelect = document.getElementById('selectCategoria');
     if (categoriaSelect && categoriaSelect.value) {
         cargarAtributosCategoria(categoriaSelect.value);
@@ -575,7 +567,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-        document.addEventListener('DOMContentLoaded', function() {
+        bmhAlListo(function() {
         // Si hay datos guardados en localStorage, completamos el formulario (con guards)
         var _inpType = document.getElementById('input_type');
         var _pwd = document.getElementById('password');

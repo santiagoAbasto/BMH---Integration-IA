@@ -1,0 +1,294 @@
+/*
+ * Mapa de /contacto (<x-contact-map>), como el de Conelec. Figma: 1200 × 420 px, radio 16px, mapa en gris y
+ * el pin azul de BMH (31,25 × 39,07, #0098DA con el punto blanco) con la punta sobre la dirección. El filtro gris
+ * va solo en las teselas: el pin y los controles mantienen su color.
+ */
+
+.contact-map {
+    position: relative;
+    isolation: isolate;
+    block-size: 100%;
+    overflow: hidden;
+    background: #e9e9ea;
+}
+
+.contact-map__frame {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border: 0;
+    /* Sin coordenadas (iframe): todo en gris, como en el Figma; el pin propio va encima. */
+    filter: saturate(0);
+}
+
+/* Mapa dibujado con Leaflet: solo las teselas en gris, un poco más claras, como el mapa del diseño. */
+.contact-map__canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    isolation: isolate;
+    background: #e9e9ea;
+    font: inherit;
+
+    & .leaflet-tile-pane {
+        filter: saturate(0) brightness(1.04) contrast(0.92);
+    }
+
+    & .leaflet-bar.leaflet-control-zoom {
+        margin: 0.75rem 0.75rem 0 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 0.625rem;
+        box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.12);
+
+        & a {
+            inline-size: 2.75rem;
+            block-size: 2.75rem;
+            color: var(--bmh-text-primary);
+            font: 500 1.375rem/2.75rem var(--osole-font-body);
+
+            &:hover {
+                background: #f5f5f5;
+                color: var(--bmh-brand);
+            }
+
+            &:focus-visible {
+                outline: 2px solid var(--bmh-brand);
+                outline-offset: -2px;
+            }
+        }
+    }
+
+    & .leaflet-control.leaflet-control-attribution {
+        background: rgb(255 255 255 / 0.85);
+        color: var(--bmh-text-secondary);
+        font-size: 0.6875rem;
+        line-height: 1.125rem;
+
+        & a {
+            color: inherit;
+        }
+    }
+
+    &:focus-visible {
+        outline: 3px solid var(--bmh-brand);
+        outline-offset: -3px;
+    }
+}
+
+.contact-map__canvas--failed::after {
+    content: "No se pudo cargar el mapa.";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--bmh-text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Pin como marcador de Leaflet: con className propio, Leaflet no pone "leaflet-div-icon"; se apunta a
+   "leaflet-marker-icon", que siempre está, para ganarle a su fondo y borde. */
+.contact-map__marker.leaflet-marker-icon {
+    border: 0;
+    background: none;
+    filter: drop-shadow(0 0.25rem 0.375rem rgb(0 0 0 / 0.3));
+
+    & svg {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        overflow: visible;
+    }
+}
+
+/* Pin interactivo (abre la tarjeta): foco visible y puntero. */
+.contact-map__marker.leaflet-marker-icon {
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--bmh-brand);
+        outline-offset: 3px;
+        border-radius: 50%;
+    }
+}
+
+/* --- Tarjeta de la dirección --- */
+.contact-map__card {
+    display: grid;
+    gap: 0.25rem;
+    min-inline-size: 13.5rem;
+    color: var(--bmh-text-secondary);
+    font-family: var(--osole-font-body);
+}
+
+.contact-map__card-name {
+    margin: 0;
+    color: var(--bmh-text-primary);
+    font-family: var(--osole-font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.375rem;
+}
+
+.contact-map__card-address {
+    font-size: 0.875rem;
+    font-style: normal;
+    line-height: 1.375rem;
+}
+
+.contact-map__card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    justify-self: start;
+    min-block-size: 2.25rem;
+    margin-block-start: 0.5rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: 0.625rem;
+    background: var(--bmh-brand);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.25rem;
+    text-decoration: none;
+
+    & svg {
+        flex-shrink: 0;
+        inline-size: 1rem;
+        block-size: 1rem;
+    }
+
+    &:hover {
+        background: var(--bmh-brand-hover);
+        color: #fff;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--bmh-brand);
+        outline-offset: 2px;
+    }
+}
+
+.contact-map__sr {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Con Leaflet, la tarjeta vive en el popup del pin: mientras no se monta, no se muestra suelta. */
+.contact-map:not(.contact-map--static) > .contact-map__card {
+    display: none;
+}
+
+/* Popup de Leaflet con el aspecto de las tarjetas del sitio (radio 4px, sombra suave) y la punta hacia el pin. */
+.contact-map__popup {
+    & .leaflet-popup-content-wrapper {
+        /* Padding (no margen en el contenido): sin él, el margen de arriba se escapa del recuadro. */
+        padding: 1rem 1.125rem 1.125rem;
+        border-radius: 0.625rem;
+        box-shadow: 0 0.75rem 2rem rgb(5 8 13 / 0.18);
+    }
+
+    & .leaflet-popup-content {
+        margin: 0;
+        font: inherit;
+
+        /* Leaflet le pone márgenes a los párrafos y su azul a los links. */
+        & p {
+            margin: 0;
+        }
+
+        & .contact-map__card-link,
+        & .contact-map__card-link:hover {
+            color: #fff;
+        }
+    }
+
+    & .leaflet-popup-tip {
+        box-shadow: none;
+    }
+}
+
+/* Iframe sin coordenadas: la tarjeta queda sobre el pin fijo y la abre el pin (mouse, foco o toque). Al cerrarse
+   espera un momento, así el mouse llega del pin a la tarjeta (el ::before es el puente invisible entre los dos). */
+.contact-map--static > .contact-map__card {
+    position: absolute;
+    inset-block-end: calc(50% + 2.75rem);
+    inset-inline-start: 50%;
+    z-index: 2;
+    padding: 1rem 1.125rem 1.125rem;
+    border-radius: 0.625rem;
+    background: #fff;
+    box-shadow: 0 0.75rem 2rem rgb(5 8 13 / 0.18);
+    translate: -50% 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out 0.3s, translate 0.25s ease-out 0.3s, visibility 0s linear 0.5s;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset-block-start: 100%;
+        inset-inline: 0;
+        block-size: 2.75rem;
+    }
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset-block-start: 100%;
+        inset-inline-start: 50%;
+        border: 0.5rem solid transparent;
+        border-block-start-color: #fff;
+        translate: -50% 0;
+    }
+}
+
+.contact-map--static:has(.contact-map__pin:is(:hover, :focus), .contact-map__card:is(:hover, :focus-within)) > .contact-map__card {
+    translate: -50% 0;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease-out, translate 0.25s var(--motion-ease, ease-out), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .contact-map--static > .contact-map__card {
+        translate: -50% 0 !important;
+    }
+}
+
+/* Iframe sin coordenadas: el pin fijo con la punta en el centro del mapa. */
+.contact-map__pin {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    z-index: 1;
+    inline-size: 1.9534rem; /* 31,25px */
+    block-size: 2.4417rem; /* 39,07px */
+    translate: -50% -100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    filter: drop-shadow(0 0.25rem 0.375rem rgb(0 0 0 / 0.3));
+
+    &:disabled {
+        cursor: default;
+        pointer-events: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--bmh-brand);
+        outline-offset: 3px;
+        border-radius: 50%;
+    }
+
+    & svg {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+    }
+}

@@ -1,5 +1,8 @@
 @extends('layouts.plantilla-front')
 
+{{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
+@section('turbo', true)
+
 @section('metadatos')
     @php $meta = $metadatos->first(); @endphp
     <meta name='keyword' content='{{ $meta?->keyword ?? '' }}'>

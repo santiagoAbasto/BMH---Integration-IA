@@ -21,6 +21,7 @@
         "vite": "^5.4.21"
     },
     "dependencies": {
+        "@hotwired/turbo": "^8.0.23",
         "@inertiajs/react": "^2.3.27",
         "@mercadopago/sdk-js": "^0.0.3",
         "@radix-ui/react-dialog": "^1.1.23",
@@ -31,6 +32,7 @@
         "cors": "^2.8.5",
         "express": "^4.19.2",
         "fotorama": "^4.6.4",
+        "leaflet": "^1.9.4",
         "lucide-react": "^1.31.0",
         "mercadopago": "^2.0.9",
         "motion": "^13.1.0",
