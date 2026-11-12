@@ -87,6 +87,10 @@ class CatalogoController extends Controller
     {
         $categorias = Categoria::orderBy('nombre')->get(['id', 'nombre']);
         $categoria = $filtros->categoria !== null ? $categorias->firstWhere('id', $filtros->categoria) : null;
+        // Listado de una categoría (sin búsqueda ni ofertas): metadatos propios de la categoría.
+        if ($categoria !== null && ! $filtros->soloOfertas && ! $filtros->hayBusqueda()) {
+            app(\App\Support\Seo\SeoContext::class)->set(\App\Support\Seo\DynamicSeo::categoria($categoria));
+        }
         $ids = array_slice($resultado->ids, 0, self::POR_PAGINA * $paginas);
         $chips = $this->chips($ruta, $filtros, $categoria);
 

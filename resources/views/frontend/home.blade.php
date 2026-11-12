@@ -3,12 +3,6 @@
 {{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
 @section('turbo', true)
 
-@section('metadatos')
-    @php $metadatos = App\Models\Metadatos::query()->first(); @endphp
-    <meta name='keyword' content='{{ $metadatos?->keyword ?? '' }}'>
-    <meta name='descripcion' content='{{ $metadatos?->descripcion ?? '' }}'>
-@endsection
-
 @php
     // Texto con algo para mostrar (el editor del admin deja «<p><br></p>» cuando está vacío).
     $conTexto = fn (?string $html) => trim(strip_tags((string) $html)) !== '' ? new \Illuminate\Support\HtmlString($html) : null;

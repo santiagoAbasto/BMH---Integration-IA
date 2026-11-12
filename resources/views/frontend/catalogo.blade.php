@@ -8,15 +8,6 @@
     public/js/catalogo.js reemplaza sin recargar la página.
 --}}
 
-@section('metadatos')
-    @if ($filtros->hayBusqueda())
-        <meta name="robots" content="noindex, follow">
-    @else
-        <meta name="keyword" content="{{ App\Models\Metadatos::first()?->keyword }}">
-        <meta name="descripcion" content="{{ App\Models\Metadatos::first()?->descripcion }}">
-    @endif
-@endsection
-
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=6">
 @endsection

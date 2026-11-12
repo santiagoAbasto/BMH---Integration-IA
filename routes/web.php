@@ -421,9 +421,18 @@ Route::controller(UserController::class)->group(function () {
     });
 });
 
+// Admin → Metadatos SEO (como en Conelec).
 Route::controller(MetadatosController::class)->middleware('admin')->group(function () {
-    Route::put('editar-metadato', 'update')->name('metadatos.update');
+    Route::get('dashboard/metadatos', 'index')->name('metadatos');
+    Route::post('dashboard/metadatos/paginas/{pagina}', 'updatePagina')
+        ->whereIn('pagina', array_keys(\App\Support\Seo\SeoPages::definitions()))->name('metadatos.pagina');
+    Route::post('dashboard/metadatos/verificacion', 'updateVerificacion')->name('metadatos.verificacion');
+    Route::post('dashboard/metadatos/imagen', 'updateImagen')->name('metadatos.imagen');
+    Route::delete('dashboard/metadatos/imagen', 'destroyImagen')->name('metadatos.imagen.quitar');
 });
+
+// Lo que leen Google y Bing para recorrer el sitio (robots.txt es el archivo estático de public).
+Route::get('sitemap.xml', [MetadatosController::class, 'sitemap'])->name('sitemap');
 
 Route::controller(DashboardController::class)->middleware(['admin'])->group(function () {
     Route::get('/adm', 'index');
@@ -438,7 +447,6 @@ Route::controller(DashboardController::class)->middleware(['admin'])->group(func
     
     Route::get('dashboard/contacto', 'contacto')->name('dashboard.contacto');
     
-    Route::get('dashboard/metadatos', 'metadatos')->name('metadatos');
 
     Route::get('dashboard/medidas', 'medidas')->name('dashboard.medidas');
     Route::get('dashboard/repuestos', 'repuestos')->name('dashboard.repuestos');

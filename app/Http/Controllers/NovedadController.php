@@ -18,6 +18,8 @@ class NovedadController extends Controller
 
     public function novedad(Request $request){
         $novedad = Novedad::find($request->id);
+        abort_if($novedad === null, 404);
+        app(\App\Support\Seo\SeoContext::class)->set(\App\Support\Seo\DynamicSeo::novedad($novedad));
         $ventana = 'novedades-nav';
         $metadatos = Metadatos::where('seccion', 'novedades')->get();
         return view('frontend/novedad', compact('metadatos', 'novedad', 'ventana'));

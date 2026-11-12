@@ -1,9 +1,4 @@
 @extends('layouts.plantilla-front')
-{{-- 
-@section('metadatos')
-<meta name='keyword' content='{{$metadatos[0]->keyword}}'>
-<meta name='descripcion' content='{{$metadatos[0]->descripcion}}'>
-@endsection --}}
 
 @section('styles')
     <style>

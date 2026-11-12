@@ -131,6 +131,7 @@ class ProductoController extends Controller
 
     // Un producto borrado (o un link viejo de buscadores) es un 404, no un 500.
     abort_if($producto === null, 404);
+    app(\App\Support\Seo\SeoContext::class)->set(\App\Support\Seo\DynamicSeo::producto($producto));
 
     // Productos relacionados (mismo formato horizontal que el listado principal)
     if ($producto->categoria != null) {

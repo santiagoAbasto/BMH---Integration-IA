@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
         // Una instancia por request: cada card de producto pide la imagen por
         // defecto, y así se consulta la tabla `imagenes` una sola vez.
         $this->app->scoped(LogosSitio::class, fn () => new LogosSitio());
+        // Metadatos SEO de la página en curso (uno por request): ver layouts/partials/seo.
+        $this->app->scoped(\App\Support\Seo\SeoContext::class);
     }
 
     /**

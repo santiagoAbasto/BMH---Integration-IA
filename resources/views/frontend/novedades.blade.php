@@ -3,12 +3,6 @@
 {{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
 @section('turbo', true)
 
-@section('metadatos')
-    @php $meta = $metadatos->first(); @endphp
-    <meta name='keyword' content='{{ $meta?->keyword ?? '' }}'>
-    <meta name='descripcion' content='{{ $meta?->descripcion ?? '' }}'>
-@endsection
-
 @section('content')
     @include('layouts.partials.sitio-migas', ['items' => [['label' => 'Novedades']]])
 

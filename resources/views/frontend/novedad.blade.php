@@ -1,10 +1,5 @@
 @extends('layouts.plantilla-front')
 
-@section('metadatos')
-<meta name='keyword' content='{{App\Models\Metadatos::all()[0]->keyword}}'>
-<meta name='descripcion' content='{{App\Models\Metadatos::all()[0]->descripcion}}'>
-@endsection
-
 @section('styles')
 <style>
 

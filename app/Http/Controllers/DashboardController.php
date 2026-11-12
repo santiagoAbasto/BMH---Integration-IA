@@ -92,9 +92,4 @@ class DashboardController extends Controller
         $contacto = Contacto::find(1);
         return view('backend/dash-contacto', compact('contacto'));
     }
-
-    public function metadatos(){
-        $metadatos = Metadatos::all();
-        return view('backend/dash-metadatos', compact('metadatos'));
-    }
 }
