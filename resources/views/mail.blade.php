@@ -19,6 +19,9 @@
                 @if(isset($data->empresa))
                 <p><strong>Empresa: </strong><br>{{$data->empresa}}</p>
                 @endif
+                @if(filled($data->motivo ?? null))
+                <p><strong>Motivo de la consulta: </strong><br>{{$data->motivo}}</p>
+                @endif
                 @if(isset($data->mensaje))
                 <p><strong>Mensaje</strong><br>{{$data->mensaje}}</p>
                 @endif
