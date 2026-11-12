@@ -9,9 +9,8 @@ use App\Domain\Support\Provenance;
 /**
  * Un atributo técnico de un producto, con su origen.
  *
- * Nunca se pierde de dónde vino: `sourceField` conserva la columna legacy real
- * para poder auditar y para la migración futura, sin que nadie aguas arriba
- * tenga que conocerla.
+ * Nunca se pierde de dónde vino: `sourceField` conserva el nombre de la
+ * característica y `sourceTable` la tabla, para poder auditarlo.
  */
 final readonly class AttributeValue implements \JsonSerializable
 {

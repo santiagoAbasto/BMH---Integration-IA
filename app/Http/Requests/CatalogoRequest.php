@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Caracteristica;
 use App\Services\BuscadorCatalogo;
 use App\Services\Catalogo\CatalogoFiltrado;
 use App\Services\Catalogo\FiltrosCatalogo;
@@ -47,13 +48,15 @@ class CatalogoRequest extends FormRequest
             ->values()
             ->all();
 
+        // Medidas de la categoría: c[ID de la característica]=valor.
         $atributos = [];
-        if ($categoria !== null && is_array($this->query('atributo'))) {
-            foreach ($this->query('atributo') as $columna => $valor) {
-                if (is_string($columna) && preg_match('/^columna_\d+$/', $columna) && is_string($valor)) {
+        if ($categoria !== null && is_array($this->query('c'))) {
+            foreach ($this->query('c') as $id => $valor) {
+                $id = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                if ($id !== false && is_string($valor)) {
                     $valor = CatalogoFiltrado::normalizar(mb_substr($valor, 0, self::MAXIMO));
                     if ($valor !== '') {
-                        $atributos[$columna] = $valor;
+                        $atributos[$id] = $valor;
                     }
                 }
             }
@@ -74,6 +77,31 @@ class CatalogoRequest extends FormRequest
             orden: is_string($orden) && isset(FiltrosCatalogo::ORDENES[$orden]) ? $orden : null,
             soloOfertas: $this->route()?->getName() === 'ofertas',
         );
+    }
+
+    /**
+     * Un link de antes de las características relacionales filtra con atributo[columna_N]=valor: los
+     * parámetros nuevos (c[ID]=valor) para redirigirlo, o null si no hay nada que traducir.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function queryConFiltrosNuevos(): ?array
+    {
+        $viejos = $this->query('atributo');
+        if (! is_array($viejos) || $viejos === []) {
+            return null;
+        }
+
+        $query = $this->query();
+        unset($query['atributo']);
+        foreach ($viejos as $columna => $valor) {
+            $caracteristica = is_string($valor) ? Caracteristica::desdeParametro((string) $columna) : null;
+            if ($caracteristica !== null) {
+                $query['c'][$caracteristica->id] = $valor;
+            }
+        }
+
+        return $query;
     }
 
     /** Cuántas páginas del listado mostrar de entrada (al volver con «atrás»). */

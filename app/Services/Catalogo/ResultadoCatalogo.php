@@ -18,7 +18,7 @@ final class ResultadoCatalogo
      * @param  array<string, int>  $vehiculos  marca del vehículo => cantidad
      * @param  array<string, int>  $modelos  modelo => cantidad: los de la marca elegida, o
      *         sin marca los de todas si se pidieron (CatalogoFiltrado::filtrar)
-     * @param  array<string, array{etiqueta: string, opciones: array<string, int>}>  $atributos  columna_N => opciones
+     * @param  array<int, array{etiqueta: string, opciones: array<string, int>}>  $atributos  caracteristica_id => opciones
      * @param  array<string, list<string>>  $marcasDeModelos  modelo => marcas (sólo con los de todas)
      */
     public function __construct(

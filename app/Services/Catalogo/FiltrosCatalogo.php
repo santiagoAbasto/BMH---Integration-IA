@@ -30,7 +30,7 @@ final class FiltrosCatalogo
 
     /**
      * @param  list<int>  $estados  productos.estado (NUEVO / RECONSTRUIDO)
-     * @param  array<string, string>  $atributos  columna_N => valor
+     * @param  array<int, string>  $atributos  caracteristica_id => valor (en la URL: c[ID]=valor)
      * @param  string|null  $orden  ORDEN_NUMERICO / ORDEN_ALFABETICO; null es el orden de siempre
      */
     public function __construct(
@@ -83,7 +83,7 @@ final class FiltrosCatalogo
             'vehiculo' => $this->vehiculo,
             'modelo' => $this->modelo,
             'equivalencia' => $this->equivalencia,
-            'atributo' => $this->atributos ?: null,
+            'c' => $this->atributos ?: null,
             'orden' => $this->orden,
         ];
 
@@ -92,7 +92,7 @@ final class FiltrosCatalogo
         // se ofrecen ya están filtradas por el modelo elegido, y sin marca el
         // modelo filtra solo.
         if (array_key_exists('categoria', $cambios) && $cambios['categoria'] !== $this->categoria) {
-            $actual['atributo'] = null;
+            $actual['c'] = null;
         }
 
         return array_filter(array_replace($actual, $cambios), fn ($v) => $v !== null && $v !== [] && $v !== '');
@@ -108,7 +108,7 @@ final class FiltrosCatalogo
 
     /**
      * Sin varios filtros a la vez, con los nombres de CatalogoFiltrado:
-     * categoria, estado, marca, vehiculo, modelo, equivalencia o atributo:columna_N.
+     * categoria, estado, marca, vehiculo, modelo, equivalencia o atributo:ID (de la característica).
      *
      * @param  list<string>  $filtros
      * @param  array<string, mixed>  $cambios
@@ -120,24 +120,24 @@ final class FiltrosCatalogo
 
         foreach ($filtros as $filtro) {
             if (str_starts_with($filtro, 'atributo:')) {
-                unset($atributos[substr($filtro, strlen('atributo:'))]);
+                unset($atributos[(int) substr($filtro, strlen('atributo:'))]);
             } else {
                 $cambios[$filtro] = null;
             }
         }
 
         // Las medidas son de la categoría: sin categoría no van.
-        $cambios['atributo'] = in_array('categoria', $filtros, true) ? null : ($atributos ?: null);
+        $cambios['c'] = in_array('categoria', $filtros, true) ? null : ($atributos ?: null);
 
         return $this->query($cambios);
     }
 
     /** Sin el atributo indicado (para el chip «×» de esa medida). */
-    public function sinAtributo(string $columna): array
+    public function sinAtributo(int $caracteristicaId): array
     {
         $resto = $this->atributos;
-        unset($resto[$columna]);
+        unset($resto[$caracteristicaId]);
 
-        return $this->query(['atributo' => $resto ?: null]);
+        return $this->query(['c' => $resto ?: null]);
     }
 }

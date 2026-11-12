@@ -178,6 +178,7 @@
                 </div>
             </div>
             <div class="card-body">
+                <input type="hidden" name="caracteristicas_presente" value="1">
                 <div id="dynamic-inputs" class="row"
                      data-url-categoria="{{ route('categoria.show', ':id') }}" data-cargar-inicial="true"></div>
             </div>

@@ -20,57 +20,50 @@ use Tests\CreatesApplication;
 final class CatalogoParecidosTest extends BaseTestCase
 {
     use CreatesApplication;
+    use UsaBaseLocal;
 
     private int $categoria;
+
+    private int $diametro;
 
     /** @var list<int> */
     private array $productos = [];
 
     private string $codigoConGuion = '';
 
-    private string $origDefault = '';
-
-    private array $origMysql = [];
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->origDefault = config('database.default');
-        $this->origMysql = config('database.connections.mysql');
-        config([
-            'database.connections.mysql.database' => 'bmh_legacy',
-            'database.connections.mysql.username' => 'bmh_app',
-            'database.connections.mysql.password' => 'bmh_app_local',
-            'database.default' => 'mysql',
-        ]);
-        DB::purge('mysql');
+        $this->usarBaseLocal();
 
         $this->categoria = DB::table('categorias')->insertGetId([
             'nombre' => 'ZZ CATEGORIA PARECIDOS '.uniqid(),
-            'columna_1' => 'DIAMETRO',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->diametro = $this->caracteristica('DIAMETRO');
+        $this->vincularCaracteristicas($this->categoria, $this->diametro);
 
         // «Zzturbina» no existe en el catálogo real: sólo aparecen estos.
         $this->codigoConGuion = 'ZZQ'.substr(uniqid(), -5).'-77';
-        $this->crear('ZZTURBINA BOSCH', ['estado' => 1, 'marca' => 'BOSCH', 'columna_1' => '60MM']);
-        $this->crear('ZZTURBINA VALEO', ['estado' => 2, 'marca' => 'VALEO', 'columna_1' => '60MM']);
-        $this->crear('ZZTURBINA BOSCH CON POLEA', ['estado' => 1, 'marca' => 'BOSCH', 'columna_1' => '70MM', 'codigo' => $this->codigoConGuion]);
+        $this->crear('ZZTURBINA BOSCH', ['estado' => 1, 'marca' => 'BOSCH', 'diametro' => '60MM']);
+        $this->crear('ZZTURBINA VALEO', ['estado' => 2, 'marca' => 'VALEO', 'diametro' => '60MM']);
+        $this->crear('ZZTURBINA BOSCH CON POLEA', ['estado' => 1, 'marca' => 'BOSCH', 'diametro' => '70MM', 'codigo' => $this->codigoConGuion]);
     }
 
     protected function tearDown(): void
     {
         DB::table('productos')->whereIn('id', $this->productos)->delete();
         DB::table('categorias')->where('id', $this->categoria)->delete();
-        config(['database.default' => $this->origDefault, 'database.connections.mysql' => $this->origMysql]);
-        DB::purge('mysql');
+        $this->restaurarBase();
         parent::tearDown();
     }
 
     private function crear(string $nombre, array $datos): void
     {
-        $this->productos[] = DB::table('productos')->insertGetId($datos + [
+        $diametro = $datos['diametro'];
+        unset($datos['diametro']);
+        $this->productos[] = $id = DB::table('productos')->insertGetId($datos + [
             'codigo' => 'ZZPAR'.substr(uniqid(), -6),
             'nombre' => $nombre,
             'orden' => 'zz',
@@ -80,6 +73,7 @@ final class CatalogoParecidosTest extends BaseTestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->cargarValor($id, $this->diametro, $diametro);
     }
 
     private function buscar(string $q, array $filtros = []): TestResponse
@@ -144,11 +138,11 @@ final class CatalogoParecidosTest extends BaseTestCase
         $respuesta->assertSee('No cumplen:')->assertSee('catalogo__aviso-filtro', false);
 
         // Valeo de 70 mm tampoco: el de Valeo de 60 mm, sin la medida.
-        $parecidos = $this->get(route('productos', ['categoria' => $this->categoria, 'marca' => 'valeo', 'atributo' => ['columna_1' => '70MM']]))->viewData('parecidos');
+        $parecidos = $this->get(route('productos', ['categoria' => $this->categoria, 'marca' => 'valeo', 'c' => [$this->diametro => '70MM']]))->viewData('parecidos');
         $this->assertSame(['ZZTURBINA VALEO'], self::nombres($parecidos['productos']));
         $this->assertSame(['Diametro: 70MM'], $parecidos['sin']);
         $this->assertStringContainsString('marca=VALEO', (string) $parecidos['url']);
-        $this->assertStringNotContainsString('atributo', (string) $parecidos['url']);
+        $this->assertStringNotContainsString('c%5B', (string) $parecidos['url']);
     }
 
     public function test_si_coinciden_solo_algunas_palabras_lo_aclara(): void

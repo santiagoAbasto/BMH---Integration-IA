@@ -34,7 +34,7 @@ final class CatalogoFiltrado
         'categoria',
         'portadaImagen',
         'imagenesGaleria',
-        'productCaracteristicas.caracteristica',
+        'caracteristicasVisibles',
         'partesRelacionadas.portadaImagen',
         'partesRelacionadas.imagenesGaleria',
         'equivalencias',
@@ -82,8 +82,10 @@ final class CatalogoFiltrado
         $columnasAtributo = $filtros->categoria !== null ? $this->atributosFiltrables($filtros->categoria) : [];
         // Objetos planos: los filtros leen estos campos miles de veces y el
         // acceso a atributos de Eloquent pesa.
-        $pool = $this->pool($filtros, array_keys($columnasAtributo))
-            ->map(fn (Producto $p) => (object) $p->getAttributes());
+        $pool = $this->conValores(
+            $this->pool($filtros)->map(fn (Producto $p) => (object) $p->getAttributes()),
+            array_keys($columnasAtributo),
+        );
 
         // /ofertas: sólo los productos marcados como oferta (también al buscar dentro de las ofertas).
         if ($filtros->soloOfertas) {
@@ -167,12 +169,12 @@ final class CatalogoFiltrado
         $termino = null;
         $parcial = false;
 
-        $pool = $this->pool($filtros, array_keys($columnasAtributo));
+        $pool = $this->pool($filtros);
         if ($pool->isEmpty() && $filtros->hayBusqueda()) {
-            $alternativa = $this->buscador->buscarParecidos($filtros->q, array_keys($columnasAtributo));
+            $alternativa = $this->buscador->buscarParecidos($filtros->q);
             [$pool, $termino, $parcial] = [$alternativa['productos'], $alternativa['termino'], $alternativa['parcial']];
         }
-        $pool = $pool->map(fn (Producto $p) => (object) $p->getAttributes());
+        $pool = $this->conValores($pool->map(fn (Producto $p) => (object) $p->getAttributes()), array_keys($columnasAtributo));
 
         $aplicaciones = $this->aplicacionesDe($pool);
         $gradosEquivalencia = $filtros->equivalencia !== null
@@ -281,33 +283,60 @@ final class CatalogoFiltrado
 
     /**
      * Medidas y atributos por los que se puede filtrar una categoría: sus
-     * columnas con nombre, salvo las de equivalencias (tienen su propio
-     * filtro) y las que repiten otro filtro.
+     * características (admin → Categorías), en su orden, salvo las de
+     * equivalencias (tienen su propio filtro) y las que repiten otro filtro.
      *
-     * @return array<string, string> columna_N => nombre
+     * @return array<int, string> caracteristica_id => nombre
      */
     public function atributosFiltrables(int $categoriaId): array
     {
-        $categoria = Categoria::find($categoriaId);
+        $categoria = Categoria::with('caracteristicas:id,nombre,orden')->find($categoriaId);
 
         if ($categoria === null) {
             return [];
         }
 
-        $columnas = [];
-        foreach ($categoria->getAttributes() as $columna => $nombre) {
-            $nombre = trim((string) $nombre);
+        $atributos = [];
+        foreach ($categoria->caracteristicas as $caracteristica) {
+            $nombre = trim((string) $caracteristica->nombre);
             $clave = strtoupper(Str::ascii($nombre));
 
-            if (preg_match('/^columna_\d+$/', $columna)
-                && $nombre !== ''
+            if ($nombre !== ''
                 && ! in_array($clave, self::ATRIBUTOS_EXCLUIDOS, true)
                 && ! BusquedaPorEquivalencia::esCampoDeEquivalencia($nombre)) {
-                $columnas[$columna] = $nombre;
+                $atributos[(int) $caracteristica->id] = $nombre;
             }
         }
 
-        return $columnas;
+        return $atributos;
+    }
+
+    /**
+     * Agrega a cada producto del pool sus valores de esas características
+     * (`$p->caracteristicas[ID]`), en una sola consulta.
+     *
+     * @param  Collection<int, object>  $pool
+     * @param  list<int>  $caracteristicaIds
+     * @return Collection<int, object>
+     */
+    private function conValores(Collection $pool, array $caracteristicaIds): Collection
+    {
+        $valores = [];
+        if ($caracteristicaIds !== [] && $pool->isNotEmpty()) {
+            $ids = $pool->pluck('id')->flip();
+            $consulta = DB::table('caracteristica_producto')
+                ->whereIn('caracteristica_id', $caracteristicaIds)
+                ->select(['producto_id', 'caracteristica_id', 'valor']);
+            // Con medio catálogo, un IN enorme de productos cuesta más que filtrar en PHP.
+            $filas = $ids->count() > 1500 ? $consulta->get() : $consulta->whereIn('producto_id', $ids->keys())->get();
+            foreach ($filas as $fila) {
+                $valores[$fila->producto_id][(int) $fila->caracteristica_id] = $fila->valor;
+            }
+        }
+
+        return $pool->each(function (object $p) use ($valores): void {
+            $p->caracteristicas = $valores[$p->id] ?? [];
+        });
     }
 
     /** Mayúsculas, sin espacios de más: así «Bosch » y «BOSCH» son lo mismo. */
@@ -327,23 +356,22 @@ final class CatalogoFiltrado
     // ------------------------------------------------------------------ pool
 
     /**
-     * @param  list<string>  $columnasAtributo
      * @return Collection<int, Producto>
      */
-    private function pool(FiltrosCatalogo $filtros, array $columnasAtributo): Collection
+    private function pool(FiltrosCatalogo $filtros): Collection
     {
         if ($filtros->hayBusqueda()) {
             // Sin resultados, parecidos() vuelve a pedir la misma búsqueda.
-            $clave = $filtros->q.'|'.implode(',', $columnasAtributo);
+            $clave = $filtros->q;
             if ($this->ultimaBusqueda === null || $this->ultimaBusqueda[0] !== $clave) {
-                $this->ultimaBusqueda = [$clave, $this->buscador->buscar($filtros->q, $columnasAtributo)];
+                $this->ultimaBusqueda = [$clave, $this->buscador->buscar($filtros->q)];
             }
 
             return $this->ultimaBusqueda[1];
         }
 
         $consulta = Producto::query()
-            ->select([...self::COLUMNAS, ...$columnasAtributo])
+            ->select(self::COLUMNAS)
             // Los ocultos (estado = 0) no se le ofrecen al visitante.
             ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0));
 
@@ -472,7 +500,7 @@ final class CatalogoFiltrado
      *
      * @param  array<int, array<string, list<string>>>  $aplicaciones
      * @param  array<int, int>  $gradosEquivalencia
-     * @param  array<string, string>  $columnasAtributo
+     * @param  array<int, string>  $columnasAtributo  caracteristica_id => nombre
      * @return array<string, \Closure(object): bool>
      */
     private function predicados(FiltrosCatalogo $f, array $aplicaciones, array $gradosEquivalencia, array $columnasAtributo): array
@@ -500,9 +528,9 @@ final class CatalogoFiltrado
         if ($f->equivalencia !== null) {
             $predicados['equivalencia'] = fn (object $p) => isset($gradosEquivalencia[$p->id]);
         }
-        foreach ($f->atributos as $columna => $valor) {
-            if (isset($columnasAtributo[$columna])) {
-                $predicados['atributo:'.$columna] = fn (object $p) => self::normalizar($p->{$columna}) === $valor;
+        foreach ($f->atributos as $id => $valor) {
+            if (isset($columnasAtributo[$id])) {
+                $predicados['atributo:'.$id] = fn (object $p) => self::normalizar($p->caracteristicas[$id] ?? null) === $valor;
             }
         }
 
@@ -547,9 +575,9 @@ final class CatalogoFiltrado
      * nada y no se ofrece, salvo que ya esté elegida (hay que poder sacarla).
      *
      * @param  Collection<int, Producto>  $pool
-     * @param  array<string, string>  $columnas
-     * @param  array<string, string>  $elegidos
-     * @return array<string, array{etiqueta: string, opciones: array<string, int>}>
+     * @param  array<int, string>  $columnas  caracteristica_id => nombre
+     * @param  array<int, string>  $elegidos
+     * @return array<int, array{etiqueta: string, opciones: array<string, int>}>
      */
     /**
      * Por el número de adelante y después como texto: 4MM, 4.4MM, 4.7MM, 12MM,
@@ -583,7 +611,7 @@ final class CatalogoFiltrado
         foreach ($columnas as $columna => $etiqueta) {
             $opciones = $this->contar(
                 $pool->filter(fn (object $p) => $cumple($p, 'atributo:'.$columna)),
-                fn (object $p) => [self::normalizar($p->{$columna})]
+                fn (object $p) => [self::normalizar($p->caracteristicas[$columna] ?? null)]
             );
             uksort($opciones, fn ($a, $b) => self::compararMedidas((string) $a, (string) $b));
 

@@ -543,7 +543,7 @@
     // Las medidas son de cada categoría: dejan de valer si cambia. El modelo
     // no se borra al cambiar de marca: las marcas ofrecidas ya lo tienen.
     if (origen && origen.name === 'categoria') {
-      form.querySelectorAll('select[name^="atributo["]').forEach(function (s) { s.value = ''; });
+      form.querySelectorAll('select[name^="c["]').forEach(function (s) { s.value = ''; });
     }
     clearTimeout(temporizadorTexto);
     cargarContenido(urlDelFormulario(form), 'push');

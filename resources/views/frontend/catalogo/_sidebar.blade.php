@@ -45,7 +45,7 @@
         @if ($hayFiltros)
             <a class="filtros__limpiar" href="{{ route($ruta, $filtros->query([
                 'estado' => null, 'marca' => null, 'vehiculo' => null, 'modelo' => null,
-                'equivalencia' => null, 'atributo' => null,
+                'equivalencia' => null, 'c' => null,
             ])) }}" data-catalogo-link>Limpiar</a>
         @endif
         <button type="button" class="filtros__cerrar" data-catalogo-cerrar-filtros aria-label="Cerrar filtros">
@@ -138,9 +138,9 @@
                 <p class="filtros__titulo" id="filtros-titulo-medidas">Medidas y características</p>
                 <div class="filtros__pila">
                     @foreach ($resultado->atributos as $columna => $atributo)
-                        <label class="filtros__subtitulo" for="filtro-{{ $columna }}">{{ $titulo($atributo['etiqueta']) }}</label>
+                        <label class="filtros__subtitulo" for="filtro-c{{ $columna }}">{{ $titulo($atributo['etiqueta']) }}</label>
                         @include('frontend.catalogo._select', [
-                            'name' => "atributo[{$columna}]", 'id' => "filtro-{$columna}", 'vacio' => 'Todas',
+                            'name' => "c[{$columna}]", 'id' => "filtro-c{$columna}", 'vacio' => 'Todas',
                             'opciones' => $opciones($atributo['opciones'], $filtros->atributos[$columna] ?? null, false),
                             'seleccionado' => $filtros->atributos[$columna] ?? null,
                             'buscable' => count($atributo['opciones']) > 10 ? 'Buscar valor' : null,

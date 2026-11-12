@@ -38,7 +38,7 @@ class HomeController extends Controller
         $productos = Producto::with([
                 'portadaImagen',
                 'imagenesGaleria',
-                'productCaracteristicas.caracteristica',
+                'caracteristicasVisibles',
                 'partesRelacionadas.portadaImagen',
                 'partesRelacionadas.imagenesGaleria',
                 'equivalencias',

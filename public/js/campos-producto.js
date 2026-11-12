@@ -11,53 +11,11 @@
     );
     let solicitud;
 
-    function aplicarUnidad(input, nombre) {
-        let sufijo;
-        let descripcion;
-        if (/\bvoltaje\b/i.test(nombre)) {
-            sufijo = 'v';
-            descripcion = 'voltios';
-        } else if (/\bdi[aá]metro\b/i.test(nombre)) {
-            sufijo = 'MM';
-            descripcion = 'milímetros';
-        } else {
-            return;
-        }
-
-        const valor = input.value.trim().replace(new RegExp('\\s*' + sufijo + '$', 'i'), '').replace(',', '.');
-        input.type = 'number';
-        input.min = '0';
-        input.step = 'any';
-        input.inputMode = 'decimal';
-        input.value = valor;
-        input.addEventListener('keydown', event => {
-            if (!event.ctrlKey && !event.metaKey && ['e', 'E', '+', '-'].includes(event.key)) {
-                event.preventDefault();
-            }
-        });
-
-        const grupo = document.createElement('div');
-        grupo.className = 'input-group';
-        input.before(grupo);
-        grupo.append(input);
-
-        const unidad = document.createElement('span');
-        unidad.className = 'input-group-text';
-        unidad.id = input.id + '_unidad';
-        unidad.textContent = sufijo;
-        unidad.setAttribute('aria-label', descripcion);
-        input.setAttribute('aria-describedby', unidad.id);
-        grupo.append(unidad);
-    }
-
-    // Campos ya renderizados al editar (columnas legacy y características).
+    // Campos ya renderizados al editar.
     contenedor.querySelectorAll('input[name]').forEach(input => {
         const label = input.parentElement.querySelector('label');
         input.id = input.id || input.name;
-        if (label) {
-            label.htmlFor = input.id;
-            aplicarUnidad(input, label.textContent);
-        }
+        if (label) label.htmlFor = input.id;
     });
 
     function agregarCampo(nombre, etiqueta, id) {
@@ -75,7 +33,6 @@
         input.value = categoria.value === categoriaInicial ? (valoresIniciales.get(nombre) || '') : '';
         campo.append(label, input);
         contenedor.append(campo);
-        aplicarUnidad(input, etiqueta);
     }
 
     async function cargarCategoria() {
@@ -91,11 +48,12 @@
             if (!respuesta.ok) throw new Error('No se pudieron cargar los campos del producto.');
             const datos = await respuesta.json();
 
-            contenedor.replaceChildren();
-            for (const [nombre, etiqueta] of Object.entries(datos.columnas || {})) {
-                agregarCampo(nombre, etiqueta, nombre);
-            }
+            // Los campos con algo escrito se quedan aunque la nueva categoría no los tenga.
+            contenedor.querySelectorAll('input[name]').forEach(input => {
+                if (input.value.trim() === '') input.closest('.col-3')?.remove();
+            });
             for (const caracteristica of datos.caracteristicas || []) {
+                if (contenedor.querySelector(`[name="caracteristicas[${caracteristica.id}]"]`)) continue;
                 agregarCampo(
                     `caracteristicas[${caracteristica.id}]`,
                     caracteristica.nombre,

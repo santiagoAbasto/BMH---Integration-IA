@@ -10,33 +10,21 @@ use App\Models\Imagen;
 use Illuminate\Support\Facades\File;
 use App\Models\Metadatos;
 use App\Models\Subcategoria;
-use App\Models\CaracteristicaCategoria;
 use Illuminate\Support\Facades\DB;
 
 class CategoriaController extends Controller
 {
-   public function show($id)
-{
-    $categoria = Categoria::with('caracteristicas')->findOrFail($id);
+    /** Las características de una categoría (admin de productos: al elegir la categoría). */
+    public function show($id)
+    {
+        $categoria = Categoria::with('caracteristicas')->findOrFail($id);
 
-    // Generar dinámicamente todas las columnas que empiecen con "columna_"
-    $columnas = collect($categoria->getAttributes())
-        ->filter(function($value, $key) {
-            return str_starts_with($key, 'columna_') && !empty($value);
-        });
-
-    return response()->json([
-        'id'            => $categoria->id,
-        'nombre'        => $categoria->nombre,
-        'columnas'      => $columnas, // todas las columnas dinámicas en un array asociativo
-        'caracteristicas' => $categoria->caracteristicas->map(function($c) {
-            return [
-                'id'     => $c->id,
-                'nombre' => $c->nombre,
-            ];
-        })->values(),
-    ]);
-}
+        return response()->json([
+            'id' => $categoria->id,
+            'nombre' => $categoria->nombre,
+            'caracteristicas' => $categoria->caracteristicas->map(fn (Caracteristica $c) => $c->paraFormulario())->values(),
+        ]);
+    }
 
 
     public function index()
@@ -53,7 +41,8 @@ class CategoriaController extends Controller
         ->orderBy('orden')
         ->get();
     $caracteristicas = Caracteristica::query()
-        ->select(['id', 'nombre'])
+        ->select(['id', 'nombre', 'orden'])
+        ->ordenadas()
         ->get();
 
     // Filtro de productos
@@ -92,27 +81,13 @@ class CategoriaController extends Controller
         }
 
 
-        foreach ($request->all() as $key => $value) {
-            if (str_starts_with($key, 'columna_') && !empty($value)) {
-                // Asigna el valor dinámico directamente al modelo, si tienes columnas para ello
-                $categoria->$key = $value; // Asegúrate de que el nombre de la columna exista en tu tabla
-            }
-        }
         $categoria->orden = $request->orden;
         $categoria->nombre = $request->nombre;
         // $categoria->descuento = $request->descuento;
         $categoria->save();
 
 
-        if ($request->has('caracteristicas')) {
-            foreach (array_unique($request->input('caracteristicas', [])) as $caracteristica_id) {
-                DB::table('categoria_caracteristica')->insert([
-                    'categoria_id' => $categoria->id,
-                    'caracteristica_id' => $caracteristica_id,
-                    'created_at' => now()
-                ]);
-            }
-        }
+        $categoria->caracteristicas()->sync($this->idsCaracteristicas($request));
 
         return redirect()->back()->with('success', 'Categoría creada exitosamente');
     }
@@ -132,36 +107,12 @@ class CategoriaController extends Controller
         
 
 
-        foreach (range(1, 78) as $i) {
-            $key = "columna_$i";
-            $categoria->$key = null; // Limpia el valor actual
-
-        }
-
-        // Luego, actualiza las columnas con los valores del request
-        foreach ($request->all() as $key => $value) {
-            if (str_starts_with($key, 'columna_') && !empty($value)) {
-                // Asigna el valor dinámico directamente al modelo, si tienes columnas para ello
-                $categoria->$key = $value; // Asegúrate de que el nombre de la columna exista en tu tabla
-            }
-        }
-
         $categoria->orden = $request->orden;
         $categoria->nombre = $request->nombre;
         // $categoria->descuento = $request->descuento;
         $categoria->save();
 
-        DB::table('categoria_caracteristica')->where('categoria_id', $categoria->id)->delete();
-
-        if ($request->has('caracteristicas')) {
-            foreach (array_unique($request->input('caracteristicas', [])) as $caracteristica_id) {
-                DB::table('categoria_caracteristica')->insert([
-                    'categoria_id' => $categoria->id,
-                    'caracteristica_id' => $caracteristica_id,
-                    'created_at' => now()
-                ]);
-            }
-        }
+        $categoria->caracteristicas()->sync($this->idsCaracteristicas($request));
 
         return redirect()->back()->with('success', 'Categoría actualizada');
     }
@@ -199,36 +150,35 @@ class CategoriaController extends Controller
         return response()->json($subcategorias);
     }
 
+    /**
+     * Las características de la categoría para el buscador viejo (/filtro-rodamiento): `value` es el id
+     * de la característica, que es lo que ese filtro recibe en `atributo`.
+     */
     public function getAtributos($id)
     {
-        // Obtén la categoría por su ID
-        $categoria = Categoria::find($id);
-    
-        // Si la categoría no existe, devolver error
-        if (!$categoria) {
+        $categoria = Categoria::with('caracteristicas')->find($id);
+
+        if (! $categoria) {
             return response()->json(['error' => 'Categoría no encontrada'], 404);
         }
-    
-        // Inicializamos un array para almacenar los atributos
-        $atributos = [];
-    
-        // Recorrer las columnas columna_24 hasta columna_68
-        for ($i = 1; $i <= 78; $i++) {
-            $columna = 'columna_' . $i; // Forma el nombre de la columna, e.g. 'columna_24'
-    
-            // Verifica si la columna existe, tiene un valor y no es nula ni vacía
-            if (!is_null($categoria->$columna) && $categoria->$columna !== '') {
-                $atributos[] = [
-                    'nombre' => $categoria->$columna, // El valor de la columna
-                    'value' => $columna               // El nombre de la columna como valor
-                ];
-            }
-        }
-    
-        // Retorna los atributos en formato JSON
-        return response()->json($atributos);
+
+        return response()->json($categoria->caracteristicas->map(fn (Caracteristica $c) => [
+            'nombre' => $c->nombre,
+            'value' => (string) $c->id,
+        ])->values());
     }
-    
+
+    /** @return list<int> ids de características existentes que manda el formulario (`caracteristicas[]`) */
+    private function idsCaracteristicas(Request $request): array
+    {
+        $ids = array_filter(
+            array_map('intval', (array) $request->input('caracteristicas', [])),
+            fn (int $id) => $id > 0,
+        );
+
+        return $ids === [] ? [] : Caracteristica::query()->whereKey(array_unique($ids))->pluck('id')->all();
+    }
+
     public function actualizarPorcentaje(Request $request)
     {
         $request->validate([

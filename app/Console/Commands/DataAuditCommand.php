@@ -6,7 +6,6 @@ namespace App\Console\Commands;
 
 use App\Domain\Catalog\Contracts\CatalogRepositoryInterface;
 use App\Domain\Catalog\Legacy\ProductImageService;
-use App\Domain\Catalog\LegacyAttributeMap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -150,44 +149,39 @@ final class DataAuditCommand extends Command
             'Sin rubro no se pueden mapear los atributos legacy: quedan sin características.',
         );
 
-        $caracteristicasHuerfanas = $legacy->table('producto_caracteristica as pc')
-            ->leftJoin('productos as p', 'p.id', '=', 'pc.producto_id')
-            ->whereNull('p.id')
+        // --- Características ------------------------------------------------
+        $fueraDeCategoria = (int) $legacy->table('caracteristica_producto as cp')
+            ->join('productos as p', 'p.id', '=', 'cp.producto_id')
+            ->leftJoin('caracteristica_categoria as cc', function ($join): void {
+                $join->on('cc.categoria_id', '=', 'p.categoria_id')->on('cc.caracteristica_id', '=', 'cp.caracteristica_id');
+            })
+            ->whereNull('cc.categoria_id')
             ->count();
 
         $findings[] = $this->finding(
-            'caracteristicas_huerfanas',
-            self::SEVERITY_MEDIUM,
-            'Filas de `producto_caracteristica` que apuntan a productos inexistentes',
-            $caracteristicasHuerfanas,
+            'caracteristicas_fuera_de_categoria',
+            self::SEVERITY_LOW,
+            'Valores de características que la categoría del producto no declara',
+            $fueraDeCategoria,
             [],
             $limit,
-            'Se ignoran al hidratar; conviene limpiarlas en la Fase B.',
+            'Quedan guardados pero no se ven en el sitio ni se usan como atributo. El admin del producto los muestra con un aviso para decidir.',
         );
 
-        // --- Slots legacy sin etiqueta -------------------------------------
-        $orphanSlots = [];
-
-        foreach (LegacyAttributeMap::ORPHAN_SLOTS as $slot) {
-            $column = LegacyAttributeMap::column($slot);
-            $count  = (int) $legacy->table('productos')
-                ->whereNotNull($column)
-                ->where($column, '<>', '')
-                ->count();
-
-            if ($count > 0) {
-                $orphanSlots[] = sprintf('%s tiene %d valores pero ninguna categoría lo etiqueta', $column, $count);
-            }
-        }
+        $sinUso = $legacy->table('caracteristicas as c')
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('caracteristica_categoria as cc')->whereColumn('cc.caracteristica_id', 'c.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('caracteristica_producto as cp')->whereColumn('cp.caracteristica_id', 'c.id'))
+            ->orderBy('c.nombre')
+            ->pluck('c.nombre');
 
         $findings[] = $this->finding(
-            'atributos_sin_etiqueta',
-            self::SEVERITY_MEDIUM,
-            'Slots legacy con datos pero sin etiqueta en ninguna categoría',
-            count($orphanSlots),
-            $orphanSlots,
+            'caracteristicas_sin_uso',
+            self::SEVERITY_LOW,
+            'Características que no usa ninguna categoría ni ningún producto',
+            $sinUso->count(),
+            $sinUso->all(),
             $limit,
-            'Datos no interpretables: no se muestran ni se usan para buscar. Hay que preguntarle a BMH qué son.',
+            'Se pueden borrar desde admin → Características, o asignar a una categoría.',
         );
 
         // --- Categorías vacías ---------------------------------------------
@@ -237,7 +231,7 @@ final class DataAuditCommand extends Command
         );
 
         // --- Placeholders "-" en el EAV ------------------------------------
-        $placeholders = (int) $legacy->table('producto_caracteristica')
+        $placeholders = (int) $legacy->table('caracteristica_producto')
             ->whereIn(DB::raw("TRIM(valor)"), ['-', '--', '', 'N/A'])
             ->count();
 

@@ -18,43 +18,35 @@ use Tests\CreatesApplication;
 final class CatalogoTest extends BaseTestCase
 {
     use CreatesApplication;
+    use UsaBaseLocal;
 
     private int $categoria;
+
+    /** La característica DIAMETRO (medida) de la categoría de prueba. */
+    private int $diametro;
 
     /** @var list<int> */
     private array $productos = [];
 
-    private string $origDefault = '';
-
-    private array $origMysql = [];
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->origDefault = config('database.default');
-        $this->origMysql = config('database.connections.mysql');
-        config([
-            'database.connections.mysql.database' => 'bmh_legacy',
-            'database.connections.mysql.username' => 'bmh_app',
-            'database.connections.mysql.password' => 'bmh_app_local',
-            'database.default' => 'mysql',
-        ]);
-        DB::purge('mysql');
+        $this->usarBaseLocal();
 
-        // columna_1 es una medida; columna_2 una equivalencia (no se ofrece como medida).
+        // DIAMETRO es una medida; EQUIVALENCIA NOSSO una equivalencia (no se ofrece como medida).
         $this->categoria = DB::table('categorias')->insertGetId([
             'nombre' => 'ZZ CATEGORIA DE PRUEBA '.uniqid(),
-            'columna_1' => 'DIAMETRO',
-            'columna_2' => 'EQUIVALENCIA NOSSO',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->diametro = $this->caracteristica('DIAMETRO');
+        $this->vincularCaracteristicas($this->categoria, $this->diametro, $this->caracteristica('EQUIVALENCIA NOSSO'));
 
         // 4 productos: 3 nuevos y 1 reconstruido; 2 Bosch, 1 Valeo; 2 de Ford.
-        $this->crear('A', ['estado' => 1, 'marca' => 'BOSCH', 'columna_1' => '60'], [['FORD (FO)', 'FALCON'], ['FIAT', '147']]);
-        $this->crear('B', ['estado' => 1, 'marca' => 'Bosch ', 'columna_1' => '70'], [['FORD', 'F100']]);
-        $this->crear('C', ['estado' => 2, 'marca' => 'VALEO', 'columna_1' => '60']);
-        $this->crear('D', ['estado' => 1, 'marca' => null, 'columna_1' => '-']);
+        $this->crear('A', ['estado' => 1, 'marca' => 'BOSCH', 'diametro' => '60'], [['FORD (FO)', 'FALCON'], ['FIAT', '147']]);
+        $this->crear('B', ['estado' => 1, 'marca' => 'Bosch ', 'diametro' => '70'], [['FORD', 'F100']]);
+        $this->crear('C', ['estado' => 2, 'marca' => 'VALEO', 'diametro' => '60']);
+        $this->crear('D', ['estado' => 1, 'marca' => null, 'diametro' => '-']);
         // Oculto: nunca se muestra ni se cuenta.
         $this->crear('E', ['estado' => 0, 'marca' => 'BOSCH']);
     }
@@ -64,13 +56,14 @@ final class CatalogoTest extends BaseTestCase
         DB::table('aplicaciones')->whereIn('producto_id', $this->productos)->delete();
         DB::table('productos')->whereIn('id', $this->productos)->delete();
         DB::table('categorias')->where('id', $this->categoria)->delete();
-        config(['database.default' => $this->origDefault, 'database.connections.mysql' => $this->origMysql]);
-        DB::purge('mysql');
+        $this->restaurarBase();
         parent::tearDown();
     }
 
     private function crear(string $letra, array $datos, array $aplicaciones = []): int
     {
+        $diametro = $datos['diametro'] ?? null;
+        unset($datos['diametro']);
         $id = DB::table('productos')->insertGetId($datos + [
             'codigo' => 'ZZCAT'.$letra.substr(uniqid(), -5),
             'nombre' => 'PRODUCTO '.$letra,
@@ -84,6 +77,9 @@ final class CatalogoTest extends BaseTestCase
 
         foreach ($aplicaciones as [$vehiculo, $modelo]) {
             DB::table('aplicaciones')->insert(['producto_id' => $id, 'nombre' => $vehiculo, 'valor' => $modelo, 'orden' => 0]);
+        }
+        if ($diametro !== null) {
+            $this->cargarValor($id, $this->diametro, $diametro);
         }
 
         return $this->productos[] = $id;
@@ -161,7 +157,15 @@ final class CatalogoTest extends BaseTestCase
 
     public function test_filtra_por_medida_de_la_categoria(): void
     {
-        $this->assertSame(['PRODUCTO A', 'PRODUCTO C'], $this->listados(['atributo' => ['columna_1' => '60']]));
+        $this->assertSame(['PRODUCTO A', 'PRODUCTO C'], $this->listados(['c' => [$this->diametro => '60']]));
+    }
+
+    public function test_un_link_viejo_con_columna_n_redirige_al_filtro_por_caracteristica(): void
+    {
+        // columna_2 era DIAMETRO en todas las categorías.
+        $this->get(route('productos', ['categoria' => $this->categoria, 'atributo' => ['columna_2' => '60']]))
+            ->assertStatus(301)
+            ->assertRedirect(route('productos', ['categoria' => $this->categoria, 'c' => [$this->diametro => '60']]));
     }
 
     public function test_ordena_por_codigo_numerico_por_el_numero_y_alfabetico_por_la_palabra(): void
@@ -227,8 +231,8 @@ final class CatalogoTest extends BaseTestCase
     {
         $atributos = $this->get(route('productos', ['categoria' => $this->categoria]))->viewData('resultado')->atributos;
 
-        $this->assertSame(['columna_1'], array_keys($atributos));
-        $this->assertSame([60 => 2, 70 => 1], $atributos['columna_1']['opciones']);
+        $this->assertSame([$this->diametro], array_keys($atributos));
+        $this->assertSame([60 => 2, 70 => 1], $atributos[$this->diametro]['opciones']);
     }
 
     public function test_el_texto_buscado_se_combina_con_los_filtros(): void
@@ -241,7 +245,7 @@ final class CatalogoTest extends BaseTestCase
 
     public function test_un_filtro_invalido_se_ignora_en_vez_de_fallar(): void
     {
-        $this->assertCount(4, $this->listados(['estado' => ['usado'], 'atributo' => ['drop table' => 'x'], 'paginas' => 'mil']));
+        $this->assertCount(4, $this->listados(['estado' => ['usado'], 'c' => ['drop table' => 'x'], 'paginas' => 'mil']));
     }
 
     public function test_el_parcial_de_contenido_trae_sidebar_y_resultados(): void
@@ -350,7 +354,7 @@ final class CatalogoTest extends BaseTestCase
             $resultado = $respuesta->viewData('resultado');
             $this->assertSame(4, $resultado->total());
             $this->assertSame([1 => 3, 2 => 1], $resultado->estados);
-            $this->assertSame([60 => 2, 70 => 1], $resultado->atributos['columna_1']['opciones']);
+            $this->assertSame([60 => 2, 70 => 1], $resultado->atributos[$this->diametro]['opciones']);
 
             // El form va al catálogo, sin arrastrar el id de la ficha.
             $dom = new \DOMDocument();

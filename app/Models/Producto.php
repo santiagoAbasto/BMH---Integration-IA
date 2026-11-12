@@ -244,29 +244,22 @@ class Producto extends Model
     }
 
 
-    /** @deprecated Sistema anterior (producto_caracteristica): se saca al pasar las vistas a caracteristicas(). */
-    public function productCaracteristicas()
+    /**
+     * Productos con un valor de esas características que cumple la condición. La condición recibe la
+     * consulta sobre `caracteristica_producto as cpf` (el valor es `cpf.valor`).
+     *
+     * @param  int|list<int>  $caracteristicaIds
+     * @param  \Closure(\Illuminate\Database\Query\Builder): mixed  $condicion
+     */
+    public function scopeConValorDe($query, int|array $caracteristicaIds, \Closure $condicion)
     {
-        return $this->hasMany(ProductCaracteristica::class, 'producto_id')
-            ->whereNull('producto_caracteristica.deleted_at')
-            ->whereIn('producto_caracteristica.id', function ($query) {
-                $query->selectRaw('MAX(pc_latest.id)')
-                    ->from('producto_caracteristica as pc_latest')
-                    ->whereNull('pc_latest.deleted_at')
-                    ->whereColumn('pc_latest.producto_id', 'producto_caracteristica.producto_id')
-                    ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
-                    ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
-            })
-            ->whereExists(function ($query) {
-                $query->selectRaw('1')
-                    ->from('categoria_caracteristica as cc')
-                    ->join('productos as p', 'p.categoria_id', '=', 'cc.categoria_id')
-                    ->whereColumn('p.id', 'producto_caracteristica.producto_id')
-                    ->whereColumn('cc.caracteristica_id', 'producto_caracteristica.caracteristica_id')
-                    ->whereNull('cc.deleted_at');
-            })
-            ->orderByRaw('COALESCE((SELECT c.orden FROM caracteristicas c WHERE c.id = producto_caracteristica.caracteristica_id), 2147483647)')
-            ->orderBy('producto_caracteristica.id');
+        return $query->whereExists(function ($sub) use ($caracteristicaIds, $condicion): void {
+            $sub->selectRaw('1')
+                ->from('caracteristica_producto as cpf')
+                ->whereColumn('cpf.producto_id', 'productos.id')
+                ->whereIn('cpf.caracteristica_id', (array) $caracteristicaIds)
+                ->where(fn ($w) => $condicion($w));
+        });
     }
 
     public function categoria(){

@@ -149,7 +149,6 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::get('producto', 'producto')->name('producto');
     Route::get('load', 'load')->name('productos.load');
     Route::get('searchZona', 'searchZona')->name('search.zona');
-    Route::get('/getProductoValor/{columnaId}/{productoId}/{categoriaId}', 'getProductoValor');
 
     Route::middleware('cliente')->group(function(){
         Route::get('productos-zona-clientes', 'productos_clientes')->name('productos.clientes');
@@ -183,7 +182,6 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
         Route::post('actualizar-clientes', 'actualizar_clientes')->name('actualizar.clientes');
         Route::post('actualizar-categoriasExcel', 'actualizar_categoriasExcel')->name('actualizar.categoriasExcel');
         Route::post('/producto/actualizar-porcentaje', 'actualizarPorcentaje')->name('producto.actualizarPorcentaje');
-        Route::get('/admin/categoria/{id}/caracteristicas', 'getCategoriaCaracteristicas');
 
 
     });
@@ -230,10 +228,17 @@ Route::controller(CaracteristicaController::class)->group(function () {
 
     Route::middleware('admin')->group(function(){
         Route::get('dashboard/caracteristica', 'dash_caracteristicas')->name('dashboard.caracteristicas');
-        // Route::get('dashboard/lista-de-precios', 'dash_lista')->name('dashboard.lista');
         Route::post('dashboard/caracteristicas-store', 'store')->name('caracteristicas.store');
         Route::put('dashboard/caracteristicas-update', 'update')->name('caracteristicas.update');
         Route::delete('dashboard/caracteristicas-delete', 'delete')->name('caracteristicas.delete');
+        // Pedidos chicos de los selectores (Categorías y Productos) y de la pantalla de Características.
+        Route::get('dashboard/caracteristicas/buscar', 'buscar')->name('caracteristicas.buscar');
+        Route::get('dashboard/caracteristicas/sin-uso', 'sinUso')->name('caracteristicas.sin-uso');
+        Route::get('dashboard/caracteristicas/origenes', 'origenes')->name('caracteristicas.origenes');
+        Route::get('dashboard/caracteristicas/de-producto/{producto}', 'deProducto')->whereNumber('producto')->name('caracteristicas.de-producto');
+        Route::get('dashboard/caracteristicas/{caracteristica}/vista-formato', 'vistaFormato')->whereNumber('caracteristica')->name('caracteristicas.vista-formato');
+        Route::get('dashboard/caracteristicas/{caracteristica}/vista-fusion', 'vistaFusion')->whereNumber('caracteristica')->name('caracteristicas.vista-fusion');
+        Route::post('dashboard/caracteristicas/{caracteristica}/fusionar', 'fusionar')->whereNumber('caracteristica')->name('caracteristicas.fusionar');
     });
 });
 

@@ -6,7 +6,7 @@ namespace App\Domain\Catalog\DTO;
 
 final readonly class CategoryView implements \JsonSerializable
 {
-    /** @param list<int> $attributeSlots slots con etiqueta en esta categoría */
+    /** @param list<int> $attributeSlots atributos del diccionario (LegacyAttributeMap) que la categoría declara */
     public function __construct(
         public int $id,
         public string $name,

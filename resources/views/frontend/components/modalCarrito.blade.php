@@ -24,12 +24,7 @@
             
                             <div class="d-flex flex-column">
                                 <div class="d-flex flex-column">
-                                    @for ($i = 1; $i <= 78; $i++)
-                                        <div id="divColumna{{ $i }}" style="display:none;">
-                                            <span class="nR" style="padding-left: 0px !important" id="productoColumna{{ $i }}" data-field="columna_{{ $i }}"></span>
-                                            <span class="infoR" id="categoriaColumna{{ $i }}" data-field="columna_{{ $i }}"></span>
-                                        </div>
-                                    @endfor
+                                    <div id="productoModalCaracteristicas"></div>
                                 </div>
                                 
             

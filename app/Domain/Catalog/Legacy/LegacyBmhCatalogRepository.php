@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  * Implementación del catálogo sobre la base legacy de BMH.
  *
  * Es el ÚNICO lugar del sistema, junto con el semantic layer, que escribe SQL
- * contra `productos` / `categorias` / `producto_caracteristica`. La conexión
+ * contra `productos` / `categorias` / las características. La conexión
  * `mysql_legacy` usa un usuario con GRANT SELECT solamente: si algo intentara
  * escribir, MySQL lo rechaza.
  *
@@ -37,8 +37,14 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
     private const CACHE_CATEGORIES = 'bmh:legacy:categories';
     private const CACHE_DUPLICATES = 'bmh:legacy:duplicate-codes';
 
+    /** Las columnas de `productos` que usa el semantic layer (no las 78 `columna_N` viejas). */
+    private const PRODUCT_COLUMNS = ['id', 'codigo', 'nombre', 'descripcion', 'marca', 'modelo', 'estado', 'precio', 'categoria_id', 'orden'];
+
     /** Filas de `categorias` cacheadas en memoria durante el request. */
     private ?array $categoryRows = null;
+
+    /** @var array<int, list<int>>|null caracteristica_id de cada slot del diccionario, durante el request */
+    private ?array $characteristicIdsBySlot = null;
 
     public function __construct(
         private readonly CatalogSemanticLayer $semanticLayer,
@@ -64,7 +70,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
 
         $rows = $this->db()->table('productos')
             ->whereIn('id', $ids)
-            ->get()
+            ->get(self::PRODUCT_COLUMNS)
             ->all();
 
         // Preserva el orden pedido: el ranking ya decidió cuál va primero.
@@ -78,7 +84,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
     {
         $rows = $this->db()->table('productos')
             ->where('codigo', trim($code))
-            ->get()
+            ->get(self::PRODUCT_COLUMNS)
             ->all();
 
         return $this->hydrate($rows);
@@ -100,7 +106,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(codigo,' ',''),'-',''),'.',''),'/','')) = ?",
                 [$normalized]
             )
-            ->get()
+            ->get(self::PRODUCT_COLUMNS)
             ->all();
 
         return $this->hydrate($rows);
@@ -120,7 +126,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 ['%' . $normalized . '%']
             )
             ->limit($limit)
-            ->get()
+            ->get(self::PRODUCT_COLUMNS)
             ->all();
 
         return $this->hydrate($rows);
@@ -136,45 +142,33 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
 
         $like = '%' . $normalized . '%';
 
-        // Fuente 1: EAV moderno (producto_caracteristica), que es donde viven
-        // las equivalencias de verdad.
-        $viaCharacteristics = $this->db()->table('producto_caracteristica as pc')
-            ->join('caracteristicas as c', 'c.id', '=', 'pc.caracteristica_id')
-            ->whereRaw(
-                "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(pc.valor,' ',''),'-',''),'.',''),'/','')) LIKE ?",
-                [$like]
-            )
-            ->where(function ($q): void {
-                $q->where('c.nombre', 'like', '%EQUIVALENCIA%')
-                    ->orWhere('c.nombre', 'like', '%ORIGINAL%')
-                    ->orWhere('c.nombre', 'like', 'CODIGO %');
+        // Fuente 1: las características de equivalencia (EQUIVALENCIA NOSSO, CODIGO ZEN, Nº ORIGINAL…).
+        $equivalenceIds = $this->db()->table('caracteristicas')
+            ->get(['id', 'nombre'])
+            ->filter(static function (object $c): bool {
+                $slot = LegacyAttributeMap::slotDeCaracteristica($c->nombre);
+                if ($slot !== null) {
+                    $key = (string) LegacyAttributeMap::key($slot);
+
+                    return LegacyAttributeMap::type($slot) === LegacyAttributeMap::TYPE_CROSS_REF
+                        && (str_starts_with($key, 'equiv') || str_starts_with($key, 'code_'));
+                }
+                $nombre = mb_strtoupper((string) $c->nombre);
+
+                return str_contains($nombre, 'EQUIVALENCIA') || str_contains($nombre, 'ORIGINAL') || str_starts_with($nombre, 'CODIGO ');
             })
-            ->limit($limit)
-            ->pluck('pc.producto_id')
+            ->pluck('id')
             ->all();
 
-        // Fuente 2: slots legacy de equivalencia.
-        $equivalenceSlots = array_filter(
-            LegacyAttributeMap::crossReferenceSlots(),
-            static function (int $slot): bool {
-                $key = (string) LegacyAttributeMap::key($slot);
-
-                return str_starts_with($key, 'equiv') || str_starts_with($key, 'code_');
-            }
-        );
-
-        $query = $this->db()->table('productos')->select('id');
-        $first = true;
-
-        foreach ($equivalenceSlots as $slot) {
-            $column = LegacyAttributeMap::column($slot);
-            $raw    = "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(`{$column}`,' ',''),'-',''),'.',''),'/','')) LIKE ?";
-
-            $first ? $query->whereRaw($raw, [$like]) : $query->orWhereRaw($raw, [$like]);
-            $first = false;
-        }
-
-        $viaSlots = $first ? [] : $query->limit($limit)->pluck('id')->all();
+        $viaCharacteristics = $equivalenceIds === [] ? [] : $this->db()->table('caracteristica_producto')
+            ->whereIn('caracteristica_id', $equivalenceIds)
+            ->whereRaw(
+                "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(valor,' ',''),'-',''),'.',''),'/','')) LIKE ?",
+                [$like]
+            )
+            ->limit($limit)
+            ->pluck('producto_id')
+            ->all();
 
         // Fuente 3: tabla nueva `equivalencias` (clave-valor ordenada).
         $viaNewEquivalences = $this->db()->table('equivalencias')
@@ -187,7 +181,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
             ->all();
 
         $ids = array_slice(
-            array_values(array_unique([...$viaCharacteristics, ...$viaSlots, ...$viaNewEquivalences])),
+            array_values(array_unique([...$viaCharacteristics, ...$viaNewEquivalences])),
             0,
             $limit
         );
@@ -221,7 +215,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
             $builder->whereIn('categoria_id', $categoryIds);
         }
 
-        $rows = $builder->limit($limit)->get()->all();
+        $rows = $builder->limit($limit)->get(self::PRODUCT_COLUMNS)->all();
 
         return $this->hydrate($rows);
     }
@@ -245,10 +239,16 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 continue;
             }
 
-            $column = LegacyAttributeMap::column($slot);
-            $type   = LegacyAttributeMap::type($slot);
+            $characteristicIds = $this->characteristicIdsBySlot()[$slot] ?? [];
+            if ($characteristicIds === []) {
+                continue;
+            }
+            $type = LegacyAttributeMap::type($slot);
 
-            if ($type === LegacyAttributeMap::TYPE_COUNT) {
+            // Condición sobre el valor del producto en esa característica (`cp.valor`).
+            $condicion = static fn ($q) => $q->where('cp.valor', 'like', '%' . $value . '%');
+
+            if ($type === LegacyAttributeMap::TYPE_COUNT && ($numero = $this->parseNumeric($value)) !== null) {
                 /*
                  * Los conteos se comparan por número, no con LIKE: buscar 9
                  * dientes con `LIKE '%9%'` traía también los de 19, y buscar 1
@@ -257,38 +257,29 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                  * Se acepta el valor suelto ("9") y las formas mixtas que hay
                  * cargadas ("9/10").
                  */
-                $numero = $this->parseNumeric($value);
-
-                if ($numero !== null) {
-                    $entero = (string) (int) round($numero);
-
-                    $builder->where(function ($q) use ($column, $entero): void {
-                        $q->whereRaw("TRIM(`{$column}`) = ?", [$entero])
-                            ->orWhereRaw("`{$column}` REGEXP ?", ['(^|[^0-9])' . $entero . '([^0-9]|$)']);
-                    });
-
-                    $appliedAny = true;
-                    continue;
-                }
-            }
-
-            if (in_array($type, [LegacyAttributeMap::TYPE_DIMENSION, LegacyAttributeMap::TYPE_ELECTRICAL], true)) {
+                $entero    = (string) (int) round($numero);
+                $condicion = static fn ($q) => $q->where(static function ($w) use ($entero): void {
+                    $w->whereRaw('TRIM(cp.valor) = ?', [$entero])
+                        ->orWhereRaw('cp.valor REGEXP ?', ['(^|[^0-9])' . $entero . '([^0-9]|$)']);
+                });
+            } elseif (in_array($type, [LegacyAttributeMap::TYPE_DIMENSION, LegacyAttributeMap::TYPE_ELECTRICAL], true)
+                && ($numeric = $this->parseNumeric($value)) !== null) {
                 // Dimensiones: comparación numérica tolerante. La base guarda
-                // "88.8", "88,8", "88.8 mm" indistintamente.
-                $numeric = $this->parseNumeric($value);
-
-                if ($numeric !== null) {
-                    $tolerance = $type === LegacyAttributeMap::TYPE_DIMENSION ? 1.0 : 0.01;
-                    $builder->whereRaw(
-                        "ABS(CAST(REPLACE(REGEXP_SUBSTR(`{$column}`, '[0-9]+([.,][0-9]+)?'), ',', '.') AS DECIMAL(12,3)) - ?) <= ?",
-                        [$numeric, $tolerance]
-                    );
-                    $appliedAny = true;
-                    continue;
-                }
+                // "88.8", "88,8", "88.8MM" indistintamente.
+                $tolerance = $type === LegacyAttributeMap::TYPE_DIMENSION ? 1.0 : 0.01;
+                $condicion = static fn ($q) => $q->whereRaw(
+                    "ABS(CAST(REPLACE(REGEXP_SUBSTR(cp.valor, '[0-9]+([.,][0-9]+)?'), ',', '.') AS DECIMAL(12,3)) - ?) <= ?",
+                    [$numeric, $tolerance]
+                );
             }
 
-            $builder->where($column, 'like', '%' . $value . '%');
+            $builder->whereExists(static function ($q) use ($characteristicIds, $condicion): void {
+                $q->selectRaw('1')
+                    ->from('caracteristica_producto as cp')
+                    ->whereColumn('cp.producto_id', 'productos.id')
+                    ->whereIn('cp.caracteristica_id', $characteristicIds)
+                    ->where($condicion);
+            });
             $appliedAny = true;
         }
 
@@ -300,7 +291,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
             $builder->whereIn('categoria_id', $categoryIds);
         }
 
-        $rows = $builder->limit($limit)->get()->all();
+        $rows = $builder->limit($limit)->get(self::PRODUCT_COLUMNS)->all();
 
         return $this->hydrate($rows);
     }
@@ -314,12 +305,14 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 ->pluck('total', 'categoria_id')
                 ->all();
 
+            $slots = $this->slotsByCategory();
+
             return array_map(
                 fn (object $row): CategoryView => new CategoryView(
                     id: (int) $row->id,
                     name: trim((string) $row->nombre),
                     alias: $row->alias ?? null,
-                    attributeSlots: $this->slotsWithLabel($row),
+                    attributeSlots: $slots[(int) $row->id] ?? [],
                     productCount: (int) ($counts[$row->id] ?? 0),
                 ),
                 $this->categoryRows()
@@ -457,8 +450,10 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         $applicationsMap   = $this->applicationsFor($productIds);
 
         $categoryCounts = [];
+        $categorySlots  = [];
         foreach ($this->categories() as $category) {
             $categoryCounts[$category->id] = $category->productCount;
+            $categorySlots[$category->id]  = $category->attributeSlots;
         }
 
         $views = [];
@@ -468,7 +463,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
 
             $views[] = $this->semanticLayer->toProductView(
                 product: $row,
-                categoryLabels: $categoryId === null ? null : ($categoryMap[$categoryId] ?? null),
+                categoryRow: $categoryId === null ? null : ($categoryMap[$categoryId] ?? null),
                 characteristics: $characteristics[(int) $row->id] ?? [],
                 images: $imageMap[(int) $row->id] ?? [],
                 duplicateCode: isset($duplicates[(string) $row->codigo]),
@@ -476,6 +471,7 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
                 relatedPartsTable: $relatedPartsMap[(int) $row->id] ?? [],
                 equivalencesTable: $equivalencesMap[(int) $row->id] ?? [],
                 applicationsTable: $applicationsMap[(int) $row->id] ?? [],
+                categorySlots: $categorySlots[$categoryId] ?? [],
             );
         }
 
@@ -483,16 +479,25 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
     }
 
     /**
+     * Los valores de las características de cada producto, con su nombre y si la categoría del producto
+     * la declara (sólo esas son atributos visibles). Una sola consulta para todos.
+     *
      * @param  list<int> $productIds
      * @return array<int, list<object>>
      */
     private function characteristicsFor(array $productIds): array
     {
-        $rows = $this->db()->table('producto_caracteristica as pc')
-            ->join('caracteristicas as c', 'c.id', '=', 'pc.caracteristica_id')
-            ->whereIn('pc.producto_id', $productIds)
-            ->whereNull('pc.deleted_at')
-            ->select('pc.id', 'pc.producto_id', 'pc.valor', 'c.nombre as caracteristica')
+        $rows = $this->db()->table('caracteristica_producto as cp')
+            ->join('caracteristicas as c', 'c.id', '=', 'cp.caracteristica_id')
+            ->join('productos as p', 'p.id', '=', 'cp.producto_id')
+            ->leftJoin('caracteristica_categoria as cc', static function ($join): void {
+                $join->on('cc.categoria_id', '=', 'p.categoria_id')->on('cc.caracteristica_id', '=', 'cp.caracteristica_id');
+            })
+            ->whereIn('cp.producto_id', $productIds)
+            ->orderByRaw("COALESCE(c.orden, '') = ''")
+            ->orderBy('c.orden')
+            ->orderBy('c.nombre')
+            ->selectRaw('cp.producto_id, cp.caracteristica_id, cp.valor, c.nombre as caracteristica, (cc.categoria_id IS NOT NULL) as en_categoria')
             ->get();
 
         $grouped = [];
@@ -586,7 +591,47 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
     /** @return list<object> */
     private function categoryRows(): array
     {
-        return $this->categoryRows ??= $this->db()->table('categorias')->get()->all();
+        return $this->categoryRows ??= $this->db()->table('categorias')->get(['id', 'nombre', 'alias'])->all();
+    }
+
+    /** @return array<int, list<int>> slots del diccionario => ids de característica con ese nombre */
+    private function characteristicIdsBySlot(): array
+    {
+        if ($this->characteristicIdsBySlot !== null) {
+            return $this->characteristicIdsBySlot;
+        }
+
+        $map = [];
+        foreach ($this->db()->table('caracteristicas')->get(['id', 'nombre']) as $row) {
+            $slot = LegacyAttributeMap::slotDeCaracteristica($row->nombre);
+            if ($slot !== null) {
+                $map[$slot][] = (int) $row->id;
+            }
+        }
+
+        return $this->characteristicIdsBySlot = $map;
+    }
+
+    /** @return array<int, list<int>> categoria_id => slots del diccionario que declara */
+    private function slotsByCategory(): array
+    {
+        $rows = $this->db()->table('caracteristica_categoria as cc')
+            ->join('caracteristicas as c', 'c.id', '=', 'cc.caracteristica_id')
+            ->get(['cc.categoria_id', 'c.nombre']);
+
+        $map = [];
+        foreach ($rows as $row) {
+            $slot = LegacyAttributeMap::slotDeCaracteristica($row->nombre);
+            if ($slot !== null) {
+                $map[(int) $row->categoria_id][$slot] = $slot;
+            }
+        }
+
+        return array_map(static function (array $slots): array {
+            sort($slots);
+
+            return array_values($slots);
+        }, $map);
     }
 
     /** @return array<int, object> */
@@ -598,21 +643,6 @@ final class LegacyBmhCatalogRepository implements CatalogRepositoryInterface
         }
 
         return $map;
-    }
-
-    /** @return list<int> */
-    private function slotsWithLabel(object $categoryRow): array
-    {
-        $slots = [];
-
-        foreach (LegacyAttributeMap::slots() as $slot) {
-            $label = $categoryRow->{LegacyAttributeMap::categoryLabelColumn($slot)} ?? null;
-            if ($label !== null && trim((string) $label) !== '') {
-                $slots[] = $slot;
-            }
-        }
-
-        return $slots;
     }
 
     /** @return list<string> */

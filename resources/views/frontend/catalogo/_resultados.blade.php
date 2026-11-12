@@ -70,7 +70,7 @@
             @if ($hayFiltros)
                 <a class="catalogo__boton catalogo__boton--lleno" data-catalogo-link href="{{ route($ruta, $filtros->query([
                     'estado' => null, 'marca' => null, 'vehiculo' => null, 'modelo' => null,
-                    'equivalencia' => null, 'atributo' => null,
+                    'equivalencia' => null, 'c' => null,
                 ])) }}">Quitar filtros</a>
             @else
                 <a class="catalogo__boton catalogo__boton--lleno" href="{{ route('contacto') }}">Consultanos</a>

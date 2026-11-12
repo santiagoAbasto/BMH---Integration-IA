@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Caracteristica;
+use App\Support\Caracteristicas\FormatoCaracteristica;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validación compartida del alta y la edición de características.
+ * Validación compartida del alta y la edición de características (admin → Características, y el alta
+ * rápida desde Categorías y Productos).
  *
- * El `id` viaja por query string (`?id=…`) porque las rutas del ABM no tienen
- * parámetro; se valida acá para que un id ausente o basura no llegue al
- * controlador. Que la característica exista se resuelve en el controlador, que
- * responde con un aviso en vez de romper.
+ * El `id` viaja en el formulario porque las rutas del ABM no tienen parámetro. Que la característica
+ * exista se resuelve en el controlador, que responde con un aviso en vez de romper.
  */
 class CaracteristicaRequest extends FormRequest
 {
@@ -30,7 +31,11 @@ class CaracteristicaRequest extends FormRequest
         return [
             'id' => [$this->isMethod('POST') ? 'nullable' : 'required', 'integer', 'min:1'],
             'nombre' => ['required', 'string', 'max:255'],
-            'orden' => ['nullable', 'string', 'max:55'],
+            'orden' => ['nullable', 'string', 'regex:/^[A-Za-z0-9]{2}$/'],
+            'tipo' => ['nullable', 'in:texto,numero'],
+            'mayusculas' => ['nullable', 'boolean'],
+            'unidad' => ['nullable', 'string', 'max:10', 'regex:/^[^\s\d,.\/]+$/u'],
+            'aplicar_formato' => ['nullable', 'boolean'],
         ];
     }
 
@@ -42,34 +47,38 @@ class CaracteristicaRequest extends FormRequest
         return [
             'id.required' => 'No se indicó qué característica editar.',
             'id.integer' => 'La característica indicada no es válida.',
-            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.required' => 'Escribí el nombre de la característica.',
             'nombre.max' => 'El nombre no puede superar los 255 caracteres.',
-            'orden.max' => 'El orden no puede superar los 55 caracteres.',
+            'orden.regex' => 'El orden son 2 letras o números, por ejemplo «ab».',
+            'tipo.in' => 'Elegí si se escribe como texto o como número.',
+            'unidad.max' => 'La unidad no puede superar los 10 caracteres (por ejemplo V, MM, KW).',
+            'unidad.regex' => 'La unidad va sin espacios ni números: por ejemplo V, MM o KW.',
         ];
     }
 
     /**
-     * Se recorta antes de validar: así "   " no pasa como nombre y no se
-     * guardan nombres con espacios de más, que era una fuente de duplicados.
+     * Se recorta antes de validar: así "   " no pasa como nombre y no se guardan nombres con espacios de
+     * más, que era una fuente de duplicados.
      */
     protected function prepareForValidation(): void
     {
+        $recortar = fn (string $campo) => is_string($this->input($campo)) ? trim($this->input($campo)) : $this->input($campo);
+
         $this->merge([
-            'nombre' => is_string($this->input('nombre')) ? trim($this->input('nombre')) : $this->input('nombre'),
-            'orden' => is_string($this->input('orden')) ? trim($this->input('orden')) : $this->input('orden'),
+            'nombre' => $recortar('nombre'),
+            'orden' => $recortar('orden') === '' ? null : $recortar('orden'),
+            'unidad' => $recortar('unidad') === '' ? null : $recortar('unidad'),
         ]);
     }
 
     public function nombre(): string
     {
-        return (string) $this->validated('nombre');
+        return Caracteristica::normalizarNombre((string) $this->validated('nombre'));
     }
 
     public function orden(): ?string
     {
-        $orden = $this->validated('orden');
-
-        return $orden === '' || $orden === null ? null : (string) $orden;
+        return Caracteristica::normalizarOrden($this->validated('orden'));
     }
 
     public function caracteristicaId(): ?int
@@ -77,5 +86,26 @@ class CaracteristicaRequest extends FormRequest
         $id = $this->validated('id');
 
         return $id === null ? null : (int) $id;
+    }
+
+    /** El formato elegido. Sin los campos (un alta con sólo el nombre): texto en mayúsculas. */
+    public function formato(): FormatoCaracteristica
+    {
+        $numerica = $this->validated('tipo') === 'numero';
+        $unidad = $numerica ? $this->validated('unidad') : null;
+
+        return new FormatoCaracteristica(
+            mayusculas: $this->has('mayusculas') ? $this->boolean('mayusculas') : true,
+            numerica: $numerica,
+            unidad: $unidad !== null ? (string) $unidad : null,
+        );
+    }
+
+    /** @return array{mayusculas: bool, numerica: bool, unidad: ?string} */
+    public function atributosDeFormato(): array
+    {
+        $formato = $this->formato();
+
+        return ['mayusculas' => $formato->mayusculas, 'numerica' => $formato->numerica, 'unidad' => $formato->unidad];
     }
 }

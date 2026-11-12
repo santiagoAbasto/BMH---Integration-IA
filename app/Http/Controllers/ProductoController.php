@@ -9,7 +9,6 @@ use App\Models\Producto;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Models\Caracteristica;
-use App\Models\CaracteristicaProducto;
 use App\Models\Imagen;
 use Illuminate\Support\Facades\File;
 use App\Models\Metadatos;
@@ -28,7 +27,8 @@ use App\Services\BuscadorCatalogo;
 use App\Services\Catalogo\CatalogoFiltrado;
 use App\Services\Catalogo\FiltrosCatalogo;
 use App\Services\Catalogo\PartesReciprocas;
-use App\Services\Catalogo\UnidadesProducto;
+use App\Actions\Caracteristicas\SincronizarCaracteristicasProducto;
+use Illuminate\Validation\ValidationException;
 use App\Services\BusquedaPorEquivalencia;
 use App\Services\Imagenes\ImagenesDeCategoria;
 use App\Services\Imagenes\OptimizadorImagenes;
@@ -76,7 +76,7 @@ class ProductoController extends Controller
             'categoria',
             'portadaImagen',
             'imagenesGaleria',
-            'productCaracteristicas.caracteristica',
+            'caracteristicasVisibles',
             'partesRelacionadas.portadaImagen',
             'partesRelacionadas.imagenesGaleria',
             'equivalencias',
@@ -105,7 +105,7 @@ class ProductoController extends Controller
 
     public function ofertas()
     {
-        $productos = Producto::with(['categoria', 'portadaImagen', 'imagenesGaleria', 'productCaracteristicas.caracteristica'])
+        $productos = Producto::with(['categoria', 'portadaImagen', 'imagenesGaleria', 'caracteristicasVisibles'])
             ->where('descuento', '!=', 0)
             ->ordenado()
             ->get();
@@ -120,7 +120,7 @@ class ProductoController extends Controller
         'categoria',
         'portadaImagen',
         'imagenesGaleria',
-        'productCaracteristicas.caracteristica',
+        'caracteristicasVisibles',
         'usos',
         'dimensiones',
         'equivalencias',
@@ -139,7 +139,7 @@ class ProductoController extends Controller
                 'categoria',
                 'portadaImagen',
                 'imagenesGaleria',
-                'productCaracteristicas.caracteristica',
+                'caracteristicasVisibles',
                 'partesRelacionadas.portadaImagen',
                 'partesRelacionadas.imagenesGaleria',
                 'equivalencias',
@@ -175,17 +175,8 @@ class ProductoController extends Controller
     // ðŸ”¹ Datos extra como en edit()
     $imagenesProducto = Imagen::where('producto_id', $request->id)->where('sector', 'producto')->orderBy('orden')->get();
     $categoriaSelected = Categoria::with('caracteristicas')->find($producto->categoria_id);
-     // La relación ya filtra por la categoría y ordena por `orden`.
-     $caracteristicas = $producto->productCaracteristicas
-         ->map(function ($pc) {
-             $caracteristica = $pc->caracteristica;
-             $caracteristica->valor = $pc->valor;
-
-             return $caracteristica;
-         })
-         ->values();
-
-        
+    // Las que declara la categoría, en el orden de cada característica: [nombre, valor].
+    $caracteristicas = $producto->fichaCaracteristicas();
 
     return view('frontend/producto', compact(
         'zonaclientes',
@@ -218,7 +209,7 @@ class ProductoController extends Controller
             'categoria',
             'portadaImagen',
             'imagenesGaleria',
-            'productCaracteristicas.caracteristica',
+            'caracteristicasVisibles',
             'partesRelacionadas.portadaImagen',
             'partesRelacionadas.imagenesGaleria',
             'equivalencias',
@@ -238,133 +229,6 @@ class ProductoController extends Controller
 
         return view('frontend/productos-listado', compact('productos'));
     }
-
-    // public function filtroRodamiento(Request $request)
-    // {
-
-
-
-    //     $query = Producto::query();
-    //     $busqueda = '';
-
-    //     if ($request->has('buscadorPrincipal') && $request->buscadorPrincipal) {
-    //         $busqueda = $request->buscadorPrincipal;
-    //         $query->where(function ($q) use ($busqueda) {
-    //             $q->where('marca', 'LIKE', '%' . $busqueda . '%')
-    //                 ->orWhere('nombre', 'LIKE', '%' . $busqueda . '%')
-    //                 ->orWhere('codigo', 'LIKE', '%' . $busqueda . '%')
-    //                 ->orWhere('modelo', 'LIKE', '%' . $busqueda . '%')
-    //                 ->orWhereHas('equivalencias', function ($q) use ($busqueda) {
-    //                     $q->where('descripcion', 'LIKE', '%' . $busqueda . '%');
-    //                 });
-    //         });
-    //     }
-
-    //     if ($request->has('codigoBMH') && $request->codigoBMH) {
-    //         $query->where('codigo', 'LIKE', '%' . $request->codigoBMH . '%');
-    //         $busqueda = $request->codigoBMH;
-    //     }
-
-
-    //     if ($request->has('marca') && $request->marca) {
-    //         $query->where('marca', $request->marca);
-    //         $busqueda = $request->marca;
-    //     }
-
-
-    //     if ($request->has('modelo') && $request->modelo) {
-    //         $query->where('modelo', $request->modelo);
-    //         $busqueda = $request->modelo;
-    //     }
-
-    //     if ($request->has('equivalenciaFiltro') && $request->equivalenciaFiltro) {
-    //         $equivalenciaFiltro = $request->equivalenciaFiltro;
-
-    //         // Eliminar espacios del filtro de bÃºsqueda
-    //         $equivalenciaFiltroSinEspacios = str_replace(' ', '', $equivalenciaFiltro);
-
-    //         // Obtener todas las columnas de la tabla productos
-    //         $columns = Schema::getColumnListing('productos');
-
-    //         // Filtrar solo las columnas desde columna_1 hasta columna_74
-    //         $filteredColumns = array_filter($columns, function ($column) {
-    //             return preg_match('/^columna_(\d+)$/', $column, $matches) && $matches[1] >= 1 && $matches[1] <= 78;
-    //         });
-
-    //         $query->where(function ($q) use ($equivalenciaFiltro, $equivalenciaFiltroSinEspacios, $filteredColumns) {
-    //             foreach ($filteredColumns as $column) {
-    //                 $q->orWhere(function ($subQuery) use ($column, $equivalenciaFiltro, $equivalenciaFiltroSinEspacios) {
-    //                     // Eliminar los espacios en la columna de la base de datos para la comparaciÃ³n
-    //                     $subQuery->where(DB::raw("REPLACE($column, ' ', '')"), '=', $equivalenciaFiltroSinEspacios)
-    //                         // Coincidencia con el valor completo sin espacios o que empiece con el valor
-    //                         ->orWhere(DB::raw("REPLACE($column, ' ', '')"), 'LIKE', $equivalenciaFiltroSinEspacios . '%')
-    //                         // Coincidencia con el valor que contiene un guion
-    //                         ->orWhere(DB::raw("REPLACE($column, ' ', '')"), 'LIKE', $equivalenciaFiltroSinEspacios . '-%');
-    //                 });
-    //             }
-    //         });
-    //     }
-
-    //     if ($request->has('categoriaFiltro') && $request->categoriaFiltro) {
-    //         $query->where('categoria_id', $request->categoriaFiltro);
-    //         $busqueda = $request->categoriaFiltro;
-    //     }
-
-    //     if ($request->has('atributo') && $request->atributo) {
-    //         $atributo = $request->atributo;
-    //         $valorAttr = $request->valorAttr;
-
-    //         // Eliminar cualquier letra o carÃ¡cter no numÃ©rico
-    //         $valorAttr = filter_var($valorAttr, FILTER_SANITIZE_NUMBER_INT);
-
-    //         // Buscar productos en el rango alrededor del valor (Â±3)
-    //         $query->whereBetween($atributo, [$valorAttr - 3, $valorAttr + 3]);
-    //         $busqueda = $valorAttr;
-    //     }
-
-    //     if ($request->has('atributoTwo') && $request->atributoTwo) {
-    //         $atributoTwo = $request->atributoTwo;
-    //         $valorAttrTwo = $request->valorAttrTwo;
-
-    //         // Eliminar cualquier letra o carÃ¡cter no numÃ©rico
-    //         $valorAttrTwo = filter_var($valorAttrTwo, FILTER_SANITIZE_NUMBER_INT);
-
-    //         // Buscar productos en el rango alrededor del valor (Â±3)
-    //         $query->whereBetween($atributoTwo, [$valorAttrTwo - 3, $valorAttrTwo + 3]);
-    //         $busqueda = $valorAttrTwo;
-    //     }
-
-    //     if ($request->has('nuevo') && $request->nuevo) {
-    //         $query->where('estado', 1);
-    //     }
-    //     if ($request->has('reconstruido') && $request->reconstruido) {
-    //         $query->where('estado', 2);
-    //     }
-
-    //     $productos = $query->orderBy('orden', 'desc')->get();
-
-    //     $ventana = 'categorias-nav';
-
-    //     $productosAll = Producto::all();
-    //     $marcas = $productosAll->groupBy('marca')
-    //         ->sortKeys() // Ordena las marcas alfabÃ©ticamente
-    //         ->map(function ($productosPorMarca) {
-    //             return $productosPorMarca->groupBy('modelo')->sortKeys(); // Ordena los modelos alfabÃ©ticamente
-    //         });
-    //     $categoriasAll = Categoria::orderBy('nombre', 'asc')->get();
-
-
-
-    //     $zonaclientes = false;
-
-    //     if (Auth::guard('web')->check()) {
-    //         $zonaclientes = true;
-    //     }
-
-
-
-    //     return view('frontend/productos-search', compact('productos',  'ventana',  'busqueda', 'productosAll', 'marcas', 'categoriasAll', 'zonaclientes'));
-    // }
 
 public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equivalencias, BuscadorCatalogo $buscador)
 {
@@ -415,7 +279,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         'categoria',
         'portadaImagen',
         'imagenesGaleria',
-        'productCaracteristicas.caracteristica',
+        'caracteristicasVisibles',
         'partesRelacionadas.portadaImagen',
         'partesRelacionadas.imagenesGaleria',
         'equivalencias',
@@ -512,75 +376,30 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         'DIAMETRO EXTERNO PIÑON'              => 2,
     ];
 
-    $obtenerAtributoPorColumna = function ($columna, $categoria) {
-        if (is_array($categoria) && isset($categoria[$columna]) && !is_null($categoria[$columna])) {
-            return strtoupper(trim($categoria[$columna]));
+    // `atributo` / `atributoTwo`: el id de la característica (categoria.atributos). Un link viejo puede
+    // traer `columna_N`: se traduce a la característica de ese nombre (LegacyAttributeMap).
+    foreach ([['atributo', 'valorAttr'], ['atributoTwo', 'valorAttrTwo']] as [$campoAtributo, $campoValor]) {
+        if (! $request->filled($campoAtributo) || ! $request->filled($campoValor)) {
+            continue;
         }
-        return null;
-    };
-
-    $obtenerTolerancia = function ($nombreAtributo, $tolerancias) {
-        return $tolerancias[$nombreAtributo] ?? 0;
-    };
-
-    // Primer atributo
-    if ($request->filled('atributo') && $request->filled('valorAttr')) {
-        $columna = $request->atributo;
-        $rawVal  = trim($request->valorAttr);
-        $val     = str_replace(',', '.', $rawVal);
-
-        if (!$categoriaActual && $columna) {
-            $producto = $query->first();
-            if ($producto && $producto->categoria) {
-                $categoriaActual = $producto->categoria->toArray();
-            }
+        $caracteristica = Caracteristica::desdeParametro((string) $request->input($campoAtributo));
+        if ($caracteristica === null) {
+            continue;
         }
+        $rawVal = trim((string) $request->input($campoValor));
+        $val = str_replace(',', '.', $rawVal);
+        $tolerancia = $tolerancias[mb_strtoupper(trim((string) $caracteristica->nombre))] ?? 0;
 
-        $nombreAtributo = $obtenerAtributoPorColumna($columna, $categoriaActual);
-        $tolerancia     = $obtenerTolerancia($nombreAtributo, $tolerancias);
-
-        if (is_numeric($val)) {
-            $n    = (float)$val;
-            $expr = DB::raw("REPLACE(`{$columna}`, ',', '.') + 0");
-
-            if ($tolerancia > 0) {
-                $query->whereBetween($expr, [$n - $tolerancia, $n + $tolerancia]);
+        $query->conValorDe((int) $caracteristica->id, function ($w) use ($val, $rawVal, $tolerancia): void {
+            if (is_numeric($val)) {
+                $n = (float) $val;
+                $tolerancia > 0
+                    ? $w->whereRaw("REPLACE(cpf.valor, ',', '.') + 0 BETWEEN ? AND ?", [$n - $tolerancia, $n + $tolerancia])
+                    : $w->whereRaw("REPLACE(cpf.valor, ',', '.') + 0 = ?", [$n]);
             } else {
-                $query->where($expr, '=', $n);
+                $w->where('cpf.valor', 'LIKE', '%'.$rawVal.'%');
             }
-        } else {
-            $query->where($columna, 'LIKE', '%' . $rawVal . '%');
-        }
-    }
-
-    // Segundo atributo
-    if ($request->filled('atributoTwo') && $request->filled('valorAttrTwo')) {
-        $columna2 = $request->atributoTwo;
-        $rawVal2  = trim($request->valorAttrTwo);
-        $val2     = str_replace(',', '.', $rawVal2);
-
-        if (!$categoriaActual && $columna2) {
-            $producto = $query->first();
-            if ($producto && $producto->categoria) {
-                $categoriaActual = $producto->categoria->toArray();
-            }
-        }
-
-        $nombreAtributo2 = $obtenerAtributoPorColumna($columna2, $categoriaActual);
-        $tolerancia2     = $obtenerTolerancia($nombreAtributo2, $tolerancias);
-
-        if (is_numeric($val2)) {
-            $n2    = (float)$val2;
-            $expr2 = DB::raw("REPLACE(`{$columna2}`, ',', '.') + 0");
-
-            if ($tolerancia2 > 0) {
-                $query->whereBetween($expr2, [$n2 - $tolerancia2, $n2 + $tolerancia2]);
-            } else {
-                $query->where($expr2, '=', $n2);
-            }
-        } else {
-            $query->where($columna2, 'LIKE', '%' . $rawVal2 . '%');
-        }
+        });
     }
 
     // ========= Filtros por estado =========
@@ -689,7 +508,7 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
         $query = Producto::with([
             'categoria',
             'portadaImagen',
-            'productCaracteristicas.caracteristica',
+            'caracteristicasVisibles',
         ]);
         $busqueda = '';
 
@@ -748,19 +567,16 @@ public function filtroRodamiento(Request $request, BusquedaPorEquivalencia $equi
             $busqueda = $request->categoriaFiltro;
         }
 
-        if ($request->has('alto') && $request->alto) {
-            $query->whereBetween('columna_28', [$request->alto - 2, $request->alto + 2]);
-            $busqueda = $request->alto;
-        }
-
-        if ($request->has('largo') && $request->largo) {
-            $query->whereBetween('columna_8', [$request->largo - 2, $request->largo + 2]);
-            $busqueda = $request->largo;
-        }
-
-        if ($request->has('ancho') && $request->ancho) {
-            $query->whereBetween('columna_9', [$request->ancho - 2, $request->ancho + 2]);
-            $busqueda = $request->ancho;
+        // Medidas con ±2 de tolerancia, en las características ALTURA, LARGO y ANCHO.
+        foreach (['alto' => 'ALTURA', 'largo' => 'LARGO', 'ancho' => 'ANCHO'] as $campo => $nombre) {
+            $medida = $request->input($campo);
+            $caracteristica = is_numeric($medida) ? Caracteristica::nombreOcupado($nombre) : null;
+            if ($caracteristica !== null) {
+                $query->conValorDe((int) $caracteristica->id, fn ($w) => $w->whereRaw(
+                    "REPLACE(cpf.valor, ',', '.') + 0 BETWEEN ? AND ?", [(float) $medida - 2, (float) $medida + 2]
+                ));
+                $busqueda = $medida;
+            }
         }
 
         if ($request->has('nuevo') && $request->nuevo) {
@@ -945,9 +761,10 @@ public function dash_productos(Request $request)
   
 
 
-    public function store(Request $request)
+    public function store(Request $request, SincronizarCaracteristicasProducto $caracteristicas)
     {
-        app(UnidadesProducto::class)->preparar($request);
+        // Las características se validan antes de guardar nada: un valor mal escrito vuelve a su campo.
+        $this->validarCaracteristicas($request, $caracteristicas);
 
         $nuevo_producto = new Producto();
         $nuevo_producto->nombre = $request->nombre;
@@ -987,12 +804,6 @@ public function dash_productos(Request $request)
         $nuevo_producto->marca = $request->marca;
         $nuevo_producto->modelo = $request->modelo;
 
-        foreach ($request->all() as $key => $value) {
-            if (str_starts_with($key, 'columna_') && !empty($value)) {
-                // Asigna el valor dinÃ¡mico directamente al modelo, si tienes columnas para ello
-                $nuevo_producto->$key = $value; // AsegÃºrate de que el nombre de la columna exista en tu tabla
-            }
-        }
 
 
 
@@ -1021,18 +832,7 @@ public function dash_productos(Request $request)
 
         $this->sincronizarPartesRelacionadas($request, $nuevo_producto);
 
-                if ($request->caracteristicas) {
-            foreach ($request->caracteristicas as $caracteristica_id => $valor) {
-                if ($valor !== null && $valor !== '') {
-                    DB::table('producto_caracteristica')->insert([
-                        'producto_id' => $nuevo_producto->id,
-                        'caracteristica_id' => $caracteristica_id,
-                        'valor' => $valor,
-                        'created_at' => now(),
-                    ]);
-                }
-            }
-        }
+        $caracteristicas->ejecutar($nuevo_producto, $this->valoresCaracteristicas($request));
 
         $this->sincronizarEquivalencias($request, $nuevo_producto);
 
@@ -1084,21 +884,16 @@ public function dash_productos(Request $request)
 
     public function edit(Request $request)
     {
-        $producto = Producto::with(['productCaracteristicas.caracteristica'])->find($request->id);
+        $producto = Producto::with(['caracteristicas'])->find($request->id);
         $equivalencias = $producto->equivalencias()->orderBy('orden')->get();
         $aplicaciones = $producto->aplicaciones()->orderBy('orden')->get();
         $imagenes = Imagen::where('producto_id', $request->id)->where('sector', 'producto')->orderBy('orden')->get();
         $categorias = Categoria::with('caracteristicas')->orderBy('orden')->get();
         $categoriaSelected = Categoria::with('caracteristicas')->find($producto->categoria_id);
         $partesRelacionadas = $producto->partesRelacionadas()->with('portadaImagen')->get();
-        $caracteristicas = $producto->productCaracteristicas
-            ->map(function ($pc) {
-                $caracteristica = $pc->caracteristica;
-                $caracteristica->valor = $pc->valor;
-
-                return $caracteristica;
-            })
-            ->values();
+        // Todas las del producto (también las que su categoría no declara: no se ven en el sitio, pero
+        // tienen que estar en el formulario para no perderlas al guardar).
+        $caracteristicas = $producto->caracteristicas;
 
 
 
@@ -1109,7 +904,9 @@ public function dash_productos(Request $request)
     {
 
         $producto = Producto::find($request->id);
-        app(UnidadesProducto::class)->preparar($request, $producto->categoria_id);
+        $sincronizar = app(SincronizarCaracteristicasProducto::class);
+        // Las características se validan antes de guardar nada: un valor mal escrito vuelve a su campo.
+        $this->validarCaracteristicas($request, $sincronizar);
 
         if ($request->hasFile('imagenes')) {
             $files = $request->file('imagenes');
@@ -1145,11 +942,6 @@ public function dash_productos(Request $request)
         $producto->orden = $request->orden;
         $producto->codigo = $request->codigo;
 
-        foreach ($request->all() as $key => $value) {
-            if (str_starts_with($key, 'columna_')) {
-                $producto->$key = $value; // AsegÃºrate de que el nombre de la columna exista en tu tabla
-            }
-        }
 
 
         // $producto->precio = $request->precio;
@@ -1198,34 +990,30 @@ public function dash_productos(Request $request)
 
         $this->sincronizarAplicaciones($request, $producto);
 
-        if ($request->caracteristicas) {
-            foreach ($request->caracteristicas as $caracteristica_id => $valor) {
-                if ($valor !== null && $valor !== '') {
-                    // Primero eliminar el registro existente si existe
-                    DB::table('producto_caracteristica')
-                        ->where('producto_id', $producto->id)
-                        ->where('caracteristica_id', $caracteristica_id)
-                        ->delete();
-                    
-                    // Luego insertar el nuevo valor
-                    DB::table('producto_caracteristica')->insert([
-                        'producto_id' => $producto->id,
-                        'caracteristica_id' => $caracteristica_id,
-                        'valor' => $valor,
-                        'created_at' => now(),
-                    ]);
-                } else {
-                    // Si el valor estÃ¡ vacÃ­o, eliminar el registro
-                    DB::table('producto_caracteristica')
-                        ->where('producto_id', $producto->id)
-                        ->where('caracteristica_id', $caracteristica_id)
-                        ->delete();
-                }
-            }
+        // Sólo si el formulario trae la sección: así un guardado parcial no borra las características.
+        if ($request->boolean('caracteristicas_presente')) {
+            $sincronizar->ejecutar($producto, $this->valoresCaracteristicas($request));
         }
 
 
         return redirect()->back()->with('success', 'Producto actualizado');
+    }
+
+    /** @return array<int|string, mixed> caracteristica_id => valor, como viene del formulario */
+    private function valoresCaracteristicas(Request $request): array
+    {
+        $valores = $request->input('caracteristicas', []);
+
+        return is_array($valores) ? $valores : [];
+    }
+
+    /** Valida los valores de las características con el formato de cada una (SincronizarCaracteristicasProducto). */
+    private function validarCaracteristicas(Request $request, SincronizarCaracteristicasProducto $caracteristicas): void
+    {
+        $errores = $caracteristicas->preparar($this->valoresCaracteristicas($request))['errores'];
+        if ($errores !== []) {
+            throw ValidationException::withMessages($errores);
+        }
     }
 
     /**
@@ -1446,424 +1234,68 @@ public function dash_productos(Request $request)
         }
     }
 
+    /**
+     * Admin → Productos → «Actualizar desde Excel: Categorías». Cada fila trae el nombre de la categoría y,
+     * en las columnas que siguen, los nombres de sus características (el mismo Excel de siempre: antes cada
+     * columna era una de las 78 «columna_N»). Las características se buscan por nombre, sin distinguir
+     * tildes ni mayúsculas, y las que no existen se crean. La categoría queda con las de su fila.
+     */
     public function actualizar_categoriasExcel(Request $request)
     {
-        if ($request->file('lista')) {
-            $file = $request->file('lista');
-            $actualizados = 0;
-            $creados = 0;
+        if (! $request->file('lista')) {
+            return redirect()->back()->with('warning', 'No se ha proporcionado un archivo Excel.');
+        }
 
-            $reader = IOFactory::createReaderForFile($file);
-            $reader->setReadEmptyCells(false);
-            $spreadsheet = $reader->load($file);
+        $reader = IOFactory::createReaderForFile($request->file('lista'));
+        $reader->setReadEmptyCells(false);
+        $filas = $reader->load($request->file('lista'))->getActiveSheet()->toArray();
 
-            $worksheet = $spreadsheet->getActiveSheet();
-            $rows = $worksheet->toArray();
+        $existentes = [];
+        foreach (Caracteristica::query()->get() as $caracteristica) {
+            $existentes[\App\Support\Caracteristicas\MigracionCaracteristicas::clave($caracteristica->nombre)] ??= $caracteristica;
+        }
+        $actualizadas = 0;
+        $creadas = 0;
+        $noEncontradas = [];
 
-            foreach ($rows as $key => $row) {
-                if ($key < 1) {
-                    continue; // Saltar la primera fila, ya que son los encabezados
+        DB::transaction(function () use ($filas, &$existentes, &$actualizadas, &$creadas, &$noEncontradas): void {
+            foreach ($filas as $indice => $fila) {
+                $nombreCategoria = trim((string) ($fila[0] ?? ''));
+                if ($indice < 1 || $nombreCategoria === '') {
+                    continue; // La primera fila son los títulos.
                 }
-
-                $nombreCategoria = $row[0] ?? null;
-                $atrr1 = $row[1] ?? null;
-                $atrr2 = $row[2] ?? null;
-                $atrr3 = $row[3] ?? null;
-                $atrr4 = $row[4] ?? null;
-                $atrr5 = $row[5] ?? null;
-                $atrr6 = $row[6] ?? null;
-                $atrr7 = $row[7] ?? null;
-                $atrr8 = $row[8] ?? null;
-                $atrr9 = $row[9] ?? null;
-                $atrr10 = $row[10] ?? null;
-                $atrr11 = $row[11] ?? null;
-                $atrr12 = $row[12] ?? null;
-                $atrr13 = $row[13] ?? null;
-                $atrr14 = $row[14] ?? null;
-                $atrr15 = $row[15] ?? null;
-                $atrr16 = $row[16] ?? null;
-                $atrr17 = $row[17] ?? null;
-                $atrr18 = $row[18] ?? null;
-                $atrr19 = $row[19] ?? null;
-                $atrr20 = $row[20] ?? null;
-                $atrr21 = $row[21] ?? null;
-                $atrr22 = $row[22] ?? null;
-                $atrr23 = $row[23] ?? null;
-                $atrr24 = $row[24] ?? null;
-                $atrr25 = $row[25] ?? null;
-                $atrr26 = $row[26] ?? null;
-                $atrr27 = $row[27] ?? null;
-                $atrr28 = $row[28] ?? null;
-                $atrr29 = $row[29] ?? null;
-                $atrr30 = $row[30] ?? null;
-                $atrr31 = $row[31] ?? null;
-                $atrr32 = $row[32] ?? null;
-                $atrr33 = $row[33] ?? null;
-                $atrr34 = $row[34] ?? null;
-                $atrr35 = $row[35] ?? null;
-                $atrr36 = $row[36] ?? null;
-                $atrr37 = $row[37] ?? null;
-                $atrr38 = $row[38] ?? null;
-                $atrr39 = $row[39] ?? null;
-                $atrr40 = $row[40] ?? null;
-                $atrr41 = $row[41] ?? null;
-                $atrr42 = $row[42] ?? null;
-                $atrr43 = $row[43] ?? null;
-                $atrr44 = $row[44] ?? null;
-                $atrr45 = $row[45] ?? null;
-                $atrr46 = $row[46] ?? null;
-                $atrr47 = $row[47] ?? null;
-                $atrr48 = $row[48] ?? null;
-                $atrr49 = $row[49] ?? null;
-                $atrr50 = $row[50] ?? null;
-                $atrr51 = $row[51] ?? null;
-                $atrr52 = $row[52] ?? null;
-                $atrr53 = $row[53] ?? null;
-                $atrr54 = $row[54] ?? null;
-                $atrr55 = $row[55] ?? null;
-                $atrr56 = $row[56] ?? null;
-                $atrr57 = $row[57] ?? null;
-                $atrr58 = $row[58] ?? null;
-                $atrr59 = $row[59] ?? null;
-                $atrr60 = $row[60] ?? null;
-                $atrr61 = $row[61] ?? null;
-                $atrr62 = $row[62] ?? null;
-                $atrr63 = $row[63] ?? null;
-                $atrr64 = $row[64] ?? null;
-                $atrr65 = $row[65] ?? null;
-                $atrr66 = $row[66] ?? null;
-                $atrr67 = $row[67] ?? null;
-                $atrr68 = $row[68] ?? null;
-                $atrr69 = $row[69] ?? null;
-                $atrr70 = $row[70] ?? null;
-                $atrr71 = $row[71] ?? null;
-                $atrr72 = $row[72] ?? null;
-                $atrr73 = $row[73] ?? null;
-                $atrr74 = $row[74] ?? null;
-                $atrr75 = $row[75] ?? null;
-                $atrr76 = $row[76] ?? null;
-                $atrr77 = $row[77] ?? null;
-                $atrr78 = $row[78] ?? null;
-
-
-
                 $categoria = Categoria::where('nombre', $nombreCategoria)->first();
+                if ($categoria === null) {
+                    $noEncontradas[] = $nombreCategoria;
 
-                if ($categoria) {
-                    $categoria->columna_1 = $atrr1;
-                    $categoria->columna_2 = $atrr2;
-                    $categoria->columna_3 = $atrr3;
-                    $categoria->columna_4 = $atrr4;
-                    $categoria->columna_5 = $atrr5;
-                    $categoria->columna_6 = $atrr6;
-                    $categoria->columna_7 = $atrr7;
-                    $categoria->columna_8 = $atrr8;
-                    $categoria->columna_9 = $atrr9;
-                    $categoria->columna_10 = $atrr10;
-                    $categoria->columna_11 = $atrr11;
-                    $categoria->columna_12 = $atrr12;
-                    $categoria->columna_13 = $atrr13;
-                    $categoria->columna_14 = $atrr14;
-                    $categoria->columna_15 = $atrr15;
-                    $categoria->columna_16 = $atrr16;
-                    $categoria->columna_17 = $atrr17;
-                    $categoria->columna_18 = $atrr18;
-                    $categoria->columna_19 = $atrr19;
-                    $categoria->columna_20 = $atrr20;
-                    $categoria->columna_21 = $atrr21;
-                    $categoria->columna_22 = $atrr22;
-                    $categoria->columna_23 = $atrr23;
-                    $categoria->columna_24 = $atrr24;
-                    $categoria->columna_25 = $atrr25;
-                    $categoria->columna_26 = $atrr26;
-                    $categoria->columna_27 = $atrr27;
-                    $categoria->columna_28 = $atrr28;
-                    $categoria->columna_29 = $atrr29;
-                    $categoria->columna_30 = $atrr30;
-                    $categoria->columna_31 = $atrr31;
-                    $categoria->columna_32 = $atrr32;
-                    $categoria->columna_33 = $atrr33;
-                    $categoria->columna_34 = $atrr34;
-                    $categoria->columna_35 = $atrr35;
-                    $categoria->columna_36 = $atrr36;
-                    $categoria->columna_37 = $atrr37;
-                    $categoria->columna_38 = $atrr38;
-                    $categoria->columna_39 = $atrr39;
-                    $categoria->columna_40 = $atrr40;
-                    $categoria->columna_41 = $atrr41;
-                    $categoria->columna_42 = $atrr42;
-                    $categoria->columna_43 = $atrr43;
-                    $categoria->columna_44 = $atrr44;
-                    $categoria->columna_45 = $atrr45;
-                    $categoria->columna_46 = $atrr46;
-                    $categoria->columna_47 = $atrr47;
-                    $categoria->columna_48 = $atrr48;
-                    $categoria->columna_49 = $atrr49;
-                    $categoria->columna_50 = $atrr50;
-                    $categoria->columna_51 = $atrr51;
-                    $categoria->columna_52 = $atrr52;
-                    $categoria->columna_53 = $atrr53;
-                    $categoria->columna_54 = $atrr54;
-                    $categoria->columna_55 = $atrr55;
-                    $categoria->columna_56 = $atrr56;
-                    $categoria->columna_57 = $atrr57;
-                    $categoria->columna_58 = $atrr58;
-                    $categoria->columna_59 = $atrr59;
-                    $categoria->columna_60 = $atrr60;
-                    $categoria->columna_61 = $atrr61;
-                    $categoria->columna_62 = $atrr62;
-                    $categoria->columna_63 = $atrr63;
-                    $categoria->columna_64 = $atrr64;
-                    $categoria->columna_65 = $atrr65;
-                    $categoria->columna_66 = $atrr66;
-                    $categoria->columna_67 = $atrr67;
-                    $categoria->columna_68 = $atrr68;
-                    $categoria->columna_69 = $atrr69;
-                    $categoria->columna_70 = $atrr70;
-                    $categoria->columna_71 = $atrr71;
-                    $categoria->columna_72 = $atrr72;
-                    $categoria->columna_73 = $atrr73;
-                    $categoria->columna_74 = $atrr74;
-                    $categoria->columna_75 = $atrr75;
-                    $categoria->columna_76 = $atrr76;
-                    $categoria->columna_77 = $atrr77;
-                    $categoria->columna_78 = $atrr78;
-
-
-
-                    $categoria->save();
-                }
-            }
-
-            return redirect()->back()->with('success', 'ActualizaciÃ³n exitosa: ' . $actualizados . ' clientes han sido actualizados y ' . $creados . ' clientes han sido creados.');
-        } else {
-            return redirect()->back()->with('warning', 'No se ha proporcionado un archivo Excel.');
-        }
-    }
-
-    public function actualizar_precios(Request $request)
-    {
-        if ($request->file('lista')) {
-            $file = $request->file('lista');
-            $actualizados = 0;
-            $creados = 0;
-            $batchSize = 100; // NÃºmero de filas a procesar en cada lote
-
-            $reader = IOFactory::createReaderForFile($file);
-            $reader->setReadEmptyCells(false);
-            $spreadsheet = $reader->load($file);
-
-            $worksheet = $spreadsheet->getActiveSheet();
-            $rows = $worksheet->toArray();
-
-            $batchData = [];
-
-            foreach ($rows as $key => $row) {
-                if ($key < 1) {
-                    continue; // Saltar la primera fila, ya que son los encabezados
+                    continue;
                 }
 
-                // Obtener datos de la fila
-                $data = $this->parseRow($row);
-
-                // AÃ±adir datos al lote
-                $batchData[] = $data;
-
-                // Procesar el lote si alcanza el tamaÃ±o definido
-                if (count($batchData) >= $batchSize) {
-                    $this->processBatch($batchData, $actualizados, $creados);
-                    $batchData = []; // Limpiar el lote
+                $ids = [];
+                foreach (array_slice($fila, 1) as $celda) {
+                    $nombre = Caracteristica::normalizarNombre(is_scalar($celda) ? (string) $celda : '');
+                    if ($nombre === '') {
+                        continue;
+                    }
+                    $clave = \App\Support\Caracteristicas\MigracionCaracteristicas::clave($nombre);
+                    if (! isset($existentes[$clave])) {
+                        $existentes[$clave] = Caracteristica::query()->create(['nombre' => $nombre, 'orden' => Caracteristica::siguienteOrden()]);
+                        $creadas++;
+                    }
+                    $ids[] = $existentes[$clave]->id;
                 }
-            }
-
-            // Procesar cualquier dato restante
-            if (!empty($batchData)) {
-                $this->processBatch($batchData, $actualizados, $creados);
-            }
-
-            return redirect()->back()->with('success', 'ActualizaciÃ³n exitosa: ' . $actualizados . ' productos han sido actualizados y ' . $creados . ' productos han sido creados.');
-        } else {
-            return redirect()->back()->with('warning', 'No se ha proporcionado un archivo Excel.');
-        }
-    }
-
-    private function parseRow($row)
-    {
-        return [
-            'codigo' => $row[1] ?? null,
-            'nombre' => $row[2] ?? null,
-            'descripcion' => $row[3] ?? null,
-            'precio' => $row[4] ?? null,
-            'precioNeto' => $row[5] ?? null,
-            'estado' => $row[6] ?? null,
-            'imagenesTexto' => $row[7] ?? null,
-            'equivalencias' => $row[8] ?? null,
-            'marca' => $row[9] ?? null,
-            'modelo' => $row[10] ?? null,
-            'attr1' => $row[11] ?? null,
-            'attr2' => $row[12] ?? null,
-            'attr3' => $row[13] ?? null,
-            'attr4' => $row[14] ?? null,
-            'attr5' => $row[15] ?? null,
-            'attr6' => $row[16] ?? null,
-            'attr7' => $row[17] ?? null,
-            'attr8' => $row[18] ?? null,
-            'attr9' => $row[19] ?? null,
-            'attr10' => $row[20] ?? null,
-            'attr11' => $row[21] ?? null,
-            'attr12' => $row[22] ?? null,
-            'attr13' => $row[23] ?? null,
-            'attr14' => $row[24] ?? null,
-            'attr15' => $row[25] ?? null,
-            'attr16' => $row[26] ?? null,
-            'attr17' => $row[27] ?? null,
-            'attr18' => $row[28] ?? null,
-            'attr19' => $row[29] ?? null,
-            'attr20' => $row[30] ?? null,
-            'attr21' => $row[31] ?? null,
-            'attr22' => $row[32] ?? null,
-            'attr23' => $row[33] ?? null,
-            'attr24' => $row[34] ?? null,
-            'attr25' => $row[35] ?? null,
-            'attr26' => $row[36] ?? null,
-            'attr27' => $row[37] ?? null,
-            'attr28' => $row[38] ?? null,
-            'attr29' => $row[39] ?? null,
-            'attr30' => $row[40] ?? null,
-            'attr31' => $row[41] ?? null,
-            'attr32' => $row[42] ?? null,
-            'attr33' => $row[43] ?? null,
-            'attr34' => $row[44] ?? null,
-            'attr35' => $row[45] ?? null,
-            'attr36' => $row[46] ?? null,
-            'attr37' => $row[47] ?? null,
-            'attr38' => $row[48] ?? null,
-            'attr39' => $row[49] ?? null,
-            'attr40' => $row[50] ?? null,
-            'attr41' => $row[51] ?? null,
-            'attr42' => $row[52] ?? null,
-            'attr43' => $row[53] ?? null,
-            'attr44' => $row[54] ?? null,
-            'attr45' => $row[55] ?? null,
-            'attr46' => $row[56] ?? null,
-            'attr47' => $row[57] ?? null,
-            'attr48' => $row[58] ?? null,
-            'attr49' => $row[59] ?? null,
-            'attr50' => $row[60] ?? null,
-            'attr51' => $row[61] ?? null,
-            'attr52' => $row[62] ?? null,
-            'attr53' => $row[63] ?? null,
-            'attr54' => $row[64] ?? null,
-            'attr55' => $row[65] ?? null,
-            'attr56' => $row[66] ?? null,
-            'attr57' => $row[67] ?? null,
-            'attr58' => $row[68] ?? null,
-            'attr59' => $row[69] ?? null,
-            'attr60' => $row[70] ?? null,
-            'attr61' => $row[71] ?? null,
-            'attr62' => $row[72] ?? null,
-            'attr63' => $row[73] ?? null,
-            'attr64' => $row[74] ?? null,
-            'attr65' => $row[75] ?? null,
-            'attr66' => $row[76] ?? null,
-            'attr67' => $row[77] ?? null,
-            'attr68' => $row[78] ?? null,
-            'attr69' => $row[79] ?? null,
-            'attr70' => $row[80] ?? null,
-            'attr71' => $row[81] ?? null,
-            'attr72' => $row[82] ?? null,
-            'attr73' => $row[83] ?? null,
-            'attr74' => $row[84] ?? null,
-            'attr75' => $row[85] ?? null,
-            'attr76' => $row[86] ?? null,
-            'attr77' => $row[87] ?? null,
-            'attr78' => $row[88] ?? null,
-
-            'aplicaciones' => $row[99] ?? null,
-
-            'categoriaNombre' => $row[0] ?? null,
-        ];
-    }
-
-    private function processBatch($batchData, &$actualizados, &$creados)
-    {
-        DB::transaction(function () use ($batchData, &$actualizados, &$creados) {
-            foreach ($batchData as $data) {
-                $producto = Producto::where('codigo', $data['codigo'])->first();
-                if ($producto) {
-                    $this->updateProduct($producto, $data);
-                    $actualizados++;
-                } else {
-                    $this->createProduct($data);
-                    $creados++;
-                }
+                $categoria->caracteristicas()->sync(array_values(array_unique($ids)));
+                $actualizadas++;
             }
         });
-    }
 
-    private function updateProduct($producto, $data)
-    {
-        $producto->nombre = $data['nombre'];
-        $producto->descripcion = $data['descripcion'];
-        $producto->precio = $data['precio'];
-        $producto->precioN = $data['precioNeto'];
-        $producto->estado = $this->mapEstado($data['estado']);
-        $producto->marca = $data['marca'];
-        $producto->modelo = $data['modelo'];
-
-        // Actualizar columnas adicionales
-        for ($i = 1; $i <= 78; $i++) {
-            $column = 'columna_' . $i;
-            $producto->$column = $data['attr' . $i] ?? null;
+        $mensaje = "Listo: se actualizaron las características de {$actualizadas} ".($actualizadas === 1 ? 'categoría' : 'categorías')
+            .($creadas > 0 ? " y se crearon {$creadas} ".($creadas === 1 ? 'característica nueva' : 'características nuevas') : '').'.';
+        if ($noEncontradas !== []) {
+            return redirect()->back()->with('warning', $mensaje.' No encontré estas categorías (revisá el nombre): '.implode(', ', $noEncontradas).'.');
         }
 
-        $producto->save();
-
-        // Manejo de imÃ¡genes
-        $this->handleImages($producto, $data['imagenesTexto']);
-
-        // Manejo de equivalencias
-        $this->handleEquivalencias($producto, $data['equivalencias']);
-
-        // Manejo de aplicaciones
-        $this->handleAplicaciones($producto, $data['aplicaciones']);
-
-        // Manejo de categorÃ­as
-        $this->handleCategoria($producto, $data['categoriaNombre']);
-    }
-
-    private function createProduct($data)
-    {
-        $producto = new Producto();
-        $producto->orden = 'aa';
-        $producto->codigo = $data['codigo'];
-        $producto->nombre = $data['nombre'];
-        $producto->descripcion = $data['descripcion'];
-        $producto->precio = $data['precio'];
-        $producto->precioN = $data['precioNeto'];
-        $producto->estado = $this->mapEstado($data['estado']);
-        $producto->marca = $data['marca'];
-        $producto->modelo = $data['modelo'];
-
-        // Asignar columnas adicionales
-        for ($i = 1; $i <= 78; $i++) {
-            $column = 'columna_' . $i;
-            $producto->$column = $data['attr' . $i] ?? null;
-        }
-
-        $producto->save();
-
-        // Manejo de imÃ¡genes
-        $this->handleImages($producto, $data['imagenesTexto']);
-
-        // Manejo de equivalencias
-        $this->handleEquivalencias($producto, $data['equivalencias']);
-
-        // Manejo de aplicaciones
-        $this->handleAplicaciones($producto, $data['aplicaciones']);
-
-        // Manejo de categorÃ­as
-        $this->handleCategoria($producto, $data['categoriaNombre']);
+        return redirect()->back()->with('success', $mensaje);
     }
 
     private function handleImages($producto, $imagenesTexto)
@@ -1988,41 +1420,6 @@ public function dash_productos(Request $request)
         } else {
             return 0;
         }
-    }
-
-    public function getProductoValor($columnaId, $productoId, $categoriaId)
-    {
-        // Recuperar el producto por ID
-        $producto = Producto::find($productoId);
-
-        // Verificar que el producto existe
-        if (!$producto) {
-            return response()->json(['error' => 'Producto no encontrado'], 404);
-        }
-
-        // Verificar si la categorÃ­a del producto coincide con la categorÃ­a seleccionada
-        if ($producto->categoria_id != $categoriaId) {
-            return response()->json(['error' => 'El producto no pertenece a esta categorÃ­a'], 400);
-        }
-
-        // Construir el nombre de la columna dinÃ¡mica (columna_1, columna_2, etc.)
-        $columna = 'columna_' . $columnaId;
-
-        // Verificar si la columna existe en el array $fillable
-        if (!in_array($columna, $producto->getFillable())) {
-            return response()->json(['error' => 'Columna no vÃ¡lida'], 400);
-        }
-
-        // Obtener el valor de la columna dinÃ¡mica
-        $valor = $producto->$columna;
-
-        // Si el valor es null, devolver una respuesta vacÃ­a o un valor predeterminado
-        if ($valor === null) {
-            return response()->json(''); // O puedes devolver un valor predeterminado, por ejemplo: return response()->json('No disponible');
-        }
-
-        // Retornar el valor de la columna
-        return response()->json($valor);
     }
 
     public function actualizarPorcentaje(Request $request)

@@ -15,9 +15,10 @@ use Tests\TestCase;
 /**
  * Filtro «Por equivalencia» del buscador (sitio público y Zona de Clientes).
  *
- * Hermético: SQLite en memoria con el mínimo esquema. Los casos salen de
- * errores reales: códigos de buje que aparecían como equivalencias, la exacta
- * ordenada sexta, y la Zona de Clientes que no miraba las características.
+ * Hermético: SQLite en memoria con el mínimo esquema (las tablas relacionales
+ * de características). Los casos salen de errores reales: códigos de buje que
+ * aparecían como equivalencias, la exacta ordenada sexta, y la Zona de
+ * Clientes que no miraba las características.
  */
 final class BusquedaPorEquivalenciaTest extends TestCase
 {
@@ -37,37 +38,30 @@ final class BusquedaPorEquivalenciaTest extends TestCase
         ]);
         DB::purge('sqlite_memoria');
 
-        // La misma columna vieja guarda cosas distintas según la categoría.
         Schema::create('categorias', function (Blueprint $t) {
             $t->id();
             $t->string('nombre')->nullable();
-            $t->string('columna_1')->nullable();
-            $t->string('columna_2')->nullable();
         });
         Schema::create('productos', function (Blueprint $t) {
             $t->id();
             $t->string('codigo')->nullable();
             $t->string('nombre')->nullable();
             $t->integer('categoria_id')->nullable();
-            $t->string('columna_1')->nullable();
-            $t->string('columna_2')->nullable();
         });
         Schema::create('caracteristicas', function (Blueprint $t) {
             $t->id();
             $t->string('nombre');
         });
-        Schema::create('producto_caracteristica', function (Blueprint $t) {
-            $t->id();
+        Schema::create('caracteristica_producto', function (Blueprint $t) {
             $t->integer('producto_id');
             $t->integer('caracteristica_id');
-            $t->string('valor')->nullable();
-            $t->softDeletes();
+            $t->string('valor');
+            $t->primary(['producto_id', 'caracteristica_id']);
         });
-        Schema::create('categoria_caracteristica', function (Blueprint $t) {
-            $t->id();
+        Schema::create('caracteristica_categoria', function (Blueprint $t) {
             $t->integer('categoria_id');
             $t->integer('caracteristica_id');
-            $t->softDeletes();
+            $t->primary(['categoria_id', 'caracteristica_id']);
         });
         Schema::create('equivalencias', function (Blueprint $t) {
             $t->id();
@@ -77,36 +71,37 @@ final class BusquedaPorEquivalenciaTest extends TestCase
         });
 
         DB::table('categorias')->insert([
-            ['id' => self::CAT_ALTERNADOR, 'nombre' => 'Alternadores', 'columna_1' => 'CODIGO GV', 'columna_2' => 'DIAMETRO'],
-            ['id' => self::CAT_ARRANQUE, 'nombre' => 'Arranques', 'columna_1' => 'BUJE LADO COLECTOR', 'columna_2' => 'EQUIVALENCIA NOSSO'],
+            ['id' => self::CAT_ALTERNADOR, 'nombre' => 'Alternadores'],
+            ['id' => self::CAT_ARRANQUE, 'nombre' => 'Arranques'],
         ]);
         DB::table('caracteristicas')->insert([
             ['id' => 10, 'nombre' => 'EQUIVALENCIA PORTAFICH'],
             ['id' => 11, 'nombre' => 'BUJE LADO COLECTOR'],
             ['id' => 12, 'nombre' => 'Nº ORIGINAL'],
+            ['id' => 13, 'nombre' => 'CODIGO GV'],
+            ['id' => 14, 'nombre' => 'EQUIVALENCIA NOSSO'],
         ]);
-        // Las dos categorías declaran las tres características.
-        foreach ([self::CAT_ALTERNADOR, self::CAT_ARRANQUE] as $categoria) {
-            foreach ([10, 11, 12] as $caracteristica) {
-                DB::table('categoria_caracteristica')->insert(['categoria_id' => $categoria, 'caracteristica_id' => $caracteristica]);
+        // Las dos categorías declaran 10, 11 y 12; CODIGO GV sólo alternadores y NOSSO sólo arranques.
+        foreach ([self::CAT_ALTERNADOR => [10, 11, 12, 13], self::CAT_ARRANQUE => [10, 11, 12, 14]] as $categoria => $ids) {
+            foreach ($ids as $caracteristica) {
+                DB::table('caracteristica_categoria')->insert(['categoria_id' => $categoria, 'caracteristica_id' => $caracteristica]);
             }
         }
 
         $this->busqueda = new BusquedaPorEquivalencia();
     }
 
-    private function producto(string $codigo, int $categoria, array $columnas = []): int
+    private function producto(string $codigo, int $categoria): int
     {
-        return DB::table('productos')->insertGetId(['codigo' => $codigo, 'categoria_id' => $categoria, ...$columnas]);
+        return DB::table('productos')->insertGetId(['codigo' => $codigo, 'categoria_id' => $categoria]);
     }
 
-    private function caracteristica(int $productoId, int $caracteristicaId, string $valor, bool $borrada = false): void
+    private function caracteristica(int $productoId, int $caracteristicaId, string $valor): void
     {
-        DB::table('producto_caracteristica')->insert([
+        DB::table('caracteristica_producto')->insert([
             'producto_id' => $productoId,
             'caracteristica_id' => $caracteristicaId,
             'valor' => $valor,
-            'deleted_at' => $borrada ? now() : null,
         ]);
     }
 
@@ -151,16 +146,16 @@ final class BusquedaPorEquivalenciaTest extends TestCase
         $this->assertSame($esperado, BusquedaPorEquivalencia::esCampoDeEquivalencia($nombre));
     }
 
-    // ----------------------------------------------------- columnas viejas
+    // ------------------------------------------- según la categoría del producto
 
-    public function test_una_columna_vieja_cuenta_solo_si_en_su_categoria_es_equivalencia(): void
+    public function test_una_equivalencia_cuenta_solo_si_la_categoria_del_producto_la_declara(): void
     {
-        // columna_1 es CODIGO GV en alternadores, pero BUJE en arranques.
-        $this->producto('ALT-1', self::CAT_ALTERNADOR, ['columna_1' => '1261']);
-        $this->producto('ARR-1', self::CAT_ARRANQUE, ['columna_1' => '1261']);
-        // columna_2 es DIAMETRO en alternadores, EQUIVALENCIA NOSSO en arranques.
-        $this->producto('ALT-2', self::CAT_ALTERNADOR, ['columna_2' => '9900']);
-        $this->producto('ARR-2', self::CAT_ARRANQUE, ['columna_2' => '9900']);
+        // CODIGO GV es de alternadores; en un arranque el valor queda guardado pero no se ve en el sitio.
+        $this->caracteristica($this->producto('ALT-1', self::CAT_ALTERNADOR), 13, '1261');
+        $this->caracteristica($this->producto('ARR-1', self::CAT_ARRANQUE), 13, '1261');
+        // EQUIVALENCIA NOSSO es de arranques.
+        $this->caracteristica($this->producto('ALT-2', self::CAT_ALTERNADOR), 14, '9900');
+        $this->caracteristica($this->producto('ARR-2', self::CAT_ARRANQUE), 14, '9900');
 
         $this->assertSame(['ALT-1'], $this->buscar('1261'));
         $this->assertSame(['ARR-2'], $this->buscar('9900'));
@@ -180,22 +175,13 @@ final class BusquedaPorEquivalenciaTest extends TestCase
 
     public function test_ignora_caracteristicas_que_el_sitio_no_muestra(): void
     {
-        $borrada = $this->producto('BORRADA', self::CAT_ALTERNADOR);
-        $this->caracteristica($borrada, 10, 'ZX-100', borrada: true);
-
-        // Una fila vieja con otro valor quedó tapada por la última.
-        $vieja = $this->producto('VIEJA', self::CAT_ALTERNADOR);
-        $this->caracteristica($vieja, 10, 'ZX-200');
-        $this->caracteristica($vieja, 10, 'ZX-201');
-
-        // La categoría destildó la característica.
+        // La categoría dejó de declarar la característica: el valor queda, pero no se busca.
         $oculta = $this->producto('OCULTA', self::CAT_ALTERNADOR);
         $this->caracteristica($oculta, 12, 'ZX-300');
-        DB::table('categoria_caracteristica')->where('categoria_id', self::CAT_ALTERNADOR)->where('caracteristica_id', 12)->update(['deleted_at' => now()]);
+        $this->assertSame(['OCULTA'], $this->buscar('ZX-300'));
 
-        $this->assertSame([], $this->buscar('ZX-100'));
-        $this->assertSame([], $this->buscar('ZX-200'));
-        $this->assertSame(['VIEJA'], $this->buscar('ZX-201'));
+        DB::table('caracteristica_categoria')->where('categoria_id', self::CAT_ALTERNADOR)->where('caracteristica_id', 12)->delete();
+
         $this->assertSame([], $this->buscar('ZX-300'));
     }
 

@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -22,7 +21,7 @@ use Illuminate\Support\Str;
  * los dos encuentran exactamente lo mismo.
  *
  * Cada palabra tiene que aparecer en algún lado del producto —código, nombre,
- * marca, modelo, rubro, atributos (columnas viejas y características),
+ * marca, modelo, rubro, características (caracteristica_producto),
  * equivalencias, aplicaciones o partes— y entre palabras se exige que estén
  * todas. Si el texto es un código, además entran los productos equivalentes.
  *
@@ -45,9 +44,6 @@ final class BuscadorCatalogo
     /** Columnas livianas para rankear sin hidratar relaciones. */
     private const COLUMNAS_RANKING = ['productos.id', 'codigo', 'nombre', 'marca', 'modelo', 'categoria_id', 'orden', 'estado'];
 
-    /** @var list<string>|null */
-    private ?array $columnasAtributo = null;
-
     public function __construct(
         private readonly CorrectorBusqueda $corrector,
     ) {
@@ -57,8 +53,8 @@ final class BuscadorCatalogo
 
     /**
      * Productos publicados que coinciden, del más al menos relevante. Trae
-     * sólo las columnas del ranking (más las que se pidan, por ejemplo los
-     * atributos que filtra el catálogo); hidratar es trabajo de quien pagina.
+     * sólo las columnas del ranking (más las que se pidan); hidratar es
+     * trabajo de quien pagina.
      *
      * @param  list<string>  $columnasExtra
      * @return Collection<int, Producto>
@@ -270,15 +266,11 @@ final class BuscadorCatalogo
                     ->whereColumn('categorias.id', 'productos.categoria_id')
                     ->whereRaw(self::sinTildes('categorias.nombre').' LIKE ?', [$like]);
             })
-            // ATRIBUTOS Y MEDIDAS: columnas viejas y características
-            ->when($this->columnasAtributo() !== [], function (Builder $q) use ($like): void {
-                $q->orWhereRaw(self::sinTildes("CONCAT_WS(' ', ".implode(', ', $this->columnasAtributo()).')').' LIKE ?', [$like]);
-            })
+            // CARACTERÍSTICAS Y MEDIDAS (todas las del producto, como antes las 78 columnas)
             ->orWhereExists(function (QueryBuilder $qq) use ($like): void {
-                $qq->select(DB::raw(1))->from('producto_caracteristica')
-                    ->whereColumn('producto_caracteristica.producto_id', 'productos.id')
-                    ->whereNull('producto_caracteristica.deleted_at')
-                    ->whereRaw(self::sinTildes('producto_caracteristica.valor').' LIKE ?', [$like]);
+                $qq->select(DB::raw(1))->from('caracteristica_producto')
+                    ->whereColumn('caracteristica_producto.producto_id', 'productos.id')
+                    ->whereRaw(self::sinTildes('caracteristica_producto.valor').' LIKE ?', [$like]);
             })
             // TABLAS NUEVAS: equivalencias, aplicaciones, partes_relacionadas
             ->orWhereExists(function (QueryBuilder $qq) use ($like, $codigo): void {
@@ -343,7 +335,6 @@ final class BuscadorCatalogo
     {
         $buscado = preg_replace('/\s+/', '', mb_strtolower($termino));
         $like = "%{$buscado}%";
-        $colsEquiv = $this->columnasAtributo();
         $codigos = [];
 
         $agregarValores = function (iterable $valores) use (&$codigos): void {
@@ -360,8 +351,7 @@ final class BuscadorCatalogo
         $base = Producto::whereRaw("LOWER(REPLACE(codigo,' ','')) = ?", [$buscado])->first();
 
         if ($base) {
-            $agregarValores(array_map(fn ($col) => $base->{$col}, $colsEquiv));
-            $agregarValores(DB::table('producto_caracteristica')->where('producto_id', $base->id)->pluck('valor'));
+            $agregarValores(DB::table('caracteristica_producto')->where('producto_id', $base->id)->pluck('valor'));
             $agregarValores(DB::table('equivalencias')->where('producto_id', $base->id)->pluck('valor'));
             $agregarValores(DB::table('aplicaciones')->where('producto_id', $base->id)->pluck('valor'));
             $agregarValores(
@@ -374,15 +364,12 @@ final class BuscadorCatalogo
 
         // 2) Productos donde alguna equivalencia contiene el código buscado.
         $relacionados = Producto::query()
-            ->where(function (Builder $q) use ($colsEquiv, $like): void {
-                foreach ($colsEquiv as $col) {
-                    $q->orWhereRaw("LOWER(REPLACE({$col},' ','')) LIKE ?", [$like]);
-                }
-                foreach (['producto_caracteristica', 'equivalencias', 'aplicaciones'] as $tabla) {
+            ->where(function (Builder $q) use ($like): void {
+                foreach (['caracteristica_producto', 'equivalencias', 'aplicaciones'] as $tabla) {
                     $q->orWhereIn('id', function (QueryBuilder $sub) use ($tabla, $like): void {
                         $sub->select('producto_id')->from($tabla)
                             ->whereRaw("LOWER(REPLACE(valor,' ','')) LIKE ?", [$like])
-                            ->when($tabla !== 'producto_caracteristica', fn ($w) => $w->orWhereRaw("LOWER(REPLACE(nombre,' ','')) LIKE ?", [$like]));
+                            ->when($tabla !== 'caracteristica_producto', fn ($w) => $w->orWhereRaw("LOWER(REPLACE(nombre,' ','')) LIKE ?", [$like]));
                     });
                 }
                 $q->orWhereIn('id', function (QueryBuilder $sub) use ($like): void {
@@ -396,15 +383,6 @@ final class BuscadorCatalogo
         $agregarValores($relacionados);
 
         return array_values(array_unique($codigos));
-    }
-
-    /** @return list<string> columna_1 … columna_N de la tabla productos */
-    private function columnasAtributo(): array
-    {
-        return $this->columnasAtributo ??= array_values(array_filter(
-            Schema::getColumnListing('productos'),
-            fn (string $c) => (bool) preg_match('/^columna_\d+$/', $c)
-        ));
     }
 
     // ----------------------------------------------------------- relevancia

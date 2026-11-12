@@ -3,7 +3,7 @@
     Se incluye dentro de frontend/productos-carrito-bmh (una vez por producto).
 
     Requiere en el controlador: $producto con eager load de
-    portadaImagen, productCaracteristicas.caracteristica y partesRelacionadas.
+    portadaImagen, caracteristicasVisibles y partesRelacionadas.
 --}}
 @php
     $portadaUrl = $producto->portadaUrl();
@@ -73,21 +73,11 @@
                     </div>
                 @endif
 
-                @for ($i = 1; $i <= 78; $i++)
-                    @php $columna = 'columna_' . $i; @endphp
-                    @if (!empty($producto->$columna) && $producto->categoria && !empty($producto->categoria->$columna))
-                        <div class="pbmh-car">
-                            <span class="pbmh-car-label">{{ mb_strtoupper($producto->categoria->$columna) }}:</span>
-                            <span class="pbmh-car-valor">{{ $producto->$columna }}</span>
-                        </div>
-                    @endif
-                @endfor
-
-                @foreach ($producto->productCaracteristicas as $caracteristica)
-                    @continue(blank($caracteristica->valor))
+                {{-- Las características que declara la categoría, en su orden (admin → Características). --}}
+                @foreach ($producto->fichaCaracteristicas() as $caracteristica)
                     <div class="pbmh-car">
-                        <span class="pbmh-car-label">{{ mb_strtoupper($caracteristica->caracteristica->nombre ?? '') }}:</span>
-                        <span class="pbmh-car-valor">{{ $caracteristica->valor }}</span>
+                        <span class="pbmh-car-label">{{ mb_strtoupper($caracteristica['nombre']) }}:</span>
+                        <span class="pbmh-car-valor">{{ $caracteristica['valor'] }}</span>
                     </div>
                 @endforeach
             </div>

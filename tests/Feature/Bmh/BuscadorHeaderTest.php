@@ -108,10 +108,12 @@ final class BuscadorHeaderTest extends BaseTestCase
         $this->assertContains($id, $this->idsSugeridos($equivalencia));
     }
 
-    public function test_encuentra_por_atributo_de_las_columnas_viejas(): void
+    public function test_encuentra_por_el_valor_de_una_caracteristica(): void
     {
         $medida = $this->unico('ZZMED');
-        $id = $this->crearProducto($this->unico('ZZHDR'), ['columna_1' => $medida]);
+        $id = $this->crearProducto($this->unico('ZZHDR'));
+        $voltaje = (int) DB::table('caracteristicas')->where('nombre', 'VOLTAJE')->value('id');
+        DB::table('caracteristica_producto')->insert(['producto_id' => $id, 'caracteristica_id' => $voltaje, 'valor' => $medida]);
 
         $this->assertContains($id, $this->idsSugeridos($medida));
     }

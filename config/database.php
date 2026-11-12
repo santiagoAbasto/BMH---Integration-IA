@@ -75,7 +75,7 @@ return [
         | no es una convención de código, es un permiso de base.
         |
         | Todo acceso pasa por App\Domain\Catalog\Legacy\* (anti-corruption
-        | layer). Ningún componente fuera de ahí conoce `columna_57`.
+        | layer).
         */
         'mysql_legacy' => [
             'driver' => 'mysql',

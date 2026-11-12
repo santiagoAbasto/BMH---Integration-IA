@@ -14,9 +14,10 @@ use App\Domain\Support\Provenance;
 /**
  * Convierte filas legacy en ProductView.
  *
- * Es el traductor del anti-corruption layer. Sabe de `columna_N`, de valores
- * "-" que significan "no aplica" y de que `descripcion` está vacía en el 99,6 %
- * de los productos. Nada de eso sale de esta clase.
+ * Es el traductor del anti-corruption layer. Sabe qué característica es cada
+ * atributo del diccionario (LegacyAttributeMap), de valores "-" que significan
+ * "no aplica" y de que `descripcion` está vacía en el 99,6 % de los productos.
+ * Nada de eso sale de esta clase.
  *
  * No sobreescribe el dato original: lo interpreta y conserva `source_field` /
  * `source_table` en cada atributo para poder auditarlo después.
@@ -26,15 +27,17 @@ use App\Domain\Support\Provenance;
 final class CatalogSemanticLayer
 {
     /**
-     * @param object            $product        fila de `productos`
-     * @param object|null       $categoryLabels fila de `categorias` (etiquetas de slot)
-     * @param list<object>      $characteristics filas de producto_caracteristica + nombre
-     * @param list<string>      $images         nombres de archivo ya verificados
-     * @param bool              $duplicateCode  si el código colisiona con otro producto
+     * @param object            $product         fila de `productos`
+     * @param object|null       $categoryRow     fila de `categorias` (id, nombre, alias)
+     * @param list<object>      $characteristics valores del producto (`caracteristica_producto`): caracteristica_id,
+     *                                           caracteristica (nombre), valor y en_categoria (si su categoría la declara)
+     * @param list<string>      $images          nombres de archivo ya verificados
+     * @param bool              $duplicateCode   si el código colisiona con otro producto
+     * @param list<int>         $categorySlots   atributos del diccionario que la categoría declara
      */
     public function toProductView(
         object $product,
-        ?object $categoryLabels,
+        ?object $categoryRow,
         array $characteristics = [],
         array $images = [],
         bool $duplicateCode = false,
@@ -42,23 +45,24 @@ final class CatalogSemanticLayer
         array $relatedPartsTable = [],
         array $equivalencesTable = [],
         array $applicationsTable = [],
+        array $categorySlots = [],
     ): ProductView {
-        $attributes   = $this->mapLegacySlots($product, $categoryLabels);
+        $attributes   = $this->mapAttributes($product, $characteristics);
         $equivalences = $this->dedupeReferences(array_merge(
-            $this->extractEquivalences($product, $categoryLabels, $characteristics),
+            $this->extractEquivalences($product, $characteristics),
             $this->mapEquivalencesFromTable($equivalencesTable),
         ));
         $relatedParts = $this->dedupeReferences(array_merge(
-            $this->extractRelatedParts($characteristics),
+            $this->extractRelatedParts($product, $characteristics),
             $this->mapRelatedPartsFromTable($relatedPartsTable),
         ));
         $applications = $this->mapApplicationsFromTable($applicationsTable);
 
-        $category = $categoryLabels === null ? null : new CategoryView(
-            id: (int) $categoryLabels->id,
-            name: $this->clean((string) $categoryLabels->nombre),
-            alias: $categoryLabels->alias ?? null,
-            attributeSlots: $this->labelledSlots($categoryLabels),
+        $category = $categoryRow === null ? null : new CategoryView(
+            id: (int) $categoryRow->id,
+            name: $this->clean((string) $categoryRow->nombre),
+            alias: $categoryRow->alias ?? null,
+            attributeSlots: $categorySlots,
             productCount: $categoryProductCount,
         );
 
@@ -82,30 +86,23 @@ final class CatalogSemanticLayer
     }
 
     /**
-     * El corazón: `productos.columna_N` (valor) × `categorias.columna_N` (etiqueta).
+     * Los atributos técnicos: las características del diccionario (VOLTAJE → voltage, …) que la categoría
+     * del producto declara. Un valor de una característica que la categoría no declara no se ve en el
+     * sitio y no se le muestra a nadie (como antes un slot sin etiqueta en la categoría).
      *
-     * Sólo se emite el atributo cuando LOS DOS lados están cargados. Un valor
-     * sin etiqueta es un dato huérfano y no se puede interpretar; se reporta en
-     * `bmh:data-audit` pero no se le muestra a nadie.
-     *
+     * @param  list<object> $characteristics
      * @return list<AttributeValue>
      */
-    public function mapLegacySlots(object $product, ?object $categoryLabels): array
+    public function mapAttributes(object $product, array $characteristics): array
     {
-        if ($categoryLabels === null) {
-            return [];
-        }
-
         $attributes = [];
 
-        foreach (LegacyAttributeMap::slots() as $slot) {
-            $valueColumn = LegacyAttributeMap::column($slot);
-            $labelColumn = LegacyAttributeMap::categoryLabelColumn($slot);
+        foreach ($characteristics as $row) {
+            $name = $this->clean((string) ($row->caracteristica ?? ''));
+            $slot = LegacyAttributeMap::slotDeCaracteristica($name);
+            $value = $row->valor ?? null;
 
-            $value = $product->{$valueColumn} ?? null;
-            $label = $categoryLabels->{$labelColumn} ?? null;
-
-            if ($this->isBlank($value) || $this->isBlank($label)) {
+            if ($slot === null || ! (bool) ($row->en_categoria ?? false) || $this->isBlank($value)) {
                 continue;
             }
             if (CrossReference::isPlaceholder((string) $value)) {
@@ -114,19 +111,14 @@ final class CatalogSemanticLayer
 
             $attributes[] = new AttributeValue(
                 key: (string) LegacyAttributeMap::key($slot),
-                // La etiqueta real de la categoría manda sobre la del diccionario:
-                // si BMH la renombra en la base, se refleja sin tocar código.
-                label: $this->clean((string) $label),
+                // El nombre real de la característica manda sobre la etiqueta del diccionario.
+                label: $name,
                 value: $this->clean((string) $value),
                 type: LegacyAttributeMap::type($slot),
                 unit: LegacyAttributeMap::unit($slot),
-                provenance: Provenance::database(
-                    Provenance::DB_LEGACY_SLOT,
-                    (int) $product->id,
-                    $valueColumn,
-                ),
-                sourceField: $valueColumn,
-                sourceTable: 'productos',
+                provenance: Provenance::database(Provenance::DB_CHARACTERISTIC, (int) $product->id, $name),
+                sourceField: $name,
+                sourceTable: Provenance::DB_CHARACTERISTIC,
             );
         }
 
@@ -134,54 +126,33 @@ final class CatalogSemanticLayer
     }
 
     /**
-     * Equivalencias, desde las dos fuentes reales.
-     *
-     * La tabla `equivalencias` tiene 13 filas y es una pista falsa: las
-     * equivalencias de verdad están en el EAV moderno y en los slots
-     * cross_reference.
+     * Equivalencias: las características de equivalencia del diccionario (EQUIVALENCIA NOSSO, CODIGO ZEN…)
+     * y cualquier otra cuyo nombre hable de equivalencia, como siempre sin mirar la categoría.
      *
      * @param  list<object> $characteristics
      * @return list<CrossReference>
      */
-    public function extractEquivalences(
-        object $product,
-        ?object $categoryLabels,
-        array $characteristics,
-    ): array {
+    public function extractEquivalences(object $product, array $characteristics): array
+    {
         $references = [];
 
-        // Fuente 1: slots legacy de tipo cross_reference con etiqueta de equivalencia/código.
-        foreach (LegacyAttributeMap::crossReferenceSlots() as $slot) {
-            $key = (string) LegacyAttributeMap::key($slot);
-            if (! str_starts_with($key, 'equiv') && ! str_starts_with($key, 'code_')) {
-                continue;
-            }
-
-            $value = $product->{LegacyAttributeMap::column($slot)} ?? null;
-            if ($this->isBlank($value) || CrossReference::isPlaceholder((string) $value)) {
-                continue;
-            }
-
-            foreach ($this->splitCodes((string) $value) as $code) {
-                $references[] = new CrossReference(
-                    kind: CrossReference::KIND_EQUIVALENCE,
-                    label: (string) LegacyAttributeMap::label($slot),
-                    code: $code,
-                    provenance: Provenance::database(
-                        Provenance::DB_LEGACY_SLOT,
-                        (int) $product->id,
-                        LegacyAttributeMap::column($slot),
-                    ),
-                );
-            }
-        }
-
-        // Fuente 2: EAV moderno, características cuyo nombre habla de equivalencia.
         foreach ($characteristics as $row) {
             $name = $this->clean((string) ($row->caracteristica ?? ''));
-            if (! $this->looksLikeEquivalence($name)) {
+            $slot = LegacyAttributeMap::slotDeCaracteristica($name);
+
+            if ($slot !== null) {
+                $key = (string) LegacyAttributeMap::key($slot);
+                if (LegacyAttributeMap::type($slot) !== LegacyAttributeMap::TYPE_CROSS_REF
+                    || (! str_starts_with($key, 'equiv') && ! str_starts_with($key, 'code_'))) {
+                    continue;
+                }
+                $label = (string) LegacyAttributeMap::label($slot);
+            } elseif ($this->looksLikeEquivalence($name)) {
+                $label = $name;
+            } else {
                 continue;
             }
+
             if (CrossReference::isPlaceholder($row->valor ?? null)) {
                 continue;
             }
@@ -189,12 +160,9 @@ final class CatalogSemanticLayer
             foreach ($this->splitCodes((string) $row->valor) as $code) {
                 $references[] = new CrossReference(
                     kind: CrossReference::KIND_EQUIVALENCE,
-                    label: $name,
+                    label: $label,
                     code: $code,
-                    provenance: Provenance::database(
-                        Provenance::DB_CHARACTERISTIC,
-                        isset($row->id) ? (int) $row->id : null,
-                    ),
+                    provenance: Provenance::database(Provenance::DB_CHARACTERISTIC, (int) $product->id, $name),
                 );
             }
         }
@@ -204,20 +172,20 @@ final class CatalogSemanticLayer
 
     /**
      * Piezas relacionadas: la escobilla / el colector / el regulador que le
-     * corresponden a este producto. Es el grafo de piezas escondido en
-     * `producto_caracteristica`, y es lo que permite responder "necesito la
-     * escobilla de este alternador".
+     * corresponden a este producto: las características que no son un atributo
+     * del diccionario ni una equivalencia (ESCOBILLA, ROTOR, BUJE INTERMEDIO…).
+     * Es lo que permite responder "necesito la escobilla de este alternador".
      *
      * @param  list<object> $characteristics
      * @return list<CrossReference>
      */
-    public function extractRelatedParts(array $characteristics): array
+    public function extractRelatedParts(object $product, array $characteristics): array
     {
         $references = [];
 
         foreach ($characteristics as $row) {
             $name = $this->clean((string) ($row->caracteristica ?? ''));
-            if ($name === '' || $this->looksLikeEquivalence($name)) {
+            if ($name === '' || $this->looksLikeEquivalence($name) || LegacyAttributeMap::slotDeCaracteristica($name) !== null) {
                 continue;
             }
             if (CrossReference::isPlaceholder($row->valor ?? null)) {
@@ -228,10 +196,7 @@ final class CatalogSemanticLayer
                 kind: CrossReference::KIND_PART,
                 label: $name,
                 code: $this->clean((string) $row->valor),
-                provenance: Provenance::database(
-                    Provenance::DB_CHARACTERISTIC,
-                    isset($row->id) ? (int) $row->id : null,
-                ),
+                provenance: Provenance::database(Provenance::DB_CHARACTERISTIC, (int) $product->id, $name),
             );
         }
 
@@ -241,7 +206,7 @@ final class CatalogSemanticLayer
     /**
      * Piezas relacionadas desde la tabla nueva `partes_relacionadas`.
      *
-     * Convive con las que salen del EAV legacy: ambas se unen en `relatedParts`
+     * Convive con las que salen de las características: ambas se unen en `relatedParts`
      * y se deduplican. Acá cada fila trae el código y nombre del producto-parte.
      *
      * @param  list<array{code:string, name:string}> $rows
@@ -382,21 +347,6 @@ final class CatalogSemanticLayer
         $code = mb_strtoupper(trim($code));
 
         return preg_replace('/[^A-Z0-9]/u', '', $code) ?? $code;
-    }
-
-    /** @return list<int> */
-    private function labelledSlots(object $categoryLabels): array
-    {
-        $slots = [];
-
-        foreach (LegacyAttributeMap::slots() as $slot) {
-            $label = $categoryLabels->{LegacyAttributeMap::categoryLabelColumn($slot)} ?? null;
-            if (! $this->isBlank($label)) {
-                $slots[] = $slot;
-            }
-        }
-
-        return $slots;
     }
 
     private function looksLikeEquivalence(string $name): bool

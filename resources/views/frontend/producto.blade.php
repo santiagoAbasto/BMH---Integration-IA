@@ -326,27 +326,12 @@
 
                                     <div class="d-flex flex-column" style="overflow-y: auto; max-height: 200px; ">
 
-                                        @for ($i = 1; $i <= 78; $i++)
-                                            @php
-                                                $columna = "columna_$i";
-                                            @endphp
-
-                                            @if ($producto->$columna)
-                                            @if($producto->categoria()->first()->$columna)
-                                                <div class="d-flex">
-                                                    <span
-                                                        class="infoR">{{ $producto->categoria()->first()->$columna }}:</span>
-                                                    <span class="nR">{{ $producto->$columna }}</span>
-                                                </div>
-                                                @endif
-                                            @endif
-                                        @endfor
-                                        
-                                        @foreach($caracteristicas as $caracteristica)
+                                        {{-- Las características que declara la categoría, en su orden. --}}
+                                        @foreach ($caracteristicas as $caracteristica)
                                               <div class="d-flex">
                                                     <span
-                                                        class="infoR">{{ $caracteristica->nombre }}:</span>
-                                                    <span class="nR">{{ $caracteristica->valor }}</span>
+                                                        class="infoR">{{ $caracteristica['nombre'] }}:</span>
+                                                    <span class="nR">{{ $caracteristica['valor'] }}</span>
                                                 </div>
                                         @endforeach
                                         

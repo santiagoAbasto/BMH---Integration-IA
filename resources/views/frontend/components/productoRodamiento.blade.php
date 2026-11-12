@@ -60,33 +60,13 @@
 
             <div class="row" style='margin-top: 20px; overflow-y: auto; max-height: 300px;'>
                 <div class="col-lg-12">
-                    @for ($i = 1; $i <= 78; $i++)
-                    @php
-                        $columna = "columna_$i";
-                    @endphp
-                
-                    @if ($producto->$columna)
-
-
-                    @if($categoriaProducto?->{$columna})
+                    {{-- Las características que declara la categoría, en su orden. --}}
+                    @foreach ($producto->fichaCaracteristicas() as $caracteristica)
                     <div class="d-flex">
-                        <span class="infoR">{{ $categoriaProducto->{$columna} }}:</span>
-                        <span class="nR">{{ $producto->$columna }}</span>
+                        <span class="infoR">{{ $caracteristica['nombre'] }}:</span>
+                        <span class="nR">{{ $caracteristica['valor'] }}</span>
                     </div>
-                    @endif
-                    @endif
-  
-                @endfor
-                
-       
-               {{-- Características dinámicas --}}
-@foreach ($producto->productCaracteristicas as $pc)
-    @continue(blank($pc->valor)) {{-- salta vacíos --}}
-    <div class="d-flex">
-        <span class="infoR">{{ $pc->caracteristica->nombre }}:</span>
-        <span class="nR">{{ $pc->valor }}</span>
-    </div>
-@endforeach
+                    @endforeach
 
     
 

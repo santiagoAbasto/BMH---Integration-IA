@@ -160,6 +160,25 @@ class Caracteristica extends Model
             ->first(fn (self $c) => MigracionCaracteristicas::clave($c->nombre) === $clave);
     }
 
+    /**
+     * La característica que pide un parámetro de URL: su id, o `columna_N` de un link de antes de las
+     * tablas nuevas (se traduce por el nombre que tenía esa columna, LegacyAttributeMap).
+     */
+    public static function desdeParametro(?string $parametro): ?self
+    {
+        $parametro = trim((string) $parametro);
+        if (ctype_digit($parametro)) {
+            return static::query()->find((int) $parametro);
+        }
+        if (preg_match('/^columna_(\d+)$/i', $parametro, $m) === 1) {
+            $nombre = \App\Domain\Catalog\LegacyAttributeMap::nombreCaracteristica((int) $m[1]);
+
+            return $nombre !== null ? static::nombreOcupado($nombre) : null;
+        }
+
+        return null;
+    }
+
     /** El nombre como se guarda: sin espacios de más y en mayúsculas, como todos los que ya había. */
     public static function normalizarNombre(?string $nombre): string
     {

@@ -7,7 +7,7 @@ namespace App\Domain\Support;
 /**
  * De dónde salió un dato.
  *
- * La distinción es crítica: un valor con `source = producto_caracteristica`
+ * La distinción es crítica: un valor con `source = caracteristica_producto`
  * es un HECHO de la base de BMH. Un valor con `source = ai_vision` es una
  * INFERENCIA de un modelo. El asistente tiene permitido afirmar el primero y
  * está obligado a matizar el segundo.
@@ -17,8 +17,7 @@ namespace App\Domain\Support;
 final readonly class Provenance implements \JsonSerializable
 {
     public const DB_PRODUCT        = 'productos';
-    public const DB_LEGACY_SLOT    = 'productos.columna_n';
-    public const DB_CHARACTERISTIC = 'producto_caracteristica';
+    public const DB_CHARACTERISTIC = 'caracteristica_producto';
     public const DB_CATEGORY       = 'categorias';
     public const DB_IMAGE          = 'imagenes';
     public const DB_ORDER          = 'pedido_producto';

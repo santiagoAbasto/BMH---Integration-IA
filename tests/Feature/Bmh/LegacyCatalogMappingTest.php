@@ -37,7 +37,7 @@ final class LegacyCatalogMappingTest extends TestCase
             ->update(['orden' => 'test']);
     }
 
-    public function test_mapea_los_slots_legacy_a_atributos_con_etiqueta(): void
+    public function test_mapea_las_caracteristicas_a_atributos_con_etiqueta(): void
     {
         $products = $this->catalog()->findByCode('1833');
 
@@ -47,48 +47,38 @@ final class LegacyCatalogMappingTest extends TestCase
 
         $this->assertSame('ROTORES', $product->category?->name);
 
-        // columna_1 = VOLTAJE para ROTORES.
+        // La característica VOLTAJE (antes columna_1) de ROTORES.
         $voltage = $product->attribute('voltage');
-        $this->assertNotNull($voltage, 'Debería mapear columna_1 a voltage.');
-        $this->assertSame('24v', $voltage->value);
-        $this->assertSame('columna_1', $voltage->sourceField);
-        $this->assertSame('productos', $voltage->sourceTable);
+        $this->assertNotNull($voltage, 'Debería mapear VOLTAJE a voltage.');
+        $this->assertSame('24V', $voltage->value);
+        $this->assertSame('VOLTAJE', $voltage->sourceField);
+        $this->assertSame('caracteristica_producto', $voltage->sourceTable);
+        $this->assertSame(['VOLTAJE', 'DIAMETRO'], array_slice(array_map(static fn ($a): string => $a->label, $product->attributes), 0, 2));
 
-        // columna_2 = DIAMETRO, con unidad derivada del diccionario.
+        // DIAMETRO, con unidad derivada del diccionario («125MM» → «125 mm»).
         $diameter = $product->attribute('diameter');
         $this->assertNotNull($diameter);
         $this->assertSame('125 mm', $diameter->displayValue());
     }
 
-    public function test_no_expone_valores_de_slots_sin_etiqueta(): void
+    public function test_no_expone_valores_de_caracteristicas_que_la_categoria_no_declara(): void
     {
-        // columna_3 tiene 362 valores cargados pero ninguna categoría lo
-        // etiqueta: es un dato no interpretable y no debe salir del ACL.
-        $orphanKeys = array_map(
-            static fn (int $slot): string => LegacyAttributeMap::column($slot),
-            LegacyAttributeMap::ORPHAN_SLOTS,
-        );
+        // El 1833 tiene LARGO cargado, pero ROTORES no declara LARGO: no se ve
+        // en el sitio y no debe salir del ACL (antes: un slot sin etiqueta).
+        $largo = DB::connection('mysql_legacy')->table('caracteristica_producto as cp')
+            ->join('productos as p', 'p.id', '=', 'cp.producto_id')
+            ->join('caracteristicas as c', 'c.id', '=', 'cp.caracteristica_id')
+            ->where('p.codigo', '1833')->where('c.nombre', 'LARGO')
+            ->value('cp.valor');
 
-        $row = DB::connection('mysql_legacy')->table('productos')
-            ->whereNotNull('columna_3')
-            ->where('columna_3', '<>', '')
-            ->first();
-
-        if ($row === null) {
-            $this->markTestSkipped('No hay productos con columna_3 cargada.');
+        if ($largo === null) {
+            $this->markTestSkipped('El 1833 ya no tiene LARGO cargado.');
         }
 
-        $product = $this->catalog()->find((int) $row->id);
+        $product = $this->catalog()->findByCode('1833')[0] ?? null;
 
         $this->assertNotNull($product);
-
-        foreach ($product->attributes as $attribute) {
-            $this->assertNotContains(
-                $attribute->sourceField,
-                $orphanKeys,
-                'Un slot sin etiqueta no puede exponerse como atributo.',
-            );
-        }
+        $this->assertNull($product->attribute('length'), 'Una característica que la categoría no declara no es un atributo.');
     }
 
     public function test_todo_atributo_de_base_es_factual(): void
@@ -108,8 +98,8 @@ final class LegacyCatalogMappingTest extends TestCase
 
     public function test_descarta_los_placeholders_del_eav(): void
     {
-        // `producto_caracteristica` usa "-" como "no aplica". Eso no es una
-        // pieza relacionada ni una equivalencia.
+        // La base usaba "-" como "no aplica". Eso no es una pieza relacionada
+        // ni una equivalencia.
         $product = $this->catalog()->findByCode('1833')[0] ?? null;
 
         $this->assertNotNull($product);
@@ -120,15 +110,26 @@ final class LegacyCatalogMappingTest extends TestCase
         }
     }
 
-    public function test_extrae_las_piezas_relacionadas_del_eav_moderno(): void
+    public function test_extrae_las_piezas_relacionadas_de_las_caracteristicas(): void
     {
-        $product = $this->catalog()->findByCode('1833')[0] ?? null;
+        // ESCOBILLA no es un atributo del diccionario ni una equivalencia: es la
+        // pieza que le corresponde («la escobilla de este alternador»).
+        $fila = DB::connection('mysql_legacy')->table('caracteristica_producto as cp')
+            ->join('caracteristicas as c', 'c.id', '=', 'cp.caracteristica_id')
+            ->join('productos as p', 'p.id', '=', 'cp.producto_id')
+            ->where('c.nombre', 'ESCOBILLA')
+            ->first(['p.id', 'cp.valor']);
+
+        if ($fila === null) {
+            $this->markTestSkipped('No hay productos con ESCOBILLA cargada.');
+        }
+
+        $product = $this->catalog()->find((int) $fila->id);
 
         $this->assertNotNull($product);
-
-        $labels = array_map(static fn ($r): string => $r->label, $product->relatedParts);
-
-        $this->assertContains('COLECTOR', $labels, 'El rotor 1833 tiene un COLECTOR asociado en la base.');
+        $partes = array_map(static fn ($r): string => $r->label.'='.$r->code, $product->relatedParts);
+        $this->assertContains('ESCOBILLA='.$fila->valor, $partes);
+        $this->assertNull($product->attribute('escobilla'));
     }
 
     public function test_normaliza_codigos_para_busqueda_tolerante(): void

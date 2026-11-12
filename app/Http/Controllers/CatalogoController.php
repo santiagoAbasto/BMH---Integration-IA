@@ -12,6 +12,7 @@ use App\Services\Catalogo\ParecidosCatalogo;
 use App\Services\Catalogo\ResultadoCatalogo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
@@ -40,9 +41,15 @@ class CatalogoController extends Controller
     ) {
     }
 
-    public function index(CatalogoRequest $request): View|JsonResponse
+    public function index(CatalogoRequest $request): View|JsonResponse|RedirectResponse
     {
         $ruta = $request->route()->getName();
+
+        // Links viejos (atributo[columna_N]=…): a la misma búsqueda con los filtros nuevos (c[ID]=…).
+        if (($query = $request->queryConFiltrosNuevos()) !== null) {
+            return redirect()->route($ruta, $query, 301);
+        }
+
         $filtros = $request->filtros();
 
         if ($request->query('parcial') === 'modelos') {
@@ -168,8 +175,8 @@ class CatalogoController extends Controller
         }
         if ($filtros->atributos !== [] && $filtros->categoria !== null) {
             $nombres = $this->catalogo->atributosFiltrables($filtros->categoria);
-            foreach ($filtros->atributos as $columna => $valor) {
-                $agregar('atributo:'.$columna, mb_convert_case($nombres[$columna] ?? 'Medida', MB_CASE_TITLE, 'UTF-8').': '.$valor, $filtros->sinAtributo($columna));
+            foreach ($filtros->atributos as $id => $valor) {
+                $agregar('atributo:'.$id, mb_convert_case($nombres[$id] ?? 'Medida', MB_CASE_TITLE, 'UTF-8').': '.$valor, $filtros->sinAtributo($id));
             }
         }
 

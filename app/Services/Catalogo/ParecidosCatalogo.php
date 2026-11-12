@@ -13,7 +13,7 @@ final class ParecidosCatalogo
     /**
      * @param  list<int>  $ids  los que se muestran, del más al menos parecido
      * @param  list<string>  $sinFiltros  filtros que no cumplen los primeros: categoria,
-     *         estado, marca, vehiculo, modelo, equivalencia o atributo:columna_N
+     *         estado, marca, vehiculo, modelo, equivalencia o atributo:ID (de la característica)
      * @param  int  $total  cuántos hay al sacar esos filtros
      * @param  string|null  $termino  lo que se buscó en lugar del texto escrito
      *         (corregido: «alternadro» → «alternador»)

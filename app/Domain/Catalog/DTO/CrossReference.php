@@ -11,9 +11,9 @@ use App\Domain\Support\Provenance;
  * fabricante, o bien la pieza relacionada que le corresponde a este producto
  * (la escobilla de este alternador, el colector de este rotor).
  *
- * Salen de dos lados de la base legacy y por eso llevan `kind` y provenance:
- *  - `producto_caracteristica` (EAV normalizado)
- *  - `productos.columna_N` con tipo cross_reference
+ * Salen de las características del producto (`caracteristica_producto`) y de
+ * las tablas `equivalencias`, `aplicaciones` y `partes_relacionadas`; por eso
+ * llevan `kind` y provenance.
  */
 final readonly class CrossReference implements \JsonSerializable
 {

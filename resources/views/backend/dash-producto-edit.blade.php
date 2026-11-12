@@ -241,49 +241,26 @@
                 </div>
             </div>
             <div class="card-body">
-                <!-- Campos dinámicos para las 38 columnas -->
+                <input type="hidden" name="caracteristicas_presente" value="1">
                 <div id="dynamic-inputs" class="row" data-url-categoria="{{ route('categoria.show', ':id') }}">
-
-                    <div class='row'>
-                        @for ($i = 1; $i <= 78; $i++)
-                            @php
-                                $columna = 'columna_' . $i; // nombre de la columna, como 'columna_1', 'columna_2', etc.
-
-                                $nombreCategoria = $producto->categoria()->first()->$columna; // obtener el nombre de la columna desde la tabla categorías
-                                $valorProducto = old($columna, $producto->$columna);
-                            @endphp
-
-                            @if(!empty($nombreCategoria))
-                                <div class="col-3 mb-3">
-                                    <label for="{{ $columna }}" class="form-label">{{ $nombreCategoria }}</label>
-                                    <input type="text" class="form-control" name="{{ $columna }}"
-                                        value="{{ $valorProducto }}">
-                                </div>
-                                @endif
-
-                        @endfor
-                    </div>
-                    @foreach ($categoriaSelected['caracteristicas'] as $caracteristica)
                     @php
-                        // Cambiar estas líneas:
-                        // $caractEnProducto = $producto->caracteristicas->firstWhere('id', $caracteristica['id']);
-                        // $valor = old("caracteristicas.{$caracteristica['id']}", $caractEnProducto?->pivot->valor);
-
-                        // Por estas:
-                        $caractEnProducto = $caracteristicas->firstWhere('id', $caracteristica['id']);
-                        $valor = old("caracteristicas.{$caracteristica['id']}", $caractEnProducto?->valor ?? '');
+                        // Las de la categoría y, además, las que el producto tiene cargadas aunque la categoría no
+                        // las declare: tienen que viajar en el formulario para no perderlas al guardar.
+                        $filas = collect($categoriaSelected?->caracteristicas ?? [])->concat($caracteristicas)->unique('id');
                     @endphp
-
-                    <div class="col-3 mb-3">
-                        <label for="caracteristica_{{ $caracteristica['id'] }}" class="form-label">
-                            {{ $caracteristica['nombre'] }}
-                        </label>
-                        <input type="text" class="form-control"
-                               name="caracteristicas[{{ $caracteristica['id'] }}]"
-                               id="caracteristica_{{ $caracteristica['id'] }}"
-                               value="{{ $valor }}">
-                    </div>
-                @endforeach
+                    @foreach ($filas as $caracteristica)
+                        @php
+                            $valor = old("caracteristicas.{$caracteristica->id}", $caracteristicas->firstWhere('id', $caracteristica->id)?->pivot->valor ?? '');
+                        @endphp
+                        <div class="col-3 mb-3">
+                            <label for="caracteristica_{{ $caracteristica->id }}" class="form-label">{{ $caracteristica->nombre }}</label>
+                            <input type="text" class="form-control" name="caracteristicas[{{ $caracteristica->id }}]"
+                                id="caracteristica_{{ $caracteristica->id }}" value="{{ $valor }}">
+                            @error("caracteristicas.{$caracteristica->id}")
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    @endforeach
 
                 </div>
             </div>

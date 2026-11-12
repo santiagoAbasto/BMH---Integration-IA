@@ -14,11 +14,10 @@ use Illuminate\Support\Str;
  *
  * Busca un código sólo en los campos que son equivalencias de verdad:
  *
- *  - las columnas viejas `columna_N` cuyo nombre, en la categoría del producto,
- *    es de equivalencia (CODIGO GV, EQUIVALENCIA NOSSO…). La misma columna
- *    guarda un diámetro en otra categoría, por eso se decide por categoría;
- *  - las características de equivalencia de `producto_caracteristica`, con las
- *    mismas reglas que usa el sitio para mostrarlas (Producto::productCaracteristicas);
+ *  - las características de equivalencia (CODIGO GV, EQUIVALENCIA NOSSO…) que
+ *    la categoría del producto declara: las mismas que el sitio muestra
+ *    (Producto::caracteristicasVisibles). Un valor que el sitio no muestra no
+ *    debe traer resultados que el visitante no pueda entender;
  *  - la tabla `equivalencias`.
  *
  * Aplicaciones y partes relacionadas no son equivalencias: esas las cubre el
@@ -42,10 +41,7 @@ final class BusquedaPorEquivalencia
      */
     private const SEPARADORES = '/[,;|\n]+|\s+\/\s*|\s*\/\s+|\s+-\s*|\s*-\s+/';
 
-    /**
-     * ¿El campo con este nombre guarda una equivalencia? Vale para las columnas
-     * viejas (nombres en `categorias`) y para las características.
-     */
+    /** ¿La característica con este nombre guarda una equivalencia? */
     public static function esCampoDeEquivalencia(?string $nombre): bool
     {
         $nombre = strtoupper(trim(Str::ascii((string) $nombre)));
@@ -91,10 +87,6 @@ final class BusquedaPorEquivalencia
                 $grados[$productoId] = $grado;
             }
         };
-
-        foreach ($this->enColumnasViejas($like) as [$productoId, $valor]) {
-            $anotar($productoId, $valor);
-        }
 
         foreach ($this->enCaracteristicas($like) as $fila) {
             $anotar((int) $fila->producto_id, $fila->valor);
@@ -164,67 +156,9 @@ final class BusquedaPorEquivalencia
     // ------------------------------------------------------------ fuentes
 
     /**
-     * Columnas viejas: cada categoría declara qué columnas son equivalencias.
+     * Valores de características de equivalencia que la categoría del producto declara.
      *
-     * @return iterable<array{int, ?string}>
-     */
-    private function enColumnasViejas(string $like): iterable
-    {
-        $porCategoria = $this->columnasDeEquivalenciaPorCategoria();
-
-        if ($porCategoria === []) {
-            return [];
-        }
-
-        $columnas = array_values(array_unique(array_merge(...array_values($porCategoria))));
-
-        $filas = DB::table('productos')
-            ->select(['id', 'categoria_id', ...$columnas])
-            ->where(function (QueryBuilder $q) use ($porCategoria, $like): void {
-                foreach ($porCategoria as $categoriaId => $cols) {
-                    $q->orWhere(function (QueryBuilder $w) use ($categoriaId, $cols, $like): void {
-                        $w->where('categoria_id', $categoriaId)
-                            ->where(function (QueryBuilder $o) use ($cols, $like): void {
-                                foreach ($cols as $col) {
-                                    $o->orWhereRaw(self::sqlNormalizado($col).' LIKE ?', [$like]);
-                                }
-                            });
-                    });
-                }
-            })
-            ->get();
-
-        $valores = [];
-        foreach ($filas as $fila) {
-            foreach ($porCategoria[$fila->categoria_id] ?? [] as $col) {
-                $valores[] = [(int) $fila->id, $fila->{$col}];
-            }
-        }
-
-        return $valores;
-    }
-
-    /** @return array<int, list<string>> categoria_id => columnas de equivalencia */
-    private function columnasDeEquivalenciaPorCategoria(): array
-    {
-        $mapa = [];
-
-        foreach (DB::table('categorias')->get() as $categoria) {
-            foreach ((array) $categoria as $columna => $nombre) {
-                if (preg_match('/^columna_\d+$/', $columna) && self::esCampoDeEquivalencia($nombre)) {
-                    $mapa[$categoria->id][] = $columna;
-                }
-            }
-        }
-
-        return $mapa;
-    }
-
-    /**
-     * Características de equivalencia visibles en el sitio: no borradas, la
-     * última fila de cada producto/característica, y declaradas por la
-     * categoría del producto. Un valor que el sitio no muestra no debe traer
-     * resultados que el visitante no pueda entender.
+     * @return iterable<object{producto_id: int, valor: string}>
      */
     private function enCaracteristicas(string $like): iterable
     {
@@ -236,26 +170,15 @@ final class BusquedaPorEquivalencia
             return [];
         }
 
-        return DB::table('producto_caracteristica as pc')
-            ->join('productos as p', 'p.id', '=', 'pc.producto_id')
-            ->whereIn('pc.caracteristica_id', $ids)
-            ->whereNull('pc.deleted_at')
-            ->whereRaw(self::sqlNormalizado('pc.valor').' LIKE ?', [$like])
-            ->whereIn('pc.id', function (QueryBuilder $q): void {
-                $q->selectRaw('MAX(pc_latest.id)')
-                    ->from('producto_caracteristica as pc_latest')
-                    ->whereNull('pc_latest.deleted_at')
-                    ->whereColumn('pc_latest.producto_id', 'pc.producto_id')
-                    ->whereColumn('pc_latest.caracteristica_id', 'pc.caracteristica_id');
+        return DB::table('caracteristica_producto as cp')
+            ->join('productos as p', 'p.id', '=', 'cp.producto_id')
+            ->join('caracteristica_categoria as cc', function ($join): void {
+                $join->on('cc.categoria_id', '=', 'p.categoria_id')
+                    ->on('cc.caracteristica_id', '=', 'cp.caracteristica_id');
             })
-            ->whereExists(function (QueryBuilder $q): void {
-                $q->selectRaw('1')
-                    ->from('categoria_caracteristica as cc')
-                    ->whereColumn('cc.categoria_id', 'p.categoria_id')
-                    ->whereColumn('cc.caracteristica_id', 'pc.caracteristica_id')
-                    ->whereNull('cc.deleted_at');
-            })
-            ->get(['pc.producto_id', 'pc.valor']);
+            ->whereIn('cp.caracteristica_id', $ids)
+            ->whereRaw(self::sqlNormalizado('cp.valor').' LIKE ?', [$like])
+            ->get(['cp.producto_id', 'cp.valor']);
     }
 
     // ---------------------------------------------------------- utilidades
