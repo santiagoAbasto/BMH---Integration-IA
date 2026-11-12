@@ -318,7 +318,6 @@ body {
 
 /* --- Footer: logo y redes centrados en su columna (Figma: «Marca», 330px) --- */
 .bmh-footer {
-    --osole-footer-columns: minmax(0, 1fr) minmax(0, 14rem) minmax(0, 19rem); /* Figma: 242 / 285px; el mail en mayúsculas necesita un poco más */
     --osole-footer-column-gap: 1.875rem; /* 30px */
     --osole-footer-links-gap: 0.875rem; /* 14px */
     --osole-footer-links-column-gap: 0.875rem; /* 14px */
@@ -338,9 +337,16 @@ body {
     border-image: conic-gradient(var(--bmh-ink-700) 0 0) 1 / 1px 0 0 0 / 0 100vi;
 }
 
-.bmh-footer .osole-footer-v1__brand {
-    align-items: center;
-    max-inline-size: 20.625rem; /* 330px */
+/* Marca (Figma): logo y redes centrados en una columna de 330px, redes a 20px del logo; cada ícono
+   de 18px va en un cuadro de 24px con 10px entre cuadros (16px entre íconos). */
+.bmh-footer {
+    --osole-footer-brand-align: center;
+    --osole-footer-brand-social-offset: 1.25rem; /* 20px */
+    --osole-footer-social-gap: 1rem; /* 16px */
+}
+
+.bmh-footer .osole-footer-v1__column--brand {
+    min-inline-size: min(20.625rem, 100%); /* 330px */
 }
 
 .bmh-footer .osole-footer-v1__links a,
@@ -364,4 +370,26 @@ main,
 .turbo-progress-bar {
     height: 3px;
     background-color: var(--bmh-brand);
+}
+
+/* El PNG del logo trae aire transparente: como en el Figma, el cuadro mide 268×99 y el PNG (330px) se
+   recorta 31px por lado y baja 8px. */
+.bmh-footer .osole-footer-v1__logo :is(img, svg) {
+    max-inline-size: none;
+    margin-inline: -1.9375rem; /* 31px */
+    margin-block: 0.5rem; /* 8px */
+}
+
+/* Las tres columnas del Figma desde 1024px; debajo queda la grilla de footer.v1 (1 columna en celular,
+   2 en tablet) y la marca se centra en el celular. */
+@media (width >= 1024px) {
+    .bmh-footer {
+        --osole-footer-columns: minmax(0, 1fr) minmax(0, 14rem) minmax(0, 19rem); /* Figma: 242 / 285px; el mail en mayúsculas necesita un poco más */
+    }
+}
+
+@media (width < 768px) {
+    .bmh-footer .osole-footer-v1__column--brand {
+        justify-self: center;
+    }
 }

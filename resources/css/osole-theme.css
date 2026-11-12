@@ -144,7 +144,7 @@
     --osole-footer-bottom-color: var(--bmh-text-on-dark-muted);
     --osole-footer-bottom-border-color: var(--bmh-ink-700);
     --osole-footer-bottom-font-size: 0.75rem; /* 12px */
-    --osole-footer-logo-height: 6.1875rem; /* 99px */
+    --osole-footer-logo-height: 5.15625rem; /* 82.5px: el PNG a 330×82.5 dentro del cuadro de 268×99 del Figma */
     --osole-footer-padding-block-start: 3.3125rem; /* 53px */
     --osole-footer-accent: var(--bmh-brand);
 }
