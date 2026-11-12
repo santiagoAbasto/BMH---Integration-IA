@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use App\Models\Producto;
 use App\Services\BusquedaPorEquivalencia;
 use Illuminate\Database\Schema\Blueprint;
@@ -144,7 +145,7 @@ final class BusquedaPorEquivalenciaTest extends TestCase
         ];
     }
 
-    /** @dataProvider nombresDeCampos */
+    #[DataProvider('nombresDeCampos')]
     public function test_decide_que_campo_es_una_equivalencia(?string $nombre, bool $esperado): void
     {
         $this->assertSame($esperado, BusquedaPorEquivalencia::esCampoDeEquivalencia($nombre));

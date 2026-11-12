@@ -1,0 +1,40 @@
+{
+    "name": "codersfree/shoppingcart",
+    "description": "Laravel Shoppingcart (copia local de codersfree/shoppingcart, MIT, con soporte para Laravel 13)",
+    "keywords": [
+        "laravel",
+        "shoppingcart"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Victor Arana",
+            "email": "victor@codersfree.com"
+        }
+    ],
+    "require": {
+        "illuminate/support": "^10|^11|^12|^13",
+        "illuminate/session": "^10|^11|^12|^13",
+        "illuminate/events": "^10|^11|^12|^13"
+    },
+    "autoload": {
+        "psr-4": {
+            "CodersFree\\Shoppingcart\\": "src/"
+        }
+    },
+    "suggest": {
+        "codersfree/notify": "Simple flash notifications for Laravel"
+    },
+    "minimum-stability": "stable",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CodersFree\\Shoppingcart\\ShoppingcartServiceProvider"
+            ],
+            "aliases": {
+                "Cart": "CodersFree\\Shoppingcart\\Facades\\Cart"
+            }
+        }
+    },
+    "version": "1.0.99"
+}

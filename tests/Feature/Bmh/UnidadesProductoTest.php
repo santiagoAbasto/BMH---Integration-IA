@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use App\Models\Admin;
 use App\Services\Catalogo\UnidadesProducto;
 use Illuminate\Database\Schema\Blueprint;
@@ -124,7 +125,7 @@ final class UnidadesProductoTest extends TestCase
         DB::table('caracteristicas')->where('id', 1)->update(['nombre' => $nombre]);
     }
 
-    /** @dataProvider valoresValidos */
+    #[DataProvider('valoresValidos')]
     public function test_crear_y_editar_guardan_el_numero_con_una_sola_unidad(string $nombre, mixed $entrada, ?string $esperado): void
     {
         $this->nombreDelCampo($nombre);
@@ -171,7 +172,7 @@ final class UnidadesProductoTest extends TestCase
         return $casos;
     }
 
-    /** @dataProvider valoresInvalidos */
+    #[DataProvider('valoresInvalidos')]
     public function test_rechaza_valores_invalidos_antes_de_crear_o_modificar(string $nombre, mixed $entrada): void
     {
         $this->nombreDelCampo($nombre);

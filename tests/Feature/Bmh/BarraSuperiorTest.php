@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use App\Models\Admin;
 use App\Models\Apariencia;
 use App\Models\Contacto;
@@ -218,7 +219,7 @@ final class BarraSuperiorTest extends TestCase
         ];
     }
 
-    /** @dataProvider datosInvalidos */
+    #[DataProvider('datosInvalidos')]
     public function test_rechaza_datos_invalidos_sin_guardar_nada(string $campo, string $valor): void
     {
         $this->actingAs($this->admin, 'admin')

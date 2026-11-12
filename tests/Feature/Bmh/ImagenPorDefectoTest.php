@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use App\Models\Admin;
 use App\Models\Imagen;
 use App\Models\Producto;
@@ -192,7 +193,7 @@ final class ImagenPorDefectoTest extends TestCase
         ];
     }
 
-    /** @dataProvider archivosInvalidos */
+    #[DataProvider('archivosInvalidos')]
     public function test_rechaza_archivos_que_no_sirven_como_foto_de_catalogo(UploadedFile $archivo, string $mensaje): void
     {
         $this->subir($archivo)->assertSessionHasErrors('imagen');
