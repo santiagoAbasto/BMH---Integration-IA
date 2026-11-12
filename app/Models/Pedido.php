@@ -12,26 +12,71 @@ class Pedido extends Model
 
     protected $table = 'pedidos';
 
+    /** Renglones ya calculados (la vista los pide varias veces). @var \Illuminate\Support\Collection|null */
+    private $lineasCache = null;
+
     public function archivo_xml(){
         return $this->hasOne('App\Models\ArchivoXml');
     }
 
-    public function subtotal(){
-        $productos = $this->productos()->get();
-        $subtotal = 0;
-    foreach($productos as $producto) {
-    $descuentoProducto = $producto->descuento ?? 0;
-    $descuentoCliente = Auth::guard('web')->user()->descuento ?? 0;
+    /** Descuento del cliente guardado en el pedido (el que tenía cuando lo hizo). */
+    public function descuentoCliente(): float
+    {
+        return (float) ($this->descuento_cliente ?? 0);
+    }
 
-    $precioDescuentoProducto = $producto->precio() * (1 - ($descuentoProducto / 100));
-    $precioConDescuentoCliente = $precioDescuentoProducto * (1 - ($descuentoCliente / 100));
+    /**
+     * Renglones del pedido como se hizo: precio de lista y descuentos del
+     * momento de la compra (guardados en pedido_producto), no los de hoy ni
+     * los de quien está mirando el pedido. Antes se usaba el descuento del
+     * usuario logueado: desde el admin (sin cliente logueado) el subtotal y
+     * el IVA salían sin el descuento del cliente y no cerraban con el total.
+     *
+     * @return \Illuminate\Support\Collection<int, object{producto: Producto, precio_lista: float, descuento_producto: float, descuento_cliente: float, precio_neto: float, cantidad: int, subtotal: float}>
+     */
+    public function lineas(): \Illuminate\Support\Collection
+    {
+        if ($this->lineasCache !== null) {
+            return $this->lineasCache;
+        }
 
-    $subtotal += $precioConDescuentoCliente * $producto->pivot->cantidad;
-}
+        $descuentoCliente = $this->descuentoCliente();
 
-        // return $subtotal * ( 1 - ($this->descuento_cliente / 100)) * ( 1 - ($this->descuento_pago / 100));
-        return $subtotal;
+        return $this->lineasCache = $this->productos()->get()->map(function (Producto $producto) use ($descuentoCliente) {
+            $precioLista = (float) $producto->pivot->precio_unitario;
+            if ($precioLista <= 0) {
+                $precioLista = (float) ($producto->precio() ?? 0); // pedidos sin el precio guardado
+            }
+            $descuentoProducto = (float) ($producto->pivot->descuento_producto ?? 0);
+            $cantidad = (int) ($producto->pivot->cantidad ?? 0);
+            $precioNeto = $precioLista * (1 - $descuentoProducto / 100) * (1 - $descuentoCliente / 100);
 
+            return (object) [
+                'producto' => $producto,
+                'precio_lista' => $precioLista,
+                'descuento_producto' => $descuentoProducto,
+                'descuento_cliente' => $descuentoCliente,
+                'precio_neto' => $precioNeto,
+                'cantidad' => $cantidad,
+                'subtotal' => $precioNeto * $cantidad,
+            ];
+        });
+    }
+
+    public function subtotal(): float
+    {
+        return (float) $this->lineas()->sum('subtotal');
+    }
+
+    public function porcentajeIva(): float
+    {
+        return (float) (Impuesto::find(1)?->porcentaje ?? 21);
+    }
+
+    public function iva(): float
+    {
+        // Como el carrito: sobre el subtotal ya redondeado.
+        return round(round($this->subtotal(), 2) * $this->porcentajeIva() / 100, 2);
     }
 
     public function bonificacion(){
