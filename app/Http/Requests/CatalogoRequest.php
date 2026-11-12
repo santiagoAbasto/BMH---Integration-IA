@@ -72,6 +72,7 @@ class CatalogoRequest extends FormRequest
             equivalencia: $this->texto('equivalencia'),
             atributos: $atributos,
             orden: is_string($orden) && isset(FiltrosCatalogo::ORDENES[$orden]) ? $orden : null,
+            soloOfertas: $this->route()?->getName() === 'ofertas',
         );
     }
 

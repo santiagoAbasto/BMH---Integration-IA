@@ -7,7 +7,7 @@
     <div class="catalogo__encabezado">
         <h1 class="catalogo__titulo">{{ $titulo }}</h1>
         <p class="catalogo__total" role="status">
-            <strong>{{ number_format($total, 0, ',', '.') }}</strong> {{ $total === 1 ? 'producto' : 'productos' }}
+            <strong>{{ number_format($total, 0, ',', '.') }}</strong> {{ $total === 1 ? 'producto' : 'productos' }}@if ($filtros->soloOfertas) en oferta @endif
         </p>
     </div>
 

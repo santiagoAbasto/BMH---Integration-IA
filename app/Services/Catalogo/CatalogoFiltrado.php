@@ -84,6 +84,12 @@ final class CatalogoFiltrado
         // acceso a atributos de Eloquent pesa.
         $pool = $this->pool($filtros, array_keys($columnasAtributo))
             ->map(fn (Producto $p) => (object) $p->getAttributes());
+
+        // /ofertas: sólo los productos marcados como oferta (también al buscar dentro de las ofertas).
+        if ($filtros->soloOfertas) {
+            $ofertas = Producto::query()->where('oferta', true)->pluck('id')->flip();
+            $pool = $pool->filter(fn (object $p) => isset($ofertas[$p->id]))->values();
+        }
         $aplicaciones = $this->aplicacionesDe($pool);
 
         $gradosEquivalencia = $filtros->equivalencia !== null

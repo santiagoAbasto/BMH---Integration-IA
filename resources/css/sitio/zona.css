@@ -1,0 +1,198 @@
+/*
+ * Zona de Clientes (Figma: «Zona privada»).
+ */
+
+.bmh-zona {
+    padding-block: 2.5rem 3.125rem; /* 40px / 50px */
+    background: var(--bmh-white);
+}
+
+/* --- Tabla de documentos (Historial, Lista de precios): encabezado azul y filas de 90px --- */
+.bmh-docs {
+    inline-size: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: var(--osole-font-heading);
+    color: #282828;
+}
+
+.bmh-docs thead th {
+    block-size: 3.25rem; /* 52px */
+    padding: 0 1rem;
+    background: var(--bmh-brand);
+    font-size: 1rem; /* 16px */
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--bmh-white);
+    text-align: start;
+    white-space: nowrap;
+}
+
+.bmh-docs thead th:first-child { border-start-start-radius: 1rem; }
+.bmh-docs thead th:last-child { border-start-end-radius: 1rem; }
+
+.bmh-docs tbody td {
+    block-size: 5.625rem; /* 90px */
+    padding: 0 1rem;
+    border-block-end: 1px solid #d4d4d4;
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.bmh-docs tbody td:first-child { border-inline-start: 1px solid #d4d4d4; }
+.bmh-docs tbody td:last-child { border-inline-end: 1px solid #d4d4d4; }
+.bmh-docs tbody tr:last-child td:first-child { border-end-start-radius: 1rem; }
+.bmh-docs tbody tr:last-child td:last-child { border-end-end-radius: 1rem; }
+
+.bmh-docs__icono {
+    inline-size: 5.5rem;
+    color: var(--bmh-brand);
+}
+
+.bmh-docs__icono svg {
+    display: block;
+    inline-size: 2.6875rem; /* 43px */
+    block-size: 2.6875rem;
+    margin-inline-start: 0.3125rem;
+}
+
+.bmh-docs__estado {
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.bmh-docs__acciones {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.875rem; /* 14px */
+}
+
+.bmh-docs__boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-sizing: border-box;
+    inline-size: 11.4375rem; /* 183px */
+    block-size: 2.75rem; /* 44px */
+    padding: 0 1rem;
+    border: 1px solid var(--bmh-ink-950);
+    border-radius: 0.625rem; /* 10px */
+    background: rgb(255 255 255 / 0.1);
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    color: var(--bmh-ink-950);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.bmh-docs__boton:hover {
+    background: var(--bmh-ink-950);
+    color: var(--bmh-white);
+}
+
+.bmh-docs__boton--primario {
+    border-color: var(--bmh-brand);
+    background: var(--bmh-brand);
+    font-size: 1rem; /* 16px */
+    font-weight: 400;
+    color: var(--bmh-white);
+}
+
+.bmh-docs__boton--primario:hover {
+    border-color: var(--bmh-brand-hover);
+    background: var(--bmh-brand-hover);
+    color: var(--bmh-white);
+}
+
+.bmh-docs__boton--icono {
+    inline-size: 2.75rem;
+    padding: 0;
+}
+
+.bmh-docs__boton:focus-visible {
+    outline: 2px solid var(--bmh-brand);
+    outline-offset: 3px;
+}
+
+.bmh-docs__boton[aria-busy="true"] {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.bmh-docs__boton svg {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+}
+
+/* Celular: cada fila es una tarjeta. */
+@media (width < 1024px) {
+    .bmh-docs thead {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .bmh-docs,
+    .bmh-docs tbody,
+    .bmh-docs tr,
+    .bmh-docs td {
+        display: block;
+    }
+
+    .bmh-docs tbody tr {
+        margin-block-end: 1rem;
+        padding: 1rem;
+        border: 1px solid #d4d4d4;
+        border-radius: 1rem;
+    }
+
+    .bmh-docs tbody td {
+        block-size: auto;
+        padding: 0.25rem 0;
+        border: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .bmh-docs tbody td[data-titulo]::before {
+        content: attr(data-titulo) ": ";
+        font-weight: 600;
+        color: var(--bmh-text-secondary);
+    }
+
+    .bmh-docs__icono {
+        display: none !important;
+    }
+
+    .bmh-docs__acciones {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        padding-block-start: 0.75rem !important;
+    }
+
+    .bmh-docs__boton {
+        flex: 1 1 9rem;
+        inline-size: auto;
+    }
+
+    .bmh-docs__boton--icono {
+        flex: 0 0 2.75rem;
+    }
+}
+
+.bmh-zona__vacio {
+    margin: 0;
+    padding: 2rem;
+    border: 1px dashed var(--bmh-border);
+    border-radius: 1rem;
+    font-size: 1rem;
+    text-align: center;
+    color: var(--bmh-text-secondary);
+}

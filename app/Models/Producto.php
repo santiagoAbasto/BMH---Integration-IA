@@ -102,6 +102,9 @@ class Producto extends Model
     
     protected $table = 'productos';
 
+    /** Ofertas de la zona pública (admin → Productos); independiente de `descuento`. */
+    protected $casts = ['oferta' => 'boolean'];
+
     public function getNombreAttribute($value)
     {
         return ucfirst($value);

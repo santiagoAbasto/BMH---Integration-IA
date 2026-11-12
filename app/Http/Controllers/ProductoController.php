@@ -870,9 +870,10 @@ public function dash_productos(Request $request)
     // abre ya filtrado al volver desde otra pantalla o al recargar.
     $busqueda = mb_substr(trim((string) $request->query('q', '')), 0, 100);
 
-    ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoria_id);
+    $soloOfertas = $request->boolean('oferta');
+    ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoria_id, $soloOfertas);
     $productos->withPath(route('dashboard.productos'))
-        ->appends(array_filter(['categoria_id' => $categoria_id, 'q' => $busqueda], fn ($v) => $v !== null && $v !== ''));
+        ->appends(array_filter(['categoria_id' => $categoria_id, 'q' => $busqueda, 'oferta' => $soloOfertas ? 1 : null], fn ($v) => $v !== null && $v !== ''));
     $hayAlternativas = $sinResultadosCategoria && $productos->isNotEmpty();
 
     $categorias = Categoria::withCount('productos')->orderBy('nombre')->get();
@@ -886,7 +887,7 @@ public function dash_productos(Request $request)
     $reportePrecios = app(ActualizacionPreciosController::class)->reporte(session('precios_reporte'));
     $tokenPrecios = session('precios_reporte');
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas', 'reportePrecios', 'tokenPrecios'));
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas', 'reportePrecios', 'tokenPrecios', 'soloOfertas'));
 }
 
     public function exportarExcel(Request $request)
@@ -949,6 +950,9 @@ public function dash_productos(Request $request)
 
         $nuevo_producto = new Producto();
         $nuevo_producto->nombre = $request->nombre;
+        if ($request->has('oferta')) {
+            $nuevo_producto->oferta = $request->boolean('oferta');
+        }
         $nuevo_producto->orden = $request->orden;
         $nuevo_producto->codigo = $request->codigo;
 
@@ -1180,6 +1184,11 @@ public function dash_productos(Request $request)
         $producto->orden_aplicaciones = Producto::normalizarModoOrden($request->input('orden_aplicaciones_mode'));
         $producto->orden_partes = Producto::normalizarModoOrden($request->input('orden_partes_mode'));
 
+        // Oferta (zona pública): sólo si el formulario la manda, así no se pierde al guardar.
+        if ($request->has('oferta')) {
+            $producto->oferta = $request->boolean('oferta');
+        }
+
         $producto->save();
 
         $this->sincronizarPartesRelacionadas($request, $producto);
@@ -1216,6 +1225,24 @@ public function dash_productos(Request $request)
 
 
         return redirect()->back()->with('success', 'Producto actualizado');
+    }
+
+    /**
+     * Marca o desmarca un producto como oferta (zona pública) desde el listado del admin.
+     * Con `oferta` en el pedido la deja así; sin él, la invierte. Responde el estado final.
+     */
+    public function actualizarOferta(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $datos = $request->validate([
+            'producto_id' => ['required', 'integer', 'exists:productos,id'],
+            'oferta' => ['sometimes', 'boolean'],
+        ]);
+
+        $producto = Producto::findOrFail($datos['producto_id']);
+        $producto->oferta = array_key_exists('oferta', $datos) ? (bool) $datos['oferta'] : ! $producto->oferta;
+        $producto->save();
+
+        return response()->json(['producto_id' => $producto->id, 'oferta' => $producto->oferta]);
     }
 
     public function actualizarDestacado(Request $request)
@@ -1303,7 +1330,7 @@ public function dash_productos(Request $request)
         $busqueda = (string) $request->input('valor', '');
         $categoriaId = $request->input('categoria_id');
 
-        ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoriaId);
+        ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoriaId, $request->boolean('oferta'));
 
         return response()->json([
             'html' => view('backend/dash-productos-listado', compact('productos'))->render(),
@@ -1324,12 +1351,13 @@ public function dash_productos(Request $request)
      *
      * @return array{productos: \Illuminate\Pagination\LengthAwarePaginator, sinResultadosCategoria: bool}
      */
-    private function listadoAdmin(string $busqueda, $categoriaId): array
+    private function listadoAdmin(string $busqueda, $categoriaId, bool $soloOfertas = false): array
     {
         $hayBusqueda = trim($busqueda) !== '';
         $hayCategoria = $categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos';
         $consulta = fn () => Producto::with(['categoria', 'portadaImagen'])
             ->busquedaAdmin($busqueda)
+            ->when($soloOfertas, fn ($q) => $q->where('oferta', true))
             ->when($hayBusqueda, fn ($q) => $q->orderBy('orden'), fn ($q) => $q->ordenado());
 
         $productos = $consulta()->when($hayCategoria, fn ($q) => $q->where('categoria_id', $categoriaId))->paginate(20);

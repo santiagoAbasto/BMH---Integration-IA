@@ -43,6 +43,8 @@ final class FiltrosCatalogo
         public readonly ?string $equivalencia = null,
         public readonly array $atributos = [],
         public readonly ?string $orden = null,
+        // /ofertas: el mismo catálogo, sólo con los productos marcados como oferta en el admin.
+        public readonly bool $soloOfertas = false,
     ) {
     }
 

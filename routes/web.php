@@ -84,6 +84,8 @@ Route::controller(HomeController::class)->group(function () {
 // header (/buscar) es la misma pantalla.
 Route::get('productos', [CatalogoController::class, 'index'])->name('productos');
 Route::get('buscar', [CatalogoController::class, 'index'])->name('search');
+// Ofertas (zona pública): el catálogo con sus filtros, sólo con los productos en oferta.
+Route::get('ofertas', [CatalogoController::class, 'index'])->name('ofertas');
 
 // Sugerencias del buscador del header mientras se escribe.
 Route::get('buscar/sugerencias', [BuscadorController::class, 'sugerencias'])
@@ -139,7 +141,6 @@ Route::controller(ProductoController::class)->group(function () {
     Route::get('productos/imagen-predeterminada.svg', 'imagen_predeterminada')->name('producto.placeholder');
 Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
     Route::get('productos-filtrar', 'filtrar_productos')->name('productos.filtrar');
-    Route::get('ofertas', 'ofertas')->name('ofertas');
     Route::get('producto', 'producto')->name('producto');
     Route::get('load', 'load')->name('productos.load');
     Route::get('searchZona', 'searchZona')->name('search.zona');
@@ -158,6 +159,7 @@ Route::get('filtro-rodamiento', 'filtroRodamiento')->name('filtroRodamientos');
 
     Route::middleware('admin')->group(function(){
         Route::post('dashboard/producto-destacado', 'actualizarDestacado')->name('producto.destacada');
+        Route::post('dashboard/producto-oferta', 'actualizarOferta')->name('producto.oferta');
         Route::get('dashboard/productos', 'dash_productos')->name('dashboard.productos');
         // dashboard/productos/exportar-excel: ver ExcelProductosController, más abajo.
         Route::get('dashboard/productos/imagenes-zip', DescargaImagenesCategoriaController::class)->name('dashboard.productos.imagenes');

@@ -123,6 +123,7 @@ class CatalogoController extends Controller
         $nombre = $categoria ? mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8') : null;
 
         return match (true) {
+            $filtros->soloOfertas => 'Ofertas',
             $filtros->hayBusqueda() => 'Resultados para «'.$filtros->q.'»',
             $nombre !== null => $nombre,
             default => 'Todos los productos',

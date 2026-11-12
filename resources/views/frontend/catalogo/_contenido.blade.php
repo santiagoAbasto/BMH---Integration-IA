@@ -1,14 +1,18 @@
 {{-- Lo que se reemplaza al cambiar un filtro: migas, sidebar y resultados. --}}
-<nav class="miga catalogo__miga" aria-label="Ruta de navegación">
-    <a href="{{ route('home') }}">Inicio</a>
-    <span class="px-2">/</span>
-    <a href="{{ route('categorias') }}">Productos</a>
-    @if ($filtros->hayBusqueda())
-        <span class="px-2">/</span> Búsqueda
-    @elseif ($categoria)
-        <span class="px-2">/</span> {{ mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8') }}
-    @endif
-</nav>
+{{-- Migas del rediseño (breadcrumb.v1): en /ofertas, «Ofertas»; si no, «Productos» y la categoría o la búsqueda. --}}
+@php
+    $migas = $filtros->soloOfertas
+        ? [['label' => 'Ofertas', 'href' => $categoria || $filtros->hayBusqueda() ? route('ofertas') : null]]
+        : [['label' => 'Productos', 'href' => route('categorias')]];
+    if ($filtros->hayBusqueda()) {
+        $migas[] = ['label' => 'Búsqueda'];
+    } elseif ($categoria) {
+        $migas[] = ['label' => mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8')];
+    }
+@endphp
+<div class="catalogo__miga bmh-migas bmh-migas--catalogo">
+    <x-osole::breadcrumb.v1 :items="array_merge([['label' => 'Inicio', 'href' => route('home')]], $migas)" />
+</div>
 
 <div class="catalogo__grilla">
     <div class="catalogo__fondo" data-catalogo-cerrar-filtros aria-hidden="true"></div>
