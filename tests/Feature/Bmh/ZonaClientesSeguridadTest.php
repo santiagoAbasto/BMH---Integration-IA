@@ -90,6 +90,30 @@ final class ZonaClientesSeguridadTest extends BaseTestCase
         $this->comoA()->get(route('cliente.pedido', ['id' => $this->pedidos['A']]))->assertOk();
     }
 
+    public function test_descargar_abre_el_pdf_del_pedido_propio_y_no_el_de_otro(): void
+    {
+        $numero = str_pad((string) $this->pedidos['A'], 11, '0', STR_PAD_LEFT);
+
+        $this->comoA()->get(route('cliente.pedido', ['id' => $this->pedidos['A'], 'imprimir' => 1]))
+            ->assertOk()
+            ->assertSee('Pedido N° '.$numero.' · BMH Distribuidora', false)
+            ->assertSee('Descargar PDF')
+            ->assertSee('111,11');
+
+        $this->comoA()->get(route('cliente.pedido', ['id' => $this->pedidos['B'], 'imprimir' => 1]))->assertNotFound();
+    }
+
+    public function test_el_admin_ve_el_mismo_documento(): void
+    {
+        $admin = new \App\Models\Admin(['name' => 'Tester', 'rol' => 'administrador']);
+        $admin->id = 1;
+
+        $this->actingAs($admin, 'admin')->get(route('pedido.pdf', ['id' => $this->pedidos['B']]))
+            ->assertOk()
+            ->assertSee('Documento no válido como factura')
+            ->assertSee('999.999,99');
+    }
+
     public function test_no_puede_repetir_un_pedido_ajeno(): void
     {
         $this->comoA()->post(route('repetir.pedido'), ['id' => $this->pedidos['B']])->assertNotFound();

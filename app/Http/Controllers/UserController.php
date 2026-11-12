@@ -228,6 +228,10 @@ class UserController extends Controller
         $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/provincias?orden=nombre');
         $datos = json_decode($contenido, true);
         $provincias = $datos['provincias'];
+        // «Descargar» desde el Historial: el mismo documento A4 del admin, listo para guardar como PDF.
+        if ($request->boolean('imprimir')) {
+            return view('backend/dash-pedido-pdf', compact('pedido', 'provincias'));
+        }
         $zonaclientes = true;
         $ventana = 'clientes-nav';
         return view('frontend/cliente-pedido', compact('pedido', 'provincias', 'zonaclientes', 'ventana'));

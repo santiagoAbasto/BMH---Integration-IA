@@ -128,10 +128,6 @@
         if (boton) boton.addEventListener('click', function (event) {
             document.getElementById(event.target.getAttribute('data-form-id')).submit();
         });
-        // «Descargar» desde el Historial: el detalle se abre listo para imprimir o guardar como PDF.
-        @if (request()->boolean('imprimir'))
-            window.addEventListener('load', function () { window.print(); });
-        @endif
     })();
 </script>
 @endsection
