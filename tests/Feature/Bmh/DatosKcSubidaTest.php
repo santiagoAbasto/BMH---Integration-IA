@@ -29,6 +29,8 @@ final class DatosKcSubidaTest extends BaseTestCase
 
     private ?string $respaldo = null;
 
+    private string $cwd = '';
+
     /** @var list<string> */
     private array $antes = [];
 
@@ -44,6 +46,9 @@ final class DatosKcSubidaTest extends BaseTestCase
             'database.default' => 'mysql',
         ]);
         DB::purge('mysql');
+        // Como en un pedido web: la carpeta de trabajo es la raíz pública (la subida usa la ruta relativa «archivos»).
+        $this->cwd = (string) getcwd();
+        chdir(public_path());
 
         $this->fila = DB::table('descargas')->where('sector', 'datos-actual')->first();
         $actual = public_path('archivos/'.$this->fila->path);
@@ -64,6 +69,7 @@ final class DatosKcSubidaTest extends BaseTestCase
             copy($this->respaldo, public_path('archivos/'.$this->fila->path));
             unlink($this->respaldo);
         }
+        chdir($this->cwd);
         config(['database.default' => $this->origDefault, 'database.connections.mysql' => $this->origMysql]);
         DB::purge('mysql');
         parent::tearDown();

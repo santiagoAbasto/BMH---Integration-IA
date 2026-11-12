@@ -1,0 +1,8 @@
+# Archivos para descargar (listas, datos KC, PDFs): acá nunca se ejecuta código.
+# Se copia a public_html/archivos/.htaccess en producción. Si alguien lograra subir un script, el
+# servidor no lo corre ni lo entrega.
+<FilesMatch "\.(?i:php\d*|phtml|pht|phar|phps|cgi|pl|py|sh|asp|aspx|jsp)$">
+    Require all denied
+</FilesMatch>
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .pht .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .pht .phar

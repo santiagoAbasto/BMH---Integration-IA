@@ -67,11 +67,13 @@ class DescargaController extends Controller
 
         $anterior = Descarga::where('sector', 'datos-actual')->firstOrFail();
         $nombreArchivo = 'datoskc_' . uniqid() . '.' . $extension;
-        $file->move(public_path('archivos'), $nombreArchivo);
+        // Como las demás subidas: relativa a la raíz web (en producción, public_html/archivos; public_path()
+        // apunta a ~/bmh/public, que no se sirve).
+        $file->move('archivos', $nombreArchivo);
 
         // El anterior se borra sólo si es un archivo de esta carpeta (nunca una ruta con «..» o «/»).
         if ($anterior->path && ! str_contains($anterior->path, '..') && ! str_contains($anterior->path, '/')) {
-            File::delete(public_path('archivos/'.$anterior->path));
+            File::delete('archivos/'.$anterior->path);
         }
 
         $anterior->archivo = mb_substr(basename((string) $file->getClientOriginalName()), 0, 150);
