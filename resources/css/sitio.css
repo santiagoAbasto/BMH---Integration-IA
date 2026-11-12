@@ -15,8 +15,11 @@
 @import "../../vendor/osole/ui/resources/components/category-card/v1/category-card.css";
 @import "../../vendor/osole/ui/resources/components/info-split/v1/info-split.css";
 @import "../../vendor/osole/ui/resources/components/post-card/v1/post-card.css";
+@import "../../vendor/osole/ui/resources/components/breadcrumb/v1/breadcrumb.css";
+@import "../../vendor/osole/ui/resources/components/feature-card/v1/feature-card.css";
 
 @import "./osole-theme.css";
 @import "./sitio/base.css";
 @import "./sitio/header.css";
 @import "./sitio/home.css";
+@import "./sitio/paginas.css";

@@ -1,0 +1,123 @@
+/*
+ * Páginas internas del rediseño (Figma: «zona pública»): migas de pan, Nosotros, …
+ */
+
+/* --- Migas de pan (breadcrumb.v1): 60px de alto, Inter 13px --- */
+.bmh-migas {
+    padding-block: 1.375rem; /* 22px */
+    background: var(--bmh-white);
+
+    --osole-breadcrumb-font-family: var(--osole-font-body);
+    --osole-breadcrumb-font-size: 0.8125rem; /* 13px */
+    --osole-breadcrumb-line-height: 1rem; /* 16px */
+    --osole-breadcrumb-color: var(--bmh-ink-950);
+    --osole-breadcrumb-link-color: var(--bmh-ink-950);
+    --osole-breadcrumb-link-hover-color: var(--bmh-brand);
+    --osole-breadcrumb-current-color: var(--bmh-ink-950);
+    --osole-breadcrumb-current-font-weight: 500;
+    --osole-breadcrumb-first-font-weight: 400;
+    --osole-breadcrumb-gap: 0.5rem; /* 8px */
+    --osole-breadcrumb-separator-color: var(--bmh-text-on-dark-muted);
+    --osole-breadcrumb-separator-size: 0.875rem; /* 14px */
+}
+
+/* --- Nosotros: historia (info-split.v1, texto a la izquierda y foto de 520 × 600) --- */
+.bmh-nosotros-historia {
+    --osole-info-split-bg: var(--bmh-white);
+    --osole-info-split-padding-block: 0.625rem 2.5rem; /* 10px / 40px */
+    --osole-info-split-padding-block-min: 0.5rem;
+    --osole-info-split-gap: 5rem; /* 80px */
+    --osole-info-split-media-width: 32.5rem; /* 520px */
+    --osole-info-split-media-aspect-ratio: 520 / 600;
+    --osole-info-split-media-radius: 1rem; /* 16px */
+    --osole-info-split-content-justify: center;
+    --osole-info-split-title-font-family: var(--osole-font-heading);
+    --osole-info-split-title-font-size: 2.375rem; /* 38px */
+    --osole-info-split-title-font-size-min: 1.75rem;
+    --osole-info-split-title-line-height: 2.875rem; /* 46px */
+    --osole-info-split-title-line-height-min: 2.25rem;
+    --osole-info-split-title-font-weight: 800;
+    --osole-info-split-title-letter-spacing: -0.0356rem; /* −0.57px */
+    --osole-info-split-title-color: var(--bmh-text-primary);
+    --osole-info-split-description-offset: 1.5rem; /* 24px */
+    --osole-info-split-description-font-family: var(--osole-font-body);
+    --osole-info-split-description-font-size: 1rem; /* 16px */
+    --osole-info-split-description-line-height: 1.6875rem; /* 27px */
+    --osole-info-split-description-color: var(--bmh-text-secondary);
+    --osole-info-split-description-paragraph-gap: 1.5rem; /* 24px */
+}
+
+/* --- Nosotros: «Lo que nos mueve» (feature-card.v1 con el ícono al lado del título) --- */
+.bmh-nosotros-valores {
+    padding-block: 2.5rem 3.125rem; /* 40px / 50px */
+    background: var(--bmh-surface-alt);
+}
+
+.bmh-grilla-valores {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem; /* 24px */
+    margin: 3rem 0 0; /* 48px */
+    padding: 0;
+    list-style: none;
+
+    --osole-feature-card-bg: var(--bmh-white);
+    --osole-feature-card-border-width: 1px;
+    --osole-feature-card-border-color: var(--bmh-border);
+    --osole-feature-card-radius: 1rem; /* 16px */
+    --osole-feature-card-shadow: none;
+    --osole-feature-card-min-height: 20.6875rem; /* 331px */
+    --osole-feature-card-padding-block-start: 2.25rem; /* 36px */
+    --osole-feature-card-padding-block-end: 2.25rem;
+    --osole-feature-card-padding-inline: 2.25rem;
+    --osole-feature-card-align: start;
+    --osole-feature-card-text-align: start;
+    --osole-feature-card-icon-size: 2.625rem; /* 42px */
+    --osole-feature-card-icon-color: var(--bmh-brand);
+    --osole-feature-card-title-font-family: var(--osole-font-heading);
+    --osole-feature-card-title-font-size: 1.5rem; /* 24px */
+    --osole-feature-card-title-line-height: normal;
+    --osole-feature-card-title-font-weight: 800;
+    --osole-feature-card-title-letter-spacing: -0.0075rem; /* −0.12px */
+    --osole-feature-card-title-color: var(--bmh-text-primary);
+    --osole-feature-card-description-font-family: var(--osole-font-body);
+    --osole-feature-card-description-font-size: 0.9375rem; /* 15px */
+    --osole-feature-card-description-line-height: 1.5rem; /* 24px */
+    --osole-feature-card-description-color: var(--bmh-text-secondary);
+}
+
+@media (width >= 1024px) {
+    .bmh-grilla-valores {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Figma: ícono y título en una fila (12px de gap), la descripción 20px más abajo. */
+.bmh-grilla-valores .osole-feature-card-v1 {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 1.25rem;
+    block-size: 100%;
+    box-sizing: border-box;
+}
+
+.bmh-grilla-valores .osole-feature-card-v1__icon {
+    margin: 0;
+}
+
+.bmh-grilla-valores .osole-feature-card-v1__title {
+    margin: 0;
+}
+
+.bmh-grilla-valores .osole-feature-card-v1__description {
+    grid-column: 1 / -1;
+    align-self: start;
+    margin: 0;
+}
+
+.bmh-grilla-valores .osole-feature-card-v1__description p {
+    margin: 0;
+}
