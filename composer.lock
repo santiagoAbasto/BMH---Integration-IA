@@ -3007,12 +3007,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:BruninAlv61/osole-ui.git",
-                "reference": "fe49a11f98afc541bd874050d448c31bebef2373"
+                "reference": "ed1da01e410e3269dfbffd43b61894293e751477"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/BruninAlv61/osole-ui/zipball/fe49a11f98afc541bd874050d448c31bebef2373",
-                "reference": "fe49a11f98afc541bd874050d448c31bebef2373",
+                "url": "https://api.github.com/repos/BruninAlv61/osole-ui/zipball/ed1da01e410e3269dfbffd43b61894293e751477",
+                "reference": "ed1da01e410e3269dfbffd43b61894293e751477",
                 "shasum": ""
             },
             "require": {
@@ -3079,7 +3079,7 @@
                 "source": "https://github.com/BruninAlv61/osole-ui/tree/main",
                 "issues": "https://github.com/BruninAlv61/osole-ui/issues"
             },
-            "time": "2026-11-12T15:19:18+00:00"
+            "time": "2026-11-12T17:08:22+00:00"
         },
         {
             "name": "phpoffice/phpspreadsheet",
