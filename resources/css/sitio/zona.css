@@ -165,6 +165,7 @@
         content: attr(data-titulo) ": ";
         font-weight: 600;
         color: var(--bmh-text-secondary);
+        text-transform: none;
     }
 
     .bmh-docs__icono {

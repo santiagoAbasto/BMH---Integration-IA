@@ -89,3 +89,36 @@
 .bmh-header .buscador-header__panel {
     z-index: 2;
 }
+
+/* Zona de Clientes: cinco links + la cuenta. Entre 1366 y 1400px (contenedor de 1116px) se ajustan los
+   espacios y el buscador puede angostarse más para que todo entre en la barra. */
+@media (width >= 1366px) and (width < 1400px) {
+    .bmh-header--privada {
+        --osole-header-catalog-gap: 1.25rem; /* 20px */
+        --osole-header-catalog-links-gap: 0.75rem; /* 12px */
+        --osole-header-catalog-button-padding-inline: 0.875rem;
+        --osole-header-catalog-search-min-width: 8rem;
+    }
+}
+
+.bmh-header .bmh-cuenta-boton .osole-header-catalog-v1__button-label {
+    max-inline-size: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Los links no se achican por debajo de su contenido (si no, pisan el buscador): el que cede es el buscador. */
+@media (width >= 1366px) {
+    .bmh-header .osole-header-catalog-v1__panel {
+        flex-shrink: 0;
+    }
+
+    .bmh-header--privada .osole-header-catalog-v1__search {
+        min-inline-size: 7rem;
+    }
+}
+
+/* El buscador heredado pide 200px de mínimo: en el header se angosta con su contenedor (si no, se sale y queda debajo de los links). */
+.bmh-header .buscador-header {
+    min-width: 0;
+}
