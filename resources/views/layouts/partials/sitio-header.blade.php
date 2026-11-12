@@ -82,11 +82,11 @@
             </x-osole::header-catalog.v1.dropdown>
             <x-osole::header-catalog.v1.link :href="route('carrito')" :active="$ruta === 'carrito'">Carrito</x-osole::header-catalog.v1.link>
             @if ($cliente->rol === 'cliente')
-                <x-osole::header-catalog.v1.link :href="route('cliente.historial', ['id' => $cliente->id])" :active="in_array($ruta, ['cliente.historial', 'cliente.pedido'], true)">Historial</x-osole::header-catalog.v1.link>
+                <x-osole::header-catalog.v1.link :href="route('cliente.historial')" :active="in_array($ruta, ['cliente.historial', 'cliente.pedido'], true)">Historial</x-osole::header-catalog.v1.link>
             @endif
             <x-osole::header-catalog.v1.link :href="route('lista')" :active="$ruta === 'lista'">Lista de precios</x-osole::header-catalog.v1.link>
-            <x-osole::header-catalog.v1.link :href="route('cliente.datos', ['id' => $cliente->id])" :active="$ruta === 'cliente.datos'">Mis datos</x-osole::header-catalog.v1.link>
-            @if ($cliente->rol === 'vendedor')
+            <x-osole::header-catalog.v1.link :href="route('cliente.datos')" :active="$ruta === 'cliente.datos'">Mis datos</x-osole::header-catalog.v1.link>
+            @if ($cliente->rol === 'vendedor' && Route::has('vendedor.clientes'))
                 <x-osole::header-catalog.v1.link :href="route('vendedor.clientes')" :active="$ruta === 'vendedor.clientes'">Clientes</x-osole::header-catalog.v1.link>
             @endif
         @else
@@ -133,7 +133,7 @@
             @else
                 <li><a href="{{ route('productos.clientes') }}">Ir a la Zona de Clientes</a></li>
             @endif
-            <li><a href="{{ route('cliente.datos', ['id' => $cliente->id]) }}">Mis datos</a></li>
+            <li><a href="{{ route('cliente.datos') }}">Mis datos</a></li>
             <li>
                 <form method="POST" action="{{ route('logout', ['ventana' => 'home']) }}">
                     @csrf

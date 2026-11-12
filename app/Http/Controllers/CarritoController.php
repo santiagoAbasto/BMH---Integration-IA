@@ -171,7 +171,8 @@ class CarritoController extends Controller
 
     public function repetir_pedido(Request $request)
     {
-        $pedido = Pedido::find($request->id);
+        // SEGURIDAD: sólo un pedido propio (o de un cliente del vendedor), no cualquier id.
+        $pedido = Pedido::visiblesPara(Auth::guard('web')->user())->findOrFail($request->integer('id'));
         foreach ($pedido->productos()->get() as $producto) {
             Cart::add($producto->id, $producto->nombre, $producto->pivot->cantidad, $producto->precio_final());
         }

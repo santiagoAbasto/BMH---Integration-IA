@@ -15,6 +15,24 @@ class Pedido extends Model
     /** Renglones ya calculados (la vista los pide varias veces). @var \Illuminate\Support\Collection|null */
     private $lineasCache = null;
 
+    /**
+     * Pedidos que un usuario de la Zona de Clientes puede ver o repetir: los suyos y, si es
+     * vendedor, los de sus clientes. Nunca se filtra por un id que venga del pedido HTTP.
+     */
+    public function scopeVisiblesPara(\Illuminate\Database\Eloquent\Builder $query, ?User $usuario): \Illuminate\Database\Eloquent\Builder
+    {
+        if ($usuario === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($usuario) {
+            $q->where('cliente_id', $usuario->id);
+            if ($usuario->rol === 'vendedor') {
+                $q->orWhereIn('cliente_id', User::query()->where('vendedor_id', $usuario->id)->select('id'));
+            }
+        });
+    }
+
     public function archivo_xml(){
         return $this->hasOne('App\Models\ArchivoXml');
     }

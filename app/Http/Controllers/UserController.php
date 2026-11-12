@@ -171,7 +171,8 @@ class UserController extends Controller
         $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/provincias?orden=nombre');
         $datos = json_decode($contenido, true);
         $provincias = $datos['provincias'];
-        $historial = Pedido::where('cliente_id', $request->id)->orderBy('id', 'DESC')->get();
+        // SEGURIDAD: antes era `where('cliente_id', $request->id)` y `/historial?id=N` mostraba los pedidos de otro cliente.
+        $historial = Pedido::where('cliente_id', Auth::guard('web')->id())->orderBy('id', 'DESC')->get();
         $zonaclientes = true;
         $ventana = 'historial-nav';
         return view('frontend/cliente-historial', compact('historial', 'provincias', 'zonaclientes', 'ventana'));
@@ -199,31 +200,31 @@ class UserController extends Controller
     }
 
     public function vendedor_clientes_asociar(Request $request){
-        foreach($request->clientes as $cliente_id){
-            $cliente = User::find($cliente_id);
-            $cliente->vendedor_id = $request->id;
-            $cliente->save();
-        }
+        // SEGURIDAD: el vendedor es el de la sesión y sólo toma clientes sin vendedor.
+        $vendedorId = Auth::guard('web')->id();
+        User::query()->where('rol', 'cliente')->whereNull('vendedor_id')->whereIn('id', (array) $request->clientes)
+            ->update(['vendedor_id' => $vendedorId]);
         return redirect()->back();
     }
 
     public function vendedor_clientes_desasociar(Request $request){
-        $cliente = User::find($request->id);
+        $cliente = User::where('vendedor_id', Auth::guard('web')->id())->findOrFail($request->integer('id'));
         $cliente->vendedor_id = null;
         $cliente->save();
         return redirect()->back();
     }
 
     public function vendedor_cliente(Request $request){
-        $cliente = User::find($request->id);
-        $pedidos = Pedido::where('cliente_id', $request->id)->orderBy('id', 'DESC')->get();
+        $cliente = User::where('vendedor_id', Auth::guard('web')->id())->findOrFail($request->integer('id'));
+        $pedidos = Pedido::where('cliente_id', $cliente->id)->orderBy('id', 'DESC')->get();
         $zonaclientes = true;
         $ventana = 'clientes-nav';
         return view('frontend/cliente-vendedor', compact('cliente', 'pedidos', 'zonaclientes', 'ventana'));
     }
 
     public function vendedor_pedido_datos(Request $request){
-        $pedido = Pedido::find($request->id);
+        // SEGURIDAD: antes `Pedido::find($request->id)` mostraba cualquier pedido a cualquier cliente con sesión.
+        $pedido = Pedido::visiblesPara(Auth::guard('web')->user())->findOrFail($request->integer('id'));
         $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/provincias?orden=nombre');
         $datos = json_decode($contenido, true);
         $provincias = $datos['provincias'];
