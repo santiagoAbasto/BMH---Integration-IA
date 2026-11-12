@@ -638,17 +638,11 @@ background-size: 100% 100%;
 
     </section> 
 
-    <section style='padding-top:78px;padding-bottom:82px;'>
-        <div class='container'>            
-            {{-- Misma grilla que /categorias y la Home: 6 por fila. --}}
-            <div class='row categorias-grilla'>
-                @foreach($categorias as $categoria)
-                    <div class='col-6 col-md-4 col-lg-3 col-xl-2' style='margin-bottom:24px;' data-aos="fade-up">
-                        @include('components/categoria')
-                    </div>
-                @endforeach
-            </div>
-        </div>
+    <section class="bmh-seccion-categorias" aria-label="Categorías de productos">
+        <x-osole::container.v1>
+            <h1 class="visually-hidden">Productos</h1>
+            @include('frontend.partials.grilla-categorias')
+        </x-osole::container.v1>
     </section>
 
 

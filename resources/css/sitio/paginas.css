@@ -121,3 +121,63 @@
 .bmh-grilla-valores .osole-feature-card-v1__description p {
     margin: 0;
 }
+
+/* --- Productos: grilla de categorías con filtro (frontend/partials/grilla-categorias) --- */
+.bmh-seccion-categorias {
+    padding-block: 2.5rem 3.125rem; /* 40px / 50px */
+    background: var(--bmh-white);
+}
+
+.bmh-filtro {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem; /* 10px */
+    block-size: 2.875rem; /* 46px */
+    margin-block-end: 1.75rem; /* 28px hasta la grilla */
+    padding-inline: 1rem; /* 16px */
+    border: 1px solid var(--bmh-border);
+    border-radius: 0.625rem; /* 10px */
+    background: var(--bmh-surface-alt);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bmh-filtro:focus-within {
+    border-color: var(--bmh-brand);
+    box-shadow: 0 0 0 3px rgb(0 152 218 / 0.2);
+}
+
+.bmh-filtro__lupa {
+    display: inline-flex;
+    color: var(--bmh-text-secondary);
+}
+
+.bmh-filtro__lupa svg {
+    inline-size: 1.125rem; /* 18px */
+    block-size: 1.125rem;
+}
+
+.bmh-filtro__input {
+    flex: 1;
+    min-inline-size: 0;
+    border: 0;
+    background: none;
+    font-family: var(--osole-font-body);
+    font-size: 0.875rem; /* 14px */
+    color: var(--bmh-text-primary);
+    outline: none;
+}
+
+.bmh-filtro__input::placeholder {
+    color: var(--bmh-text-secondary);
+    opacity: 1;
+}
+
+.bmh-filtro__vacio {
+    margin: 1.5rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--bmh-text-secondary);
+}
+
+.bmh-grilla-rubros > li[hidden] {
+    display: none;
+}
