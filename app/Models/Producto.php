@@ -82,22 +82,8 @@ class Producto extends Model
             );
     }
 
-    protected $fillable = [
-        'columna_1', 'columna_2', 'columna_3', 'columna_4', 'columna_5', 'columna_6', 
-        'columna_7', 'columna_8', 'columna_9', 'columna_10', 'columna_11', 'columna_12',
-        'columna_13', 'columna_14', 'columna_15', 'columna_16', 'columna_17', 'columna_18', 
-        'columna_19', 'columna_20', 'columna_21', 'columna_22', 'columna_23', 'columna_24',
-        'columna_25', 'columna_26', 'columna_27', 'columna_28', 'columna_29', 'columna_30',
-        'columna_31', 'columna_32', 'columna_33', 'columna_34', 'columna_35', 'columna_36', 
-        'columna_37', 'columna_38', 'columna_39', 'columna_40', 'columna_41', 'columna_42',
-        'columna_43', 'columna_44', 'columna_45', 'columna_46', 'columna_47', 'columna_48',
-        'columna_49', 'columna_50', 'columna_51', 'columna_52', 'columna_53', 'columna_54',
-        'columna_55', 'columna_56', 'columna_57', 'columna_58', 'columna_59', 'columna_60',
-        'columna_61', 'columna_62', 'columna_63', 'columna_64', 'columna_65', 'columna_66',
-        'columna_67', 'columna_68','columna_69', 'columna_70', 'columna_71', 'columna_72', 'columna_73', 'columna_74',
-        'columna_75', 'columna_76', 'columna_77', 'columna_78'
-
-    ];
+    /** Todo se asigna campo por campo en el admin: no hay asignación masiva. */
+    protected $fillable = [];
     
     
     protected $table = 'productos';
@@ -209,27 +195,60 @@ class Producto extends Model
         return $this->hasMany('App\Models\Dimension');
     }
 
-    // public function caracteristicas(){
-    //     return $this->belongsToMany('App\Models\Caracteristica');
-    // }
     /**
-     * Características con valor del producto, tal como se muestran en el sitio.
-     *
-     * La categoría es la que manda: sólo salen las que están tildadas en
-     * dashboard → Categorías. Al destildar una característica su fila de
-     * `producto_caracteristica` no se borra (así el valor vuelve si se la
-     * vuelve a tildar), por eso el filtro va acá y no en cada vista.
-     *
-     * Vienen ordenadas por el `orden` de la característica, único criterio
-     * para todas las vistas.
+     * Todas las características con valor del producto (`caracteristica_producto.valor`), por el `orden` de
+     * la característica. Incluye las que su categoría no declara: el admin las muestra para decidir qué
+     * hacer con ellas. Se guardan con App\Actions\Caracteristicas\SincronizarCaracteristicasProducto.
      */
+    public function caracteristicas(): BelongsToMany
+    {
+        return $this->belongsToMany(Caracteristica::class, 'caracteristica_producto')
+            ->withPivot('valor')
+            ->withTimestamps()
+            ->ordenadas();
+    }
+
+    /**
+     * Las que se muestran en el sitio: sólo las que la categoría del producto declara (admin → Categorías).
+     * Un valor de una característica que la categoría no usa queda guardado pero no se ve, como antes con
+     * las columnas: así un producto que cambió de categoría no muestra datos que no le corresponden.
+     */
+    public function caracteristicasVisibles(): BelongsToMany
+    {
+        return $this->caracteristicas()->whereExists(function ($query): void {
+            $query->selectRaw('1')
+                ->from('caracteristica_categoria as cc_visible')
+                ->join('productos as p_visible', 'p_visible.categoria_id', '=', 'cc_visible.categoria_id')
+                ->whereColumn('p_visible.id', 'caracteristica_producto.producto_id')
+                ->whereColumn('cc_visible.caracteristica_id', 'caracteristica_producto.caracteristica_id');
+        });
+    }
+
+    /**
+     * Para las vistas: [nombre, valor] de las características visibles, en orden. Usa la relación ya
+     * cargada si la hay (with('caracteristicasVisibles')).
+     *
+     * @return list<array{nombre: string, valor: string}>
+     */
+    public function fichaCaracteristicas(): array
+    {
+        $caracteristicas = $this->relationLoaded('caracteristicasVisibles')
+            ? $this->caracteristicasVisibles
+            : $this->caracteristicasVisibles()->get();
+
+        return $caracteristicas
+            ->filter(fn (Caracteristica $c) => trim((string) $c->pivot->valor) !== '')
+            ->map(fn (Caracteristica $c) => ['nombre' => (string) $c->nombre, 'valor' => (string) $c->pivot->valor])
+            ->values()
+            ->all();
+    }
+
+
+    /** @deprecated Sistema anterior (producto_caracteristica): se saca al pasar las vistas a caracteristicas(). */
     public function productCaracteristicas()
     {
         return $this->hasMany(ProductCaracteristica::class, 'producto_id')
             ->whereNull('producto_caracteristica.deleted_at')
-            // En datos históricos puede haber más de una fila para el mismo
-            // producto/característica. Exponer sólo la última evita duplicar
-            // el valor mientras la migración corrige esas filas.
             ->whereIn('producto_caracteristica.id', function ($query) {
                 $query->selectRaw('MAX(pc_latest.id)')
                     ->from('producto_caracteristica as pc_latest')
@@ -238,7 +257,6 @@ class Producto extends Model
                     ->whereColumn('pc_latest.caracteristica_id', 'producto_caracteristica.caracteristica_id')
                     ->groupBy('pc_latest.producto_id', 'pc_latest.caracteristica_id');
             })
-            // Sólo las características que la categoría del producto declara.
             ->whereExists(function ($query) {
                 $query->selectRaw('1')
                     ->from('categoria_caracteristica as cc')
@@ -247,11 +265,9 @@ class Producto extends Model
                     ->whereColumn('cc.caracteristica_id', 'producto_caracteristica.caracteristica_id')
                     ->whereNull('cc.deleted_at');
             })
-            // Las que no tienen `orden` van al final, como hacía cada vista.
             ->orderByRaw('COALESCE((SELECT c.orden FROM caracteristicas c WHERE c.id = producto_caracteristica.caracteristica_id), 2147483647)')
             ->orderBy('producto_caracteristica.id');
     }
-
 
     public function categoria(){
         return $this->belongsTo('App\Models\Categoria');

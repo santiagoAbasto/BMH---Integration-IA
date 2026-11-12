@@ -22,10 +22,13 @@ use Illuminate\Support\Str;
  */
 final class MigracionCaracteristicas
 {
-    /** Voltaje y diámetro: la regla que antes estaba en el código (UnidadesProducto) pasa a la configuración. */
+    /**
+     * Voltaje y diámetro: la regla que antes estaba en el código (UnidadesProducto) pasa a la configuración.
+     * Sólo cuando el nombre EMPIEZA así: «REGULADOR DE VOLTAJE» guarda códigos (REG17705), no voltios.
+     */
     private const UNIDADES = [
-        '/\bvoltaje\b/iu' => 'V',
-        '/\bdi[aá]metro\b/iu' => 'MM',
+        '/^voltaje\b/iu' => 'V',
+        '/^di[aá]metro\b/iu' => 'MM',
     ];
 
     /** @var array<string, mixed> */

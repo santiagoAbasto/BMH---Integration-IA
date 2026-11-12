@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Caracteristicas;
 
-use App\Services\Catalogo\NormalizadorUnidades;
-
 /**
  * Cómo se escribe el valor de una característica según su configuración (admin → Características):
  *  - mayúsculas: el texto se guarda en mayúsculas (hoy, todas);
@@ -77,6 +75,31 @@ final class FormatoCaracteristica
             return null;
         }
 
-        return NormalizadorUnidades::numero($m[1]).(isset($m[2]) && $m[2] !== '' ? '/'.NormalizadorUnidades::numero($m[2]) : '');
+        return self::numeroCanonico($m[1]).(isset($m[2]) && $m[2] !== '' ? '/'.self::numeroCanonico($m[2]) : '');
+    }
+
+    /**
+     * Un mismo número siempre se escribe igual, así en el filtro del catálogo es una sola opción: coma
+     * decimal a punto y sin ceros de más («89,50» → 89.5, «12.0» → 12, «012» → 12).
+     */
+    public static function numeroCanonico(string $numero): string
+    {
+        $numero = str_replace(',', '.', trim($numero));
+        if (str_contains($numero, '.')) {
+            $numero = rtrim(rtrim($numero, '0'), '.');
+        }
+        $numero = ltrim($numero, '0');
+
+        return $numero === '' || $numero[0] === '.' ? '0'.$numero : $numero;
+    }
+
+    /** El formato en palabras, para el admin: «numérica · se guarda con V», «texto en mayúsculas». */
+    public function descripcion(): string
+    {
+        if ($this->numerica) {
+            return $this->unidad !== null ? "numérica · se guarda con {$this->unidad}" : 'numérica';
+        }
+
+        return $this->mayusculas ? 'texto en mayúsculas' : 'texto libre';
     }
 }
