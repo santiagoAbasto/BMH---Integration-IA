@@ -122,3 +122,20 @@
 .bmh-header .buscador-header {
     min-width: 0;
 }
+
+/* Con el Asistente virtual son seis links: entre 1366 y 1400px la cuenta queda sólo con el ícono
+   (el nombre sigue en el menú de la cuenta y para lectores de pantalla). */
+@media (width >= 1366px) and (width < 1400px) {
+    .bmh-header--con-asesor .bmh-cuenta-boton {
+        padding-inline: 0.75rem;
+    }
+
+    .bmh-header--con-asesor .bmh-cuenta-boton .osole-header-catalog-v1__button-label {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+}

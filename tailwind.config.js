@@ -20,7 +20,7 @@ export default {
         extend: {
             colors: {
                 brand: {
-                    50: '#E6F6FD',
+                    50: '#E5F5FC', // brand-soft del rediseño
                     100: '#CCEDFA',
                     200: '#99DBF5',
                     400: '#33B4E4',
@@ -37,19 +37,19 @@ export default {
                     700: '#6E8A1C',
                 },
                 surface: {
-                    base: '#F4F6F8',
+                    base: '#F3F5F8', // surface-alt del rediseño
                     raised: '#FFFFFF',
                     sunken: '#EAEEF2',
-                    inverse: '#0E1620',
+                    inverse: '#0A0E14',
                 },
                 edge: {
-                    subtle: '#E1E7ED',
+                    subtle: '#E2E7EE', // border del rediseño
                     DEFAULT: '#CBD5DF',
                     strong: '#9AA9B8',
                 },
                 ink: {
-                    primary: '#0E1620',
-                    secondary: '#4A5A6B',
+                    primary: '#0A0E14', // ink-900 del rediseño
+                    secondary: '#5B6575', // text-secondary del rediseño
                     tertiary: '#748496',
                     inverse: '#F4F6F8',
                 },
@@ -63,6 +63,8 @@ export default {
 
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                // Títulos como en el rediseño (la fuente ya la carga el sitio; el shadow root la usa).
+                heading: ['Montserrat', ...defaultTheme.fontFamily.sans],
                 mono: ['JetBrains Mono', ...defaultTheme.fontFamily.mono],
             },
 

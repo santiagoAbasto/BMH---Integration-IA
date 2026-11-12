@@ -55,7 +55,7 @@
 
 <x-osole::header-catalog.v1
     id="site-header"
-    :class="\Illuminate\Support\Arr::toCssClasses(['bmh-header', 'bmh-header--home' => $enHome, 'bmh-header--privada' => $zonaPrivada])"
+    :class="\Illuminate\Support\Arr::toCssClasses(['bmh-header', 'bmh-header--home' => $enHome, 'bmh-header--privada' => $zonaPrivada, 'bmh-header--con-asesor' => $conAsesor])"
     :home-href="$zonaPrivada ? route('productos.clientes') : route('home')"
     home-label="BMH Distribuidora, ir al inicio"
     :topbar-items="$datosBarra"

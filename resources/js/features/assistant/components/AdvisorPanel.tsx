@@ -85,7 +85,7 @@ export function AdvisorPanel({
                 </span>
 
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-[0.9375rem] font-semibold leading-tight text-ink-primary">
+                    <p className="truncate font-heading text-[0.9375rem] font-bold leading-tight text-ink-primary">
                         Asesor Técnico BMH
                     </p>
                     <p
@@ -251,7 +251,7 @@ function EmptyState({ name, visionEnabled, hasHistory, greeting, onPick }: Empty
 
     return (
         <div className="py-2">
-            <h2 className="text-title text-ink-primary">Hola, {name}.</h2>
+            <h2 className="font-heading text-title font-bold text-ink-primary">Hola, {name}.</h2>
             <p className="mt-1 text-body text-ink-secondary">
                 {greeting ?? '¿Qué pieza necesitás? Escribime, pegá un código o mandame una foto.'}
             </p>

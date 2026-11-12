@@ -139,7 +139,7 @@ export function AdvisorWidget({ customer, recentPurchases, settings }: Props) {
                         </span>
 
                         <span className="flex flex-col leading-tight">
-                            <span className="text-[1.0625rem] font-bold tracking-tight">Asesor IA</span>
+                            <span className="font-heading text-[1.0625rem] font-bold tracking-tight">Asesor IA</span>
                             <span className="text-[0.8125rem] font-medium text-white/85">
                                 Encontrá tu pieza
                             </span>

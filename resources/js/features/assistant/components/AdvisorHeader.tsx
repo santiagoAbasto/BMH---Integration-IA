@@ -31,7 +31,7 @@ export function AdvisorHeader({ status, providerMode, debug, onRequestHuman, onT
             </div>
 
             <div className="min-w-0 flex-1">
-                <h1 className="truncate text-subtitle text-ink-primary">Asesor Técnico</h1>
+                <h1 className="truncate font-heading text-subtitle font-bold text-ink-primary">Asesor Técnico</h1>
                 <p
                     aria-live="polite"
                     className={clsx(
