@@ -1,0 +1,181 @@
+/*
+ * Tema de BMH para osole/ui: los valores del Figma «BMH» → página «rediseño» (a 1366px).
+ *
+ * Va sin layer, así que le gana a todo el CSS del paquete (layer osole) y al CSS viejo del
+ * sitio (layer legacy, ver layouts/plantilla-front).
+ *
+ * Los márgenes laterales son los del sitio actual (Bootstrap .container + layout.css), no los
+ * 71px de la referencia de osole/ui: el contenido arranca y termina donde arrancaba antes.
+ */
+:root {
+    /* --- Colores (variables del Figma: color/…) --- */
+    --bmh-white: #ffffff;
+    --bmh-ink-950: #05070a;
+    --bmh-ink-900: #0a0e14;
+    --bmh-ink-800: #111720;
+    --bmh-ink-700: #1c2430;
+    --bmh-navy: #010e20;
+    --bmh-text-primary: #0a0e14;
+    --bmh-text-secondary: #5b6575;
+    --bmh-text-on-dark: #c4ccd7;
+    --bmh-text-on-dark-muted: #8792a2;
+    --bmh-border: #e2e7ee;
+    --bmh-surface-alt: #f3f5f8;
+    --bmh-brand: #0098da;
+    --bmh-brand-hover: #0087c2;
+    --bmh-brand-soft: #e5f5fc;
+    --bmh-brand-500: #1570ef;
+    --bmh-whatsapp: #25d366;
+
+    /* --- Globales de osole/ui --- */
+    --osole-font-body: "Inter", system-ui, sans-serif;
+    --osole-font-heading: "Montserrat", system-ui, sans-serif;
+    --osole-color-primary: var(--bmh-brand);
+    --osole-color-text: var(--bmh-text-primary);
+    --osole-color-background: var(--bmh-white);
+
+    /* --- Contenedor: los márgenes de hoy (Bootstrap .container, sin su padding de 12px) --- */
+    --osole-container-gutter: clamp(1.25rem, 0.5278rem + 3.0817vi, 2.5rem);
+}
+
+@media (width >= 992px) {
+    :root { --osole-container-width: 58.5rem; } /* 960 − 24 = 936px */
+}
+
+@media (width >= 1200px) {
+    :root { --osole-container-width: 69.75rem; } /* 1140 − 24 = 1116px */
+}
+
+@media (width >= 1400px) {
+    /* layout.css: el .container crece hasta 1600px dejando 80px de aire por lado. */
+    :root { --osole-container-width: calc(clamp(1320px, 100vw - 160px, max(1600px, 83.333vw)) - 24px); }
+}
+
+/* --- Header (header-catalog.v1) --- */
+:root {
+    --osole-header-catalog-bg: var(--bmh-ink-900);
+    --osole-header-catalog-scrolled-shadow: 0 0.5rem 1.5rem rgb(5 7 10 / 0.25);
+    --osole-header-catalog-topbar-bg: var(--bmh-ink-950);
+    --osole-header-catalog-topbar-color: var(--bmh-text-on-dark);
+    --osole-header-catalog-topbar-hover-color: var(--bmh-white);
+    --osole-header-catalog-topbar-link-color: var(--bmh-white);
+    --osole-header-catalog-link-color: var(--bmh-text-on-dark);
+    --osole-header-catalog-link-hover-color: var(--bmh-white);
+    --osole-header-catalog-link-active-color: var(--bmh-white);
+    --osole-header-catalog-link-indicator-color: var(--bmh-brand);
+    --osole-header-catalog-button-color: var(--bmh-white);
+    --osole-header-catalog-button-border-color: var(--bmh-white);
+    --osole-header-catalog-button-hover-bg: rgb(255 255 255 / 0.1);
+    --osole-header-catalog-toggle-color: var(--bmh-white);
+    --osole-header-catalog-menu-bg: var(--bmh-ink-900);
+    --osole-header-catalog-menu-link-color: var(--bmh-text-on-dark);
+    --osole-header-catalog-menu-link-active-color: var(--bmh-white);
+    --osole-header-catalog-menu-muted-color: var(--bmh-text-on-dark);
+    --osole-header-catalog-menu-divider-color: var(--bmh-ink-700);
+    --osole-header-catalog-mega-color: var(--bmh-text-primary);
+    --osole-header-catalog-mega-meta-color: var(--bmh-text-secondary);
+    --osole-header-catalog-mega-divider-color: var(--bmh-border);
+    --osole-header-catalog-mega-item-hover-bg: var(--bmh-surface-alt);
+    --osole-header-catalog-mega-thumb-bg: var(--bmh-surface-alt);
+    --osole-header-catalog-mega-all-bg: var(--bmh-brand-soft);
+    --osole-header-catalog-mega-all-color: var(--bmh-brand);
+}
+
+/* Home: sobre el hero, transparente y con los links en mayúsculas (Figma: «Header / home transparente»). */
+.bmh-header--home {
+    --osole-header-catalog-bg: rgb(255 255 255 / 0.05);
+    --osole-header-catalog-scrolled-bg: var(--bmh-ink-900);
+    --osole-header-catalog-topbar-bg: transparent;
+    --osole-header-catalog-topbar-color: var(--bmh-white);
+    --osole-header-catalog-topbar-link-font-size: 0.875rem; /* 14px */
+    --osole-header-catalog-topbar-link-text-transform: uppercase;
+    --osole-header-catalog-logo-height: 4rem; /* 64px */
+    --osole-header-catalog-scrolled-logo-height: 2.875rem; /* 46px */
+    --osole-header-catalog-link-color: var(--bmh-white);
+    --osole-header-catalog-scrolled-link-color: var(--bmh-text-on-dark);
+    --osole-header-catalog-link-text-transform: uppercase;
+    --osole-header-catalog-scrolled-link-text-transform: none;
+    --osole-header-catalog-link-indicator-color: var(--bmh-white);
+    --osole-header-catalog-scrolled-link-indicator-color: var(--bmh-brand);
+    --osole-header-catalog-button-bg: rgb(15 95 214 / 0.7);
+    --osole-header-catalog-scrolled-button-bg: transparent;
+    --osole-header-catalog-button-hover-bg: rgb(15 95 214 / 0.9);
+    --osole-header-catalog-scrolled-button-hover-bg: rgb(255 255 255 / 0.1);
+    --osole-header-catalog-button-text-transform: uppercase;
+    --osole-header-catalog-scrolled-button-text-transform: none;
+}
+
+/* Anchos intermedios: menos aire entre las partes de la barra para que entre todo. */
+@media (width >= 1200px) and (width < 1400px) {
+    :root {
+        --osole-header-catalog-gap: 1.5rem; /* 24px */
+        --osole-header-catalog-links-gap: 0.875rem; /* 14px */
+        --osole-header-catalog-button-padding-inline: 0.9375rem; /* 15px */
+    }
+}
+
+/* --- Footer (footer.v1) --- */
+:root {
+    --osole-footer-bg: var(--bmh-ink-950);
+    --osole-footer-color: var(--bmh-text-on-dark);
+    --osole-footer-font-family: var(--osole-font-body);
+    --osole-footer-title-color: var(--bmh-white);
+    --osole-footer-title-font-family: var(--osole-font-heading);
+    --osole-footer-title-font-size: 0.8125rem; /* 13px */
+    --osole-footer-title-font-weight: 700;
+    --osole-footer-title-letter-spacing: 0.0975rem; /* 1.56px */
+    --osole-footer-link-color: var(--bmh-text-on-dark);
+    --osole-footer-link-hover-color: var(--bmh-white);
+    --osole-footer-link-font-size: 0.875rem; /* 14px */
+    --osole-footer-contact-color: var(--bmh-text-on-dark);
+    --osole-footer-contact-icon-color: var(--bmh-brand);
+    --osole-footer-contact-font-size: 0.875rem; /* 14px */
+    --osole-footer-contact-line-height: 1.25rem; /* 20px */
+    --osole-footer-contact-icon-size: 1.125rem; /* 18px */
+    --osole-footer-contact-icon-gap: 0.75rem; /* 12px */
+    --osole-footer-contact-gap: 1rem; /* 16px */
+    --osole-footer-social-color: var(--bmh-white);
+    --osole-footer-social-hover-color: var(--bmh-brand);
+    --osole-footer-social-icon-size: 1.125rem; /* 18px */
+    --osole-footer-social-gap: 0.625rem; /* 10px */
+    --osole-footer-bottom-color: var(--bmh-text-on-dark-muted);
+    --osole-footer-bottom-border-color: var(--bmh-ink-700);
+    --osole-footer-bottom-font-size: 0.75rem; /* 12px */
+    --osole-footer-logo-height: 6.1875rem; /* 99px */
+    --osole-footer-padding-block-start: 3.3125rem; /* 53px */
+    --osole-footer-accent: var(--bmh-brand);
+}
+
+/* --- Tarjeta de categoría (category-card.v1) --- */
+:root {
+    --osole-category-card-border-color: var(--bmh-border);
+    --osole-category-card-name-color: var(--bmh-ink-700);
+    --osole-category-card-icon-color: var(--bmh-brand);
+    --osole-category-card-image-bg: var(--bmh-surface-alt);
+}
+
+/* Con los márgenes del sitio las tarjetas miden ~207px a 1366: «PORTAESCOBILLAS» entra con 13px. */
+@media (width < 1400px) {
+    :root { --osole-category-card-name-font-size: 0.8125rem; }
+}
+
+/* --- Tarjeta de novedad (post-card.v1) --- */
+:root {
+    --osole-post-card-border-color: var(--bmh-border);
+    --osole-post-card-radius: 1rem; /* 16px */
+    --osole-post-card-padding-block: 1.5rem 1.75rem; /* 24px / 28px */
+    --osole-post-card-padding-inline: 1.5rem; /* 24px */
+    --osole-post-card-image-aspect-ratio: 384 / 232;
+    --osole-post-card-category-offset: 0.75rem; /* 12px */
+    --osole-post-card-title-font-size: 1.25rem; /* 20px */
+    --osole-post-card-title-line-height: 1.625rem; /* 26px */
+    --osole-post-card-title-color: var(--bmh-text-primary);
+    --osole-post-card-description-font-size: 0.875rem; /* 14px */
+    --osole-post-card-description-line-height: 1.3125rem; /* 21px */
+    --osole-post-card-description-color: var(--bmh-text-secondary);
+    --osole-post-card-link-offset: 1.125rem; /* 12px de gap + 6px */
+    --osole-post-card-link-font-family: var(--osole-font-heading);
+    --osole-post-card-link-font-weight: 600;
+    --osole-post-card-link-color: var(--bmh-brand);
+    --osole-post-card-link-hover-color: var(--bmh-brand-hover);
+}

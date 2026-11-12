@@ -2317,77 +2317,10 @@ height: 46px;
   background-color: white; /* Fondo en blanco al hacer hover */
   color: #0098DA; /* Texto en color #0098DA al hacer hover */
 }
-/* Estilos del pie de página */
+/* Pie de página: el footer es osole::footer.v1 (layouts/partials/sitio-footer). Sólo se oculta
+   hasta que carga la página, como el contenido (script de layouts/plantilla-front). */
 footer {
   display: none;
-  padding-top: 60px;
-  background-color: #0098DA;
-  color: #fff;
-}
-
-/* .footer-logo{
-  display:block;
-  width:176px;
-} */
-
-footer h4 {
-  color: #FFF;
-  font-family: "Montserrat";
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 600;
-  line-height: normal;
-  margin-bottom: 24px;
-  text-transform: uppercase;
-}
-
-footer ul {
-  list-style: none;
-  padding: 0;
-}
-
-footer ul li{
-  
-  color: #FFF;
-  font-family: "Montserrat";
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: normal;
-  margin-bottom: 20px;
-}
-
-
-footer ul li a {
-  text-decoration: none;
-}
-
-footer ul li svg {
-  margin-right: 8px;
-}
-
-footer ul li a:hover {
-  font-weight:500;
-  color: #201E1E !important;
-}
-
-
-footer .social-icons a {
-  font-size: 24px;
-  margin-right: 10px;
-}
-
-footer .contact-list li {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  width: 352px;
-}
-
-footer .contact-list li img {
-  width: 24px;
-  height: 24px;
-  margin-right: 10px;
 }
 
 /* .whatsapp-container {

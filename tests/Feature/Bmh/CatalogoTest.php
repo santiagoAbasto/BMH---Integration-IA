@@ -298,7 +298,9 @@ final class CatalogoTest extends BaseTestCase
                 ->get(route('productos.home'))
                 ->assertOk()
                 ->assertSee('id="buscador-header"', false)
-                ->assertSee('data-menu-productos', false)
+                // Menú de productos del header (osole::header-catalog.v1.dropdown).
+                ->assertSee('data-osole-header-catalog-v1-dropdown', false)
+                ->assertSee('id="menu-productos-panel"', false)
                 ->assertSee('categorias-grilla', false)
                 // El filtro viejo ya no está.
                 ->assertDontSee('name="buscadorPrincipal"', false)

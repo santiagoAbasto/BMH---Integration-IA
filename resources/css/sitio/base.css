@@ -1,0 +1,354 @@
+/*
+ * Piezas propias del sitio (rediseño 2026) que no son componentes de osole/ui: botones,
+ * popovers del ingreso y de la cuenta, link del asistente. Sin layer: le ganan al CSS viejo.
+ */
+
+body {
+    font-family: var(--osole-font-body);
+    color: var(--bmh-text-primary);
+}
+
+/* --- Botones (Figma: Button/…) --- */
+.bmh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-sizing: border-box;
+    min-block-size: 3.25rem; /* 52px */
+    padding: 0 1.3125rem; /* 22px − 1px de borde */
+    border: 1px solid transparent;
+    border-radius: 0.625rem; /* 10px */
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    line-height: normal;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.bmh-btn:focus-visible {
+    outline: 2px solid var(--bmh-brand);
+    outline-offset: 3px;
+}
+
+.bmh-btn--primario {
+    min-block-size: 3.375rem; /* 54px */
+    padding-inline: 1.625rem; /* 26px */
+    background: var(--bmh-brand);
+    color: var(--bmh-white);
+}
+
+.bmh-btn--primario:hover {
+    background: var(--bmh-brand-hover);
+    color: var(--bmh-white);
+}
+
+.bmh-btn--claro {
+    border-color: var(--bmh-white);
+    background: rgb(255 255 255 / 0.1);
+    color: var(--bmh-white);
+}
+
+.bmh-btn--claro:hover {
+    background: var(--bmh-white);
+    color: var(--bmh-ink-950);
+}
+
+.bmh-btn--oscuro {
+    border-color: var(--bmh-ink-950);
+    background: rgb(255 255 255 / 0.1);
+    color: var(--bmh-ink-950);
+}
+
+.bmh-btn--oscuro:hover {
+    background: var(--bmh-ink-950);
+    color: var(--bmh-white);
+}
+
+/* --- Popovers del header: ingreso y cuenta --- */
+.bmh-popover {
+    position: fixed;
+    inset: 0 auto auto auto;
+    inset-inline-end: max(var(--osole-container-gutter), (100vi - var(--osole-container-width, 76.5rem)) / 2);
+    inset-block-start: var(--bmh-popover-top, 8.5rem);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 1rem; /* 16px */
+    background: var(--bmh-white);
+    box-shadow: 0 1.5rem 3.75rem rgb(5 8 13 / 0.28);
+    color: var(--bmh-text-primary);
+    font-family: var(--osole-font-body);
+}
+
+.bmh-popover:popover-open {
+    animation: bmh-popover-entrar 0.18s ease-out;
+}
+
+@keyframes bmh-popover-entrar {
+    from {
+        opacity: 0;
+        translate: 0 -0.375rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bmh-popover:popover-open {
+        animation: none;
+    }
+}
+
+@media (width < 1366px) {
+    .bmh-popover {
+        inset-inline: var(--osole-container-gutter);
+        inset-block-start: 5.5rem;
+        margin-inline-start: auto;
+    }
+}
+
+/* Ingreso (Figma: «INGRESO», 391 × 336) */
+.bmh-ingreso {
+    box-sizing: border-box;
+    inline-size: min(24.4375rem, 100vi - 2 * var(--osole-container-gutter)); /* 391px */
+    padding: 2.5rem 1.5rem 1.75rem; /* 40px arriba */
+}
+
+.bmh-ingreso__titulo {
+    margin: 0 0 2.375rem; /* hasta el primer campo: 110 − 40 − 29 − … */
+    font-family: var(--osole-font-heading);
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    line-height: normal;
+    text-align: center;
+    color: #000;
+}
+
+.bmh-ingreso__campo + .bmh-ingreso__campo {
+    margin-block-start: 1rem; /* 16px */
+}
+
+.bmh-ingreso__clave {
+    position: relative;
+}
+
+.bmh-ingreso__input {
+    display: block;
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 3rem; /* 48px */
+    padding: 0 1.25rem; /* 20px */
+    border: 1px solid #c4c4c4;
+    border-radius: 0.625rem; /* 10px */
+    background: var(--bmh-white);
+    font-family: var(--osole-font-heading);
+    font-size: 1rem; /* 16px */
+    color: var(--bmh-text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bmh-ingreso__clave .bmh-ingreso__input {
+    padding-inline-end: 3.25rem;
+}
+
+.bmh-ingreso__input::placeholder {
+    color: #5e5e5e;
+    opacity: 1;
+}
+
+.bmh-ingreso__input:focus {
+    border-color: var(--bmh-brand);
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(0 152 218 / 0.2);
+}
+
+.bmh-ingreso__ojo {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0.375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.bmh-ingreso__ojo[aria-pressed="true"] path:last-child {
+    display: none;
+}
+
+.bmh-ingreso__ojo:focus-visible {
+    outline: 2px solid var(--bmh-brand);
+    outline-offset: -4px;
+    border-radius: 0.5rem;
+}
+
+.bmh-ingreso__error {
+    margin: 0.375rem 0 0;
+    font-size: 0.8125rem;
+    color: #c62828;
+}
+
+.bmh-ingreso__acciones {
+    display: flex;
+    justify-content: center;
+    margin-block-start: 1rem; /* 16px */
+}
+
+.bmh-ingreso__boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    block-size: 2.75rem; /* 44px */
+    padding: 0 2rem; /* 32px */
+    border: 0;
+    border-radius: 0.625rem; /* 10px */
+    background: var(--bmh-brand);
+    font-family: var(--osole-font-heading);
+    font-size: 1rem; /* 16px */
+    font-weight: 400;
+    color: var(--bmh-white);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.bmh-ingreso__boton:hover {
+    background: var(--bmh-brand-hover);
+}
+
+.bmh-ingreso__boton:focus-visible {
+    outline: 2px solid var(--bmh-brand);
+    outline-offset: 3px;
+}
+
+.bmh-ingreso__registro {
+    margin: 1.25rem 0 0;
+    font-size: 0.8125rem; /* 13px */
+    text-align: center;
+    color: var(--bmh-text-secondary);
+}
+
+.bmh-ingreso__registro a {
+    font-weight: 600;
+    color: var(--bmh-brand);
+    text-decoration: none;
+}
+
+.bmh-ingreso__registro a:hover {
+    text-decoration: underline;
+}
+
+/* Cuenta del cliente */
+.bmh-cuenta {
+    min-inline-size: 14rem;
+    padding: 0.5rem;
+}
+
+.bmh-cuenta__nombre {
+    margin: 0;
+    padding: 0.625rem 0.75rem 0.5rem;
+    border-block-end: 1px solid var(--bmh-border);
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.bmh-cuenta__opciones {
+    margin: 0.375rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bmh-cuenta__opciones a,
+.bmh-cuenta__salir {
+    display: flex;
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 2.75rem;
+    align-items: center;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: none;
+    font-family: var(--osole-font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--bmh-text-primary);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.bmh-cuenta__opciones a:hover,
+.bmh-cuenta__salir:hover {
+    background: var(--bmh-surface-alt);
+    color: var(--bmh-text-primary);
+}
+
+.bmh-cuenta__salir {
+    color: #c62828;
+}
+
+/* --- Asistente virtual (beta) --- */
+.bmh-asesor-link {
+    gap: 0.375rem;
+}
+
+.bmh-asesor-punto {
+    display: inline-block;
+    inline-size: 0.4375rem;
+    block-size: 0.4375rem;
+    border-radius: 999px;
+    background: #abd430;
+    box-shadow: 0 0 0 0 rgb(171 212 48 / 0.7);
+    animation: bmhDot 2.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bmh-asesor-punto {
+        animation: none;
+    }
+}
+
+/* --- Footer: logo y redes centrados en su columna (Figma: «Marca», 330px) --- */
+.bmh-footer {
+    --osole-footer-columns: minmax(0, 1fr) minmax(0, 14rem) minmax(0, 19rem); /* Figma: 242 / 285px; el mail en mayúsculas necesita un poco más */
+    --osole-footer-column-gap: 1.875rem; /* 30px */
+    --osole-footer-links-gap: 0.875rem; /* 14px */
+    --osole-footer-links-column-gap: 0.875rem; /* 14px */
+    --osole-footer-title-offset: 1.125rem; /* 18px */
+    --osole-footer-bottom-offset: 1.5625rem; /* 25px */
+    --osole-footer-bottom-padding-block-start: 1.375rem; /* 22px: barra de 60px */
+    --osole-footer-padding-block-end: 1.375rem;
+    --osole-footer-bottom-border-width: 0px;
+}
+
+.bmh-footer .osole-footer-v1__title {
+    text-transform: uppercase;
+}
+
+/* La línea de arriba de los legales va de borde a borde, como en el Figma. */
+.bmh-footer .osole-footer-v1__bottom {
+    border-image: conic-gradient(var(--bmh-ink-700) 0 0) 1 / 1px 0 0 0 / 0 100vi;
+}
+
+.bmh-footer .osole-footer-v1__brand {
+    align-items: center;
+    max-inline-size: 20.625rem; /* 330px */
+}
+
+.bmh-footer .osole-footer-v1__links a,
+.bmh-footer .osole-footer-v1__contact {
+    text-transform: uppercase;
+}
+
+/* WhatsApp flotante (Figma: 60px, sombra 0 8 12 25%) */
+.bmh-wa {
+    background: var(--bmh-whatsapp) !important;
+}

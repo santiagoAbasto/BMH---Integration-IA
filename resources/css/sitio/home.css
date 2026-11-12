@@ -1,0 +1,228 @@
+/*
+ * Home (Figma: «zona pública / Home», 1366px).
+ */
+
+/* --- Hero (hero.v1): 596px, con el header transparente encima --- */
+.bmh-home-hero {
+    --osole-hero-height: 37.25rem; /* 596px */
+    --osole-hero-height-min: 32rem;
+    --osole-hero-bg: var(--bmh-ink-900);
+    --osole-hero-color: var(--bmh-white);
+    --osole-hero-align-content: start;
+    --osole-hero-padding-block-start: 10.375rem; /* 166px: el contenido arranca a 166px del borde */
+    --osole-hero-padding-block-start-min: 9rem;
+    --osole-hero-padding-block-end: 7.5rem; /* deja lugar a la banda de marcas */
+    --osole-hero-padding-block-end-min: 6rem;
+    --osole-hero-overlay:
+        linear-gradient(180deg, rgb(10 14 20 / 0) 60%, rgb(10 14 20 / 0.9) 100%),
+        linear-gradient(270deg, rgb(10 14 20 / 0) 0%, rgb(10 14 20 / 0.15) 50.75%, rgb(10 14 20) 100%);
+    --osole-hero-content-max-width: 42.4375rem; /* 679px */
+    --osole-hero-title-font-family: var(--osole-font-heading);
+    --osole-hero-title-font-size: 3.25rem; /* 52px */
+    --osole-hero-title-font-size-min: 2.125rem;
+    --osole-hero-title-line-height: 3.625rem; /* 58px */
+    --osole-hero-title-line-height-min: 2.5rem;
+    --osole-hero-title-font-weight: 800;
+    --osole-hero-title-letter-spacing: -0.065rem; /* −1.04px */
+    --osole-hero-title-color: var(--bmh-white);
+    --osole-hero-subtitle-offset: 1.75rem; /* 28px */
+    --osole-hero-subtitle-font-family: var(--osole-font-heading);
+    --osole-hero-subtitle-font-size: 1.125rem; /* 18px */
+    --osole-hero-subtitle-font-size-min: 1rem;
+    --osole-hero-subtitle-line-height: 1.75rem; /* 28px */
+    --osole-hero-subtitle-line-height-min: 1.5rem;
+    --osole-hero-subtitle-font-weight: 400;
+    --osole-hero-subtitle-color: var(--bmh-text-on-dark);
+    --osole-hero-buttons-offset: 1.75rem; /* 28px */
+    --osole-hero-button-font-family: var(--osole-font-heading);
+    --osole-hero-button-font-size: 0.875rem; /* 14px */
+    --osole-hero-button-font-weight: 600;
+    --osole-hero-button-line-height: 1.0625rem;
+    --osole-hero-button-padding-block: 1.125rem; /* 54px de alto */
+    --osole-hero-button-padding-inline: 1.625rem; /* 26px */
+    --osole-hero-button-radius: 0.625rem; /* 10px */
+    --osole-hero-button-border-width: 0px;
+    --osole-hero-button-min-width: 0;
+    --osole-hero-button-primary-bg: var(--bmh-brand);
+    --osole-hero-button-primary-color: var(--bmh-white);
+    --osole-hero-button-primary-hover-bg: var(--bmh-brand-hover);
+    --osole-hero-button-primary-hover-color: var(--bmh-white);
+}
+
+.bmh-home-hero .osole-hero-v1__subtitle {
+    max-inline-size: 32.5rem; /* 520px */
+}
+
+/* --- «Trabajamos con» (logo-strip.v1): flota entre el hero y los rubros --- */
+.bmh-home-marcas {
+    --osole-logo-strip-width: calc(var(--osole-container-width, 76.5rem) + 1.5rem); /* 12px de aire por lado, como en el Figma */
+    --osole-logo-strip-height: 7.5rem; /* 120px */
+    --osole-logo-strip-bg: var(--bmh-white);
+    --osole-logo-strip-border-width: 2px;
+    --osole-logo-strip-border-color: var(--bmh-brand);
+    --osole-logo-strip-radius: 1rem; /* 16px */
+    --osole-logo-strip-shadow: none;
+    --osole-logo-strip-padding-inline: 2.75rem; /* 44px */
+    --osole-logo-strip-padding-block: 0.75rem; /* 12px */
+    --osole-logo-strip-title-font-family: var(--osole-font-heading);
+    --osole-logo-strip-title-font-size: 1.25rem; /* 20px */
+    --osole-logo-strip-title-line-height: 1.875rem; /* 30px */
+    --osole-logo-strip-title-font-weight: 700;
+    --osole-logo-strip-title-color: var(--bmh-ink-950);
+    --osole-logo-strip-item-height: 6.125rem; /* 98px */
+    --osole-logo-strip-item-max-width: 11.4375rem; /* 183px */
+    --osole-logo-strip-items-justify: space-between;
+    /* Figma: 76px sobre el hero y 44px sobre los rubros. */
+    --osole-logo-strip-margin-block-start: -4.75rem;
+    --osole-logo-strip-margin-block-end: -2.75rem;
+}
+
+.bmh-home-marcas .osole-logo-strip-v1__title {
+    text-transform: uppercase;
+}
+
+/* --- Rubros (category-card.v1): fondo gris, 5 por fila con 20px de gap --- */
+.bmh-home-rubros {
+    padding-block: 5.375rem 2.5rem; /* 44px de la banda + 42px hasta las tarjetas; 40px abajo */
+    background: var(--bmh-surface-alt);
+}
+
+.bmh-grilla-rubros {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (width >= 768px) {
+    .bmh-grilla-rubros {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.25rem; /* 20px */
+    }
+}
+
+@media (width >= 1024px) {
+    .bmh-grilla-rubros {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+/* --- Sobre nosotros (info-split.v1): imagen a la izquierda sobre azul noche --- */
+.bmh-home-nosotros {
+    --osole-info-split-bg: var(--bmh-navy);
+    --osole-info-split-padding-block: 2.8125rem; /* 45px */
+    --osole-info-split-padding-block-min: 2.5rem;
+    --osole-info-split-gap: 4.5rem; /* 72px */
+    --osole-info-split-media-width: 35rem; /* 560px */
+    --osole-info-split-media-aspect-ratio: 560 / 480;
+    --osole-info-split-media-radius: 1rem; /* 16px */
+    --osole-info-split-content-justify: center;
+    --osole-info-split-content-max-width: 35.5rem; /* 568px */
+    --osole-info-split-title-font-family: var(--osole-font-heading);
+    --osole-info-split-title-font-size: 2.5rem; /* 40px */
+    --osole-info-split-title-font-size-min: 1.75rem;
+    --osole-info-split-title-line-height: 3rem; /* 48px */
+    --osole-info-split-title-line-height-min: 2.25rem;
+    --osole-info-split-title-font-weight: 800;
+    --osole-info-split-title-letter-spacing: -0.0375rem; /* −0.6px */
+    --osole-info-split-title-color: var(--bmh-white);
+    --osole-info-split-description-offset: 1.5rem; /* 24px */
+    --osole-info-split-description-font-family: var(--osole-font-body);
+    --osole-info-split-description-font-size: 1rem; /* 16px */
+    --osole-info-split-description-line-height: 1.625rem; /* 26px */
+    --osole-info-split-description-color: var(--bmh-text-on-dark);
+    --osole-info-split-button-offset: 2rem; /* 24px + 8px */
+    --osole-info-split-button-bg: rgb(255 255 255 / 0.1);
+    --osole-info-split-button-color: var(--bmh-white);
+    --osole-info-split-button-border-color: var(--bmh-white);
+    --osole-info-split-button-hover-bg: var(--bmh-white);
+    --osole-info-split-button-hover-color: var(--bmh-ink-950);
+    --osole-info-split-button-hover-border-color: var(--bmh-white);
+    --osole-info-split-button-font-family: var(--osole-font-heading);
+    --osole-info-split-button-font-size: 0.875rem; /* 14px */
+    --osole-info-split-button-font-weight: 600;
+    --osole-info-split-button-padding-block: 1.0625rem; /* 52px de alto */
+    --osole-info-split-button-padding-inline: 1.3125rem; /* 22px − 1px de borde */
+    --osole-info-split-button-radius: 0.625rem; /* 10px */
+    --osole-info-split-button-min-width: 0;
+}
+
+/* --- Encabezado de sección (Figma: «Novedades» + «Ver todas») --- */
+.bmh-seccion-encabezado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.bmh-seccion-titulo {
+    margin: 0;
+    font-family: var(--osole-font-heading);
+    font-size: clamp(1.75rem, 1.2rem + 1.6vi, 2.5rem); /* 40px */
+    font-weight: 800;
+    line-height: 1.2; /* 48px */
+    letter-spacing: -0.0375rem; /* −0.6px */
+    color: var(--bmh-text-primary);
+}
+
+/* --- Novedades (post-card.v1) --- */
+.bmh-home-novedades {
+    padding-block: 2.5rem 3.125rem; /* 40px / 50px */
+    background: var(--bmh-white);
+}
+
+.bmh-grilla-novedades {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem; /* 24px */
+    margin: 3rem 0 0; /* 48px */
+    padding: 0;
+    list-style: none;
+}
+
+@media (width >= 768px) {
+    .bmh-grilla-novedades {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (width >= 1024px) {
+    .bmh-grilla-novedades {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Etiqueta de la tarjeta como pastilla (Figma: Tag). */
+.bmh-grilla-novedades .osole-post-card-v1__category {
+    padding: 0.3125rem 0.625rem; /* 5px 10px */
+    border-radius: 0.375rem; /* 6px */
+    background: var(--bmh-brand-soft);
+    font-family: var(--osole-font-heading);
+    font-size: 0.6875rem; /* 11px */
+    letter-spacing: 0.055rem; /* 0.88px */
+    color: var(--bmh-brand);
+}
+
+/* --- Modal de bienvenida después del registro --- */
+.bmh-modal-registro {
+    padding: 3rem 2rem;
+    border: 0;
+    border-radius: 1.5rem;
+    text-align: center;
+}
+
+.bmh-modal-registro__titulo {
+    font-family: var(--osole-font-heading);
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.bmh-modal-registro__texto {
+    margin-block-start: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 300;
+}

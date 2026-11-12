@@ -1,0 +1,22 @@
+/*
+ * Sitio público y Zona de Clientes (rediseño 2026), con los componentes de osole/ui.
+ *
+ * Capas: «legacy» (Bootstrap y las hojas viejas, ver layouts/plantilla-front) queda por debajo
+ * de «osole» (el paquete). El tema de BMH y las piezas propias van sin layer: les ganan a las dos.
+ */
+@layer legacy, osole;
+
+@import "../../vendor/osole/ui/resources/css/osole-ui.css";
+@import "../../vendor/osole/ui/resources/components/container/v1/container.css";
+@import "../../vendor/osole/ui/resources/components/header-catalog/v1/header-catalog.css";
+@import "../../vendor/osole/ui/resources/components/footer/v1/footer.css";
+@import "../../vendor/osole/ui/resources/components/hero/v1/hero.css";
+@import "../../vendor/osole/ui/resources/components/logo-strip/v1/logo-strip.css";
+@import "../../vendor/osole/ui/resources/components/category-card/v1/category-card.css";
+@import "../../vendor/osole/ui/resources/components/info-split/v1/info-split.css";
+@import "../../vendor/osole/ui/resources/components/post-card/v1/post-card.css";
+
+@import "./osole-theme.css";
+@import "./sitio/base.css";
+@import "./sitio/header.css";
+@import "./sitio/home.css";

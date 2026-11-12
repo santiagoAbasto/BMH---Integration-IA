@@ -516,6 +516,10 @@
   document.querySelectorAll('[data-buscador-abrir]').forEach(function (boton) {
     boton.addEventListener('click', abrirCelular);
   });
+  // Header del rediseño: la barra se ve en el header y al tocarla se abre a pantalla completa.
+  input.addEventListener('focus', function () {
+    if (esCelular() && !form.classList.contains('buscador-header--pantalla')) abrirCelular();
+  });
   form.querySelector('[data-buscador-cerrar]').addEventListener('click', cerrarCelular);
 
   window.addEventListener('resize', function () {

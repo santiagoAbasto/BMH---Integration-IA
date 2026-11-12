@@ -1,0 +1,73 @@
+/*
+ * El buscador del sitio (layouts/partials/buscador-header + public/css/buscador-header.css, en
+ * la capa legacy) dentro de la barra de osole::header-catalog.v1, con el aspecto del Figma.
+ */
+
+/* styles2.css le pone `max-height: 112px` a todo <header> (el del sitio viejo): recortaba el fondo. */
+.bmh-header {
+    max-height: none;
+}
+.bmh-header .buscador-header {
+    max-inline-size: none;
+    margin: 0;
+}
+
+.bmh-header .buscador-header__barra {
+    block-size: 3.25rem; /* 52px */
+    gap: 0.75rem; /* 12px */
+    padding: 0.25rem 0.25rem 0.25rem 1.125rem; /* 4 4 4 18 */
+    border: 0;
+    border-radius: 0.75rem; /* 12px */
+    background: var(--bmh-white);
+    box-shadow: none;
+}
+
+.bmh-header .buscador-header__barra:focus-within {
+    box-shadow: 0 0 0 3px rgb(0 152 218 / 0.35);
+}
+
+.bmh-header .buscador-header__lupa {
+    flex: none;
+    inline-size: 1.25rem; /* 20px */
+    block-size: 1.25rem;
+    color: var(--bmh-ink-900);
+}
+
+.bmh-header .buscador-header__input {
+    font-family: var(--osole-font-body);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 400;
+    color: var(--bmh-text-primary);
+}
+
+.bmh-header .buscador-header__input::placeholder {
+    color: var(--bmh-text-secondary);
+    opacity: 1;
+}
+
+/* Home: vidrio sobre la portada mientras el header es transparente. */
+.bmh-header--home:not([data-scrolled]) .buscador-header__barra:not(:focus-within) {
+    background: rgb(255 255 255 / 0.34);
+    -webkit-backdrop-filter: blur(2.65px);
+    backdrop-filter: blur(2.65px);
+}
+
+.bmh-header--home:not([data-scrolled]) .buscador-header__barra:not(:focus-within) :is(.buscador-header__lupa, .buscador-header__input, .buscador-header__limpiar),
+.bmh-header--home:not([data-scrolled]) .buscador-header__barra:not(:focus-within) .buscador-header__input::placeholder {
+    color: var(--bmh-white);
+}
+
+/* En celular el buscador se ve en su fila del header (buscador-header.css lo escondía detrás de una
+   lupa); al tocarlo se abre a pantalla completa como antes (buscador-header.js). */
+.bmh-header .buscador-header:not(.buscador-header--pantalla) {
+    display: block;
+}
+
+.bmh-header .buscador-header:not(.buscador-header--pantalla) .buscador-header__volver {
+    display: none;
+}
+
+/* El panel de sugerencias queda por encima del menú desplegable. */
+.bmh-header .buscador-header__panel {
+    z-index: 2;
+}

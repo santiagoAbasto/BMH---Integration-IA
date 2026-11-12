@@ -33,9 +33,9 @@
     <label for="buscador-header-input" class="visually-hidden">Buscar por código, marca, modelo, equivalencia, rubro o medida</label>
     <input id="buscador-header-input" class="buscador-header__input" type="search" name="q"
            value="{{ request()->routeIs('search') ? ($termino ?? '') : '' }}"
-           placeholder="Buscá por código, marca, modelo, equivalencia o medida"
+           placeholder="Buscar por código, marca, modelo, rubro..."
            {{-- Variantes más cortas: el JS usa la más larga que entra sin cortarse. --}}
-           data-placeholders='["Buscá por código, marca, modelo, equivalencia o medida","Código, marca, modelo, equivalencia o medida","Código, marca, modelo o equivalencia","Código, marca o modelo","Código o marca","Buscar"]'
+           data-placeholders='["Buscar por código, marca, modelo, rubro...","Buscar por código, marca, modelo...","Código, marca o modelo","Código o marca","Buscar"]'
            maxlength="{{ \App\Http\Requests\BuscarRequest::MAXIMO_CARACTERES }}"
            autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"
            role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="buscador-header-resultados"

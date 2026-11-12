@@ -10,6 +10,9 @@ export default defineConfig({
                 // Sitio actual (Blade + Alpine). Se deja intacto.
                 'resources/css/app.css',
                 'resources/js/app.js',
+                // Sitio público y Zona de Clientes con osole/ui (rediseño 2026).
+                'resources/css/sitio.css',
+                'resources/js/sitio.js',
                 // Asesor IA (Inertia + React).
                 'resources/css/assistant.css',
                 'resources/js/app.tsx',

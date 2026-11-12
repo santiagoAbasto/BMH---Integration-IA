@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        View::composer('layouts.partials.menu-productos', MenuProductosComposer::class);
+        View::composer(['layouts.partials.menu-productos', 'layouts.partials.sitio-header'], MenuProductosComposer::class);
 
     }
 }
