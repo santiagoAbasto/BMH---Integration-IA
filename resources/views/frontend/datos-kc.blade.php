@@ -99,8 +99,14 @@
             @csrf
     
             <div class="mb-3">
-                <label for="file" class="form-label">Archivo</label>
-                <input class="form-control preview" type="file" name='file' accept="file/*" required>
+                @if (session('success'))
+                    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+                @endif
+                @if ($errors->any())
+                    <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
+                @endif
+                <label for="file" class="form-label">Archivo (Excel o CSV)</label>
+                <input class="form-control preview" type="file" id="file" name='file' accept=".xlsx,.xls,.csv" required>
             </div>
     
             <button type="submit" class='btn btn-primary'>Subir</button>

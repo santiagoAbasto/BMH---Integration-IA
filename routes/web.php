@@ -207,7 +207,8 @@ Route::controller(DimensionController::class)->middleware('admin')->group(functi
 Route::controller(DescargaController::class)->group(function () {
     Route::get('descargas', 'index')->name('descargas');
     Route::get('datos-kc', 'datos_kc')->name('datos.kc');
-    Route::post('datos-kc-update', 'datos_kc_update')->name('datos.update');
+    // Página pública sin login (la usa quien carga los datos KC): sólo planillas y límite de envíos.
+    Route::post('datos-kc-update', 'datos_kc_update')->middleware('throttle:5,1')->name('datos.update');
     Route::middleware('admin')->group(function(){
         Route::get('dashboard/descargas', 'dash_descargas')->name('dashboard.descargas');
         Route::get('dashboard/lista-de-precios', 'dash_lista')->name('dashboard.lista');
