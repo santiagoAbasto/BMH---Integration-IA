@@ -52,7 +52,7 @@
     social-placement="brand"
     contact-title="Contacto"
     :contact-items="$datos"
-    copyright="© Copyright 2024 BMH Distribuidora. Todos los derechos reservados."
+    :copyright="'© Copyright '.app(\App\Services\Anio::class)->actual().' BMH Distribuidora. Todos los derechos reservados.'"
     credit-prefix="By"
 >
     <x-slot:logo>
