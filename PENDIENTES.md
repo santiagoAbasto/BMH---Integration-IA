@@ -48,6 +48,9 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
   `contacto_respuestas` (responder consultas desde el panel).
 - `2026_11_17_000005_favicon_de_bmh` — quita la fila del favicon viejo (el logo achicado) para que se vea el de BMH
   (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`). No borra el archivo.
+- `2026_11_17_000006_avisos_del_panel` — `pedidos.visto_at` y `users.revisado_at` (la campana y el inicio del panel).
+- `2026_11_17_000007_logos_de_trabajamos_con` — los 15 logos de marcas (`public/img/marcas/*.webp`, subir esa carpeta);
+  oculta Divaio, Prestolite y EP sin borrarlos. Faltan El Cidro, NF, Winly Tape y WST (se cargan desde el admin).
 - IA (de main, ya corrida en producción el 2026-11-16): `2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts`
   sólo con `--database=mysql_ai --path=...`. No volver a correrla con `migrate` a secas.
 
