@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\BuscadorController;
@@ -51,6 +50,12 @@ use App\Http\Controllers\RepuestosController;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
+
+// Cerrar la sesión de un cliente (menú de la cuenta en el header). Las rutas viejas de Breeze (login,
+// recuperar/restablecer contraseña, verificación, perfil) se sacaron: el ingreso es por user.login y los
+// clientes los da de alta BMH.
+Route::post('logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')->name('logout');
 
 // Rutas para usuarios
 Route::prefix('user')->name('user.')->group(function () {
@@ -488,13 +493,6 @@ Route::controller(HomeSliderController::class)->middleware('admin')->group(funct
     Route::put('dashboard/home-slider/{imagen}/media', 'update')->name('home-slider.update');
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
 // BMH AI Technical Sales Advisor
 require __DIR__.'/assistant.php';
 
-require __DIR__.'/auth.php';

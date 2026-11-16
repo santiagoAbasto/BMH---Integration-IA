@@ -3,47 +3,23 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 
+/**
+ * Cierre de sesión de los clientes (menú de la cuenta en el header). El ingreso es UserAuthController (user.login);
+ * el login y la recuperación de contraseña de Breeze se sacaron.
+ */
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
-    public function create(): View
-    {
-        return view('auth.login');
-    }
-
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate('web');
-
-        $request->session()->regenerate();
-
-        return redirect()->intended(RouteServiceProvider::HOME);
-    }
-
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
 
-        // $request->session()->invalidate();
+        // Sólo se cierra el guard de clientes: si en el mismo navegador hay una sesión del admin, sigue abierta.
 
-        // $request->session()->regenerateToken();
-
-        if($request->ventana == 'home'){
+        if ($request->ventana == 'home') {
             return redirect()->back();
         }
 
