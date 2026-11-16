@@ -27,6 +27,10 @@ class PedidoController extends Controller
 
     public function pedido_datos(Request $request){
         $pedido = Pedido::find($request->id);
+        // Abrir el pedido lo saca de «sin abrir» (campana y «Te esperan» del inicio).
+        if ($pedido && \Illuminate\Support\Facades\Schema::hasColumn('pedidos', 'visto_at') && $pedido->visto_at === null) {
+            $pedido->forceFill(['visto_at' => now()])->saveQuietly();
+        }
         $contenido = file_get_contents('https://apis.datos.gob.ar/georef/api/provincias?orden=nombre');
         $datos = json_decode($contenido, true);
         $provincias = $datos['provincias'];

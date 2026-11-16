@@ -8,7 +8,9 @@ use Illuminate\Support\HtmlString;
 
 $logo2 = Imagen::where('sector', 'logo2')->first();
 $user = Auth::guard('admin')->user();
-$nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->count();
+// Campana: pedidos sin abrir, consultas sin leer y clientes nuevos (App\Support\Panel\Notificaciones).
+$campana = app(\App\Support\Panel\Notificaciones::class);
+$campanaSinVer = $campana->sinVer();
 $esAdministrador = $user?->rol == 'administrador';
 // Consultas de /contacto sin leer: contador junto a Contacto › Mensajes (lo pinta resources/js/admin.js).
 $contactoSinLeer = \App\Models\ContactoMensaje::sinLeer();
@@ -163,13 +165,17 @@ foreach ($secciones as $seccion) {
         </nav>
 
         <div class="adm-topbar__acciones">
-          @if ($nuevosPedidos > 0)
-            <a class="adm-topbar__pedidos" href="{{ route('ventas') }}">
-              <span class="adm-topbar__pulso" aria-hidden="true"></span>
-              {{ $nuevosPedidos }} {{ $nuevosPedidos === 1 ? 'pedido reciente' : 'pedidos recientes' }}
-              <span class="visually-hidden">(últimas 24 horas)</span>
-            </a>
-          @endif
+          {{-- Campana (como en Conelec): se actualiza sola cada 45 s (resources/js/admin/campana.js). --}}
+          <div class="adm-campana" data-campana data-url="{{ route('panel.notificaciones') }}">
+            <button class="adm-campana__boton" type="button" popovertarget="adm-campana-panel" data-campana-boton
+              aria-label="{{ $campanaSinVer ? 'Notificaciones: '.$campanaSinVer.' sin ver' : 'Notificaciones: estás al día' }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span class="adm-campana__contador" data-campana-contador @unless ($campanaSinVer) hidden @endunless>{{ $campanaSinVer > 99 ? '99+' : $campanaSinVer }}</span>
+            </button>
+            <div class="adm-campana__panel" id="adm-campana-panel" popover aria-labelledby="adm-campana-titulo" data-campana-panel>
+              @include('backend.partials.panel.notificaciones', ['avisos' => $campana->ultimas(), 'sinVer' => $campanaSinVer])
+            </div>
+          </div>
           <a class="adm-topbar__sitio" href="{{ route('home') }}" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
             <span>Ver sitio</span>

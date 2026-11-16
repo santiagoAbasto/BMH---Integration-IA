@@ -454,6 +454,12 @@ Route::controller(MetadatosController::class)->middleware('admin')->group(functi
 // Lo que leen Google y Bing para recorrer el sitio (robots.txt es el archivo estático de public).
 Route::get('sitemap.xml', [MetadatosController::class, 'sitemap'])->name('sitemap');
 
+// Campana del panel: estado (JSON, la actualiza cada 45 s) y «revisar» un cliente nuevo.
+Route::middleware('admin')->group(function () {
+    Route::get('dashboard/notificaciones', \App\Http\Controllers\PanelNotificacionesController::class)->middleware('throttle:60,1')->name('panel.notificaciones');
+    Route::get('dashboard/clientes/{cliente}/revisar', [\App\Http\Controllers\PanelNotificacionesController::class, 'revisarCliente'])->whereNumber('cliente')->name('panel.cliente.revisar');
+});
+
 // Home › Trabajamos con (logos de clientes y proveedores) y Home › Sección Nosotros.
 Route::controller(\App\Http\Controllers\HomeSeccionesController::class)->middleware('admin')->prefix('dashboard/home')->name('dashboard.home.')->group(function () {
     Route::get('trabajamos-con', 'trabajamosCon')->name('trabajamos-con');

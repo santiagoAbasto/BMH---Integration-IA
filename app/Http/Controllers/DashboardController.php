@@ -17,8 +17,9 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(){
-        return view('backend/dashboard');
+    /** Inicio del panel: actividad, pendientes y estado del sitio (App\Support\Panel\MetricasPanel). */
+    public function index(\App\Support\Panel\MetricasPanel $metricas){
+        return view('backend/dashboard', $metricas->todo());
     }
     
     public function logo(){

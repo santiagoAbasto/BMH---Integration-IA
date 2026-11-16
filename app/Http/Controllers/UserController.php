@@ -449,6 +449,10 @@ class UserController extends Controller
     public function cliente_habilitar(Request $request){
         $cliente = User::find($request->id);
         $cliente->habilitado = !$cliente->habilitado;
+        // Habilitarlo (o no) es revisarlo: sale de la campana del panel.
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'revisado_at') && $cliente->revisado_at === null) {
+            $cliente->revisado_at = now();
+        }
         $cliente->save();
         if($cliente->habilitado){
             try {
