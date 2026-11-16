@@ -80,6 +80,8 @@
             <x-osole::header-catalog.v1.dropdown label="Productos" :href="route('productos.clientes')" :active="$enProductos" panel-id="menu-productos-panel">
                 <x-osole::header-catalog.v1.mega title="Líneas de productos" all-label="Ver todas las categorías" :all-href="route('productos.clientes')" :items="$itemsMenu" />
             </x-osole::header-catalog.v1.dropdown>
+            {{-- Ofertas: las del sitio y las «sólo Zona de Clientes» (Producto::scopeEnOfertaVisible). --}}
+            <x-osole::header-catalog.v1.link :href="route('ofertas')" :active="$ruta === 'ofertas'">Ofertas</x-osole::header-catalog.v1.link>
             <x-osole::header-catalog.v1.link :href="route('carrito')" :active="$ruta === 'carrito'">Carrito</x-osole::header-catalog.v1.link>
             @if ($cliente->rol === 'cliente')
                 <x-osole::header-catalog.v1.link :href="route('cliente.historial')" :active="in_array($ruta, ['cliente.historial', 'cliente.pedido'], true)">Historial</x-osole::header-catalog.v1.link>
@@ -102,7 +104,7 @@
         @if ($conAsesor)
             <li class="osole-header-catalog-v1__item">
                 <a href="#" class="osole-header-catalog-v1__link bmh-asesor-link" data-bmh-advisor>
-                    <span class="bmh-asesor-punto" aria-hidden="true"></span>Asistente virtual
+                    <span class="bmh-asesor-punto" aria-hidden="true"></span><span class="bmh-asesor-largo">Asistente virtual</span><span class="bmh-asesor-corto" aria-hidden="true">Asesor IA</span>
                 </a>
             </li>
         @endif

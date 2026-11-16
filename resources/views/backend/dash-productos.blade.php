@@ -9,14 +9,14 @@
   @php
       $hayFiltros = (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') || ($busqueda ?? '') !== '' || ! empty($soloOfertas);
       // Conteo del filtro «Sólo ofertas» (lectura: no depende de la búsqueda ni de la categoría).
-      $totalOfertas = \App\Models\Producto::where('oferta', true)->count();
+      $totalOfertas = \App\Models\Producto::whereNotNull('oferta')->count();
   @endphp
 
   <x-osole::admin-page-header.v1
       eyebrow="Catálogo"
       title="Productos"
       title-id="productos-titulo"
-      description="Buscá, organizá y actualizá tus productos. Los que marques en la columna «Oferta» se muestran en Ofertas de la web."
+      description="Buscá, organizá y actualizá tus productos. En la columna «Oferta» elegís si cada uno se muestra en oferta en el sitio y la Zona de Clientes, o sólo para los clientes."
   >
     <x-slot:actions>
       {{-- Abre el modal para tildar los rubros (viene tildada la categoría filtrada, o todas). --}}
@@ -566,28 +566,37 @@
         conteoOfertas.attr('data-ofertas-conteo', total).text(total.toLocaleString('es-AR'));
     }
 
+    // Selector de oferta: sin oferta / sitio y Zona de Clientes / sólo Zona de Clientes.
+    function marcarOferta(select, valor) {
+        select.value = valor;
+        select.dataset.valor = valor;
+        $(select).closest('.producto-row').toggleClass('producto-row--oferta', valor !== '');
+    }
+
     $(document).on('change', '.js-producto-oferta', function() {
-        var input = this;
-        var enOferta = input.checked;
-        var codigo = input.dataset.codigo || '';
-        input.setAttribute('aria-checked', enOferta ? 'true' : 'false');
-        $(input).closest('.producto-row').toggleClass('producto-row--oferta', enOferta);
-        sumarOfertas(enOferta ? 1 : -1);
+        var select = this;
+        var nuevo = select.value;
+        var anterior = select.dataset.anterior || '';
+        var codigo = select.dataset.codigo || '';
+        marcarOferta(select, nuevo);
+        // El conteo es de productos en oferta (de cualquier alcance): cambia sólo al entrar o salir.
+        if ((anterior === '') !== (nuevo === '')) sumarOfertas(nuevo === '' ? -1 : 1);
 
         $.ajax({
             url: "{{ route('producto.oferta') }}",
             type: 'POST',
             dataType: 'json',
-            data: { _token: '{{ csrf_token() }}', producto_id: input.dataset.producto, oferta: enOferta ? 1 : 0 },
+            data: { _token: '{{ csrf_token() }}', producto_id: select.dataset.producto, alcance: nuevo },
         }).done(function(respuesta) {
-            $('#productos-estado').text(codigo + (respuesta && respuesta.oferta ? ' ahora está en Ofertas.' : ' ya no está en Ofertas.'));
+            select.dataset.anterior = (respuesta && respuesta.alcance) || '';
+            var texto = !respuesta || !respuesta.alcance ? ' ya no está en oferta.'
+                : (respuesta.alcance === 'clientes' ? ' está en oferta sólo para la Zona de Clientes.' : ' está en oferta en el sitio y en la Zona de Clientes.');
+            $('#productos-estado').text(codigo + texto);
         }).fail(function() {
-            // Vuelta atrás: el interruptor, la fila y el conteo quedan como antes del clic.
-            input.checked = !enOferta;
-            input.setAttribute('aria-checked', !enOferta ? 'true' : 'false');
-            $(input).closest('.producto-row').toggleClass('producto-row--oferta', !enOferta);
-            sumarOfertas(enOferta ? -1 : 1);
-            var mensaje = 'No se pudo ' + (enOferta ? 'poner' : 'sacar') + ' ' + codigo + (enOferta ? ' en' : ' de') + ' Ofertas. Volvé a intentar.';
+            // Vuelta atrás: el selector, la fila y el conteo quedan como antes.
+            marcarOferta(select, anterior);
+            if ((anterior === '') !== (nuevo === '')) sumarOfertas(nuevo === '' ? 1 : -1);
+            var mensaje = 'No se pudo cambiar la oferta de ' + codigo + '. Volvé a intentar.';
             $('#productos-estado').text(mensaje);
             iziToast.error({ title: 'Oferta sin guardar', message: mensaje, backgroundColor: '#b42318' });
         });

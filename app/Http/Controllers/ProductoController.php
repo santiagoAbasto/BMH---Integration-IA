@@ -769,7 +769,7 @@ public function dash_productos(Request $request)
         $nuevo_producto = new Producto();
         $nuevo_producto->nombre = $request->nombre;
         if ($request->has('oferta')) {
-            $nuevo_producto->oferta = $request->boolean('oferta');
+            $nuevo_producto->oferta = \App\Enums\AlcanceOferta::desdeFormulario($request->input('oferta'));
         }
         $nuevo_producto->orden = $request->orden;
         $nuevo_producto->codigo = $request->codigo;
@@ -974,7 +974,7 @@ public function dash_productos(Request $request)
 
         // Oferta (zona pública): sólo si el formulario la manda, así no se pierde al guardar.
         if ($request->has('oferta')) {
-            $producto->oferta = $request->boolean('oferta');
+            $producto->oferta = \App\Enums\AlcanceOferta::desdeFormulario($request->input('oferta'));
         }
 
         $producto->save();
@@ -1029,21 +1029,32 @@ public function dash_productos(Request $request)
     }
 
     /**
-     * Marca o desmarca un producto como oferta (zona pública) desde el listado del admin.
-     * Con `oferta` en el pedido la deja así; sin él, la invierte. Responde el estado final.
+     * Cambia la oferta de un producto desde el listado del admin: `alcance` = publica (sitio y Zona de Clientes),
+     * clientes (sólo Zona de Clientes) o vacío (sin oferta). Por compatibilidad acepta también `oferta` sí/no, y sin
+     * ninguno de los dos invierte (sin oferta ↔ pública). Responde el estado final.
      */
     public function actualizarOferta(Request $request): \Illuminate\Http\JsonResponse
     {
         $datos = $request->validate([
             'producto_id' => ['required', 'integer', 'exists:productos,id'],
+            'alcance' => ['sometimes', 'nullable', 'in:publica,clientes'],
             'oferta' => ['sometimes', 'boolean'],
         ]);
 
         $producto = Producto::findOrFail($datos['producto_id']);
-        $producto->oferta = array_key_exists('oferta', $datos) ? (bool) $datos['oferta'] : ! $producto->oferta;
+        $producto->oferta = match (true) {
+            array_key_exists('alcance', $datos) => \App\Enums\AlcanceOferta::desdeFormulario($datos['alcance']),
+            array_key_exists('oferta', $datos) => \App\Enums\AlcanceOferta::desdeFormulario((bool) $datos['oferta']),
+            default => $producto->oferta === null ? \App\Enums\AlcanceOferta::Publica : null,
+        };
         $producto->save();
 
-        return response()->json(['producto_id' => $producto->id, 'oferta' => $producto->oferta]);
+        return response()->json([
+            'producto_id' => $producto->id,
+            'oferta' => $producto->oferta !== null,
+            'alcance' => $producto->oferta?->value,
+            'etiqueta' => $producto->oferta?->etiqueta() ?? 'Sin oferta',
+        ]);
     }
 
     public function actualizarDestacado(Request $request)
@@ -1158,7 +1169,7 @@ public function dash_productos(Request $request)
         $hayCategoria = $categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos';
         $consulta = fn () => Producto::with(['categoria', 'portadaImagen'])
             ->busquedaAdmin($busqueda)
-            ->when($soloOfertas, fn ($q) => $q->where('oferta', true))
+            ->when($soloOfertas, fn ($q) => $q->whereNotNull('oferta'))
             ->when($hayBusqueda, fn ($q) => $q->orderBy('orden'), fn ($q) => $q->ordenado());
 
         $productos = $consulta()->when($hayCategoria, fn ($q) => $q->where('categoria_id', $categoriaId))->paginate(20);

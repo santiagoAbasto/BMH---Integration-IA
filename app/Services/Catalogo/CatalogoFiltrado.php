@@ -87,9 +87,10 @@ final class CatalogoFiltrado
             array_keys($columnasAtributo),
         );
 
-        // /ofertas: sólo los productos marcados como oferta (también al buscar dentro de las ofertas).
+        // /ofertas: sólo los productos en oferta que ve quien mira (un visitante, las públicas; un cliente con sesión,
+        // también las «sólo Zona de Clientes»), también al buscar dentro de las ofertas.
         if ($filtros->soloOfertas) {
-            $ofertas = Producto::query()->where('oferta', true)->pluck('id')->flip();
+            $ofertas = Producto::query()->enOfertaVisible()->pluck('id')->flip();
             $pool = $pool->filter(fn (object $p) => isset($ofertas[$p->id]))->values();
         }
         $aplicaciones = $this->aplicacionesDe($pool);

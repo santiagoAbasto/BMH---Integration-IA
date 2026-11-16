@@ -133,12 +133,7 @@
                         </fieldset>
                     </div>
                     <div class="col-md-6">
-                        <input type="hidden" name="oferta" value="0">
-                        <label class="adm-switch adm-switch--oferta" for="oferta">
-                            <input type="checkbox" role="switch" id="oferta" name="oferta" value="1" @checked(old('oferta')) aria-describedby="oferta-ayuda">
-                            En oferta
-                        </label>
-                        <p class="producto-oferta-ayuda" id="oferta-ayuda">Se muestra en Ofertas de la web. No cambia el descuento.</p>
+                        @include('backend.partials.oferta-producto', ['actual' => ''])
                     </div>
                 </div>
             </div>

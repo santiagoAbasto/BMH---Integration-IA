@@ -95,7 +95,7 @@
 @media (width >= 1366px) and (width < 1400px) {
     .bmh-header--privada {
         --osole-header-catalog-gap: 1.25rem; /* 20px */
-        --osole-header-catalog-links-gap: 0.75rem; /* 12px */
+        --osole-header-catalog-links-gap: 0.625rem; /* 10px */
         --osole-header-catalog-button-padding-inline: 0.875rem;
         --osole-header-catalog-search-min-width: 8rem;
     }
@@ -123,19 +123,40 @@
     min-width: 0;
 }
 
-/* Con el Asistente virtual son seis links: entre 1366 y 1400px la cuenta queda sólo con el ícono
+/* En la Zona de Clientes son seis links (siete con el Asistente virtual): entre 1366 y 1600px la cuenta queda sólo con el ícono
    (el nombre sigue en el menú de la cuenta y para lectores de pantalla). */
-@media (width >= 1366px) and (width < 1400px) {
-    .bmh-header--con-asesor .bmh-cuenta-boton {
+@media (width >= 1366px) and (width < 1600px) {
+    .bmh-header--privada .bmh-cuenta-boton {
         padding-inline: 0.75rem;
     }
 
-    .bmh-header--con-asesor .bmh-cuenta-boton .osole-header-catalog-v1__button-label {
+    .bmh-header--privada .bmh-cuenta-boton .osole-header-catalog-v1__button-label {
         position: absolute;
         inline-size: 1px;
         block-size: 1px;
         overflow: hidden;
         clip-path: inset(50%);
         white-space: nowrap;
+    }
+}
+
+/* «Asistente virtual» → «Asesor IA» (el nombre del botón flotante) hasta 1600px: con siete links en la Zona de Clientes
+   no entra el nombre largo. El largo queda para lectores de pantalla. */
+.bmh-asesor-corto {
+    display: none;
+}
+
+@media (width < 1600px) {
+    .bmh-header--privada .bmh-asesor-largo {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .bmh-header--privada .bmh-asesor-corto {
+        display: inline;
     }
 }

@@ -441,13 +441,13 @@
     .producto-orden { display: table-cell; color: var(--adm-muted); font-variant-numeric: tabular-nums; }
     .productos-table .producto-row > .producto-destacada, .productos-table .producto-row > .producto-oferta { margin: 0; padding: .625rem .75rem; border-top: 0; }
     .productos-table th:nth-child(1) { width: 6%; }
-    .productos-table th:nth-child(2) { width: 13%; }
+    .productos-table th:nth-child(2) { width: 11%; }
     .productos-table th:nth-child(3) { width: 9%; }
-    .productos-table th:nth-child(4) { width: 26%; }
+    .productos-table th:nth-child(4) { width: 24%; }
     .productos-table th:nth-child(5) { width: 15%; }
     .productos-table th:nth-child(6) { width: 10%; }
-    .productos-table th:nth-child(7) { width: 9%; }
-    .productos-table th:nth-child(8) { width: 12%; }
+    .productos-table th:nth-child(7) { width: 14%; } /* selector de oferta (sin oferta / sitio y clientes / sólo clientes) */
+    .productos-table th:nth-child(8) { width: 11%; }
     .producto-portada img, .producto-sin-imagen { width: 3.5rem; height: 3.5rem; }
     .producto-label, .producto-action-text { display: none; }
     .producto-featured-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -480,3 +480,18 @@
 .precios-reporte-tabla td { vertical-align: middle; white-space: nowrap; }
 .precios-reporte-codigo { font-family: var(--adm-font-mono); font-weight: 600; }
 .precios-reporte-ayuda { margin: .625rem 0 0; color: #7c5a3c; font-size: .75rem; }
+
+/* Oferta con alcance (selector del listado): con oferta se marca en naranja, como la fila. */
+.productos-table .producto-oferta-select {
+    width: 100%;
+    padding: .375rem 1.625rem .375rem .5rem;
+    background-position: right .375rem center;
+    font-size: .8125rem;
+}
+
+.productos-table .producto-oferta-select:is([data-valor="publica"], [data-valor="clientes"]) {
+    border-color: #c2410c;
+    background-color: #fff7ed;
+    color: #9a3412;
+    font-weight: 600;
+}

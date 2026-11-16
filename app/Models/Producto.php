@@ -88,8 +88,37 @@ class Producto extends Model
     
     protected $table = 'productos';
 
-    /** Ofertas de la zona pública (admin → Productos); independiente de `descuento`. */
-    protected $casts = ['oferta' => 'boolean'];
+    /**
+     * Oferta con alcance (admin → Productos): null = sin oferta; Publica = sitio y Zona de Clientes; Clientes = sólo
+     * Zona de Clientes. Independiente de `descuento`.
+     */
+    protected $casts = ['oferta' => \App\Enums\AlcanceOferta::class];
+
+    /** ¿Quien está mirando es un cliente (o vendedor) con sesión? Ellos ven también las ofertas «sólo clientes». */
+    public static function veOfertasDeClientes(): bool
+    {
+        return Auth::guard('web')->check();
+    }
+
+    /** Las ofertas que ve quien está mirando: todas si es cliente, sólo las públicas si no. */
+    public function scopeEnOfertaVisible(\Illuminate\Database\Eloquent\Builder $query, ?bool $esCliente = null): \Illuminate\Database\Eloquent\Builder
+    {
+        $esCliente ??= self::veOfertasDeClientes();
+
+        return $esCliente
+            ? $query->whereNotNull('oferta')
+            : $query->where('oferta', \App\Enums\AlcanceOferta::Publica->value);
+    }
+
+    /** ¿Este producto se muestra como oferta a quien está mirando? */
+    public function ofertaVisible(?bool $esCliente = null): bool
+    {
+        return match ($this->oferta) {
+            \App\Enums\AlcanceOferta::Publica => true,
+            \App\Enums\AlcanceOferta::Clientes => $esCliente ?? self::veOfertasDeClientes(),
+            default => false,
+        };
+    }
 
     public function getNombreAttribute($value)
     {

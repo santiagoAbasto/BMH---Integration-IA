@@ -19,11 +19,16 @@
             </label>
         </td>
         <td class="producto-oferta" role="cell">
-            <label class="adm-switch adm-switch--oferta producto-featured" for="oferta{{ $producto->id }}">
-                <input class="js-producto-oferta" type="checkbox" role="switch" data-producto="{{ $producto->id }}" data-codigo="{{ $producto->codigo }}" id="oferta{{ $producto->id }}" value="1" @checked($producto->oferta) aria-checked="{{ $producto->oferta ? 'true' : 'false' }}">
-                <span class="producto-featured-text">En oferta</span>
-                <span class="visually-hidden">: {{ $producto->codigo }}</span>
-            </label>
+            {{-- Oferta con alcance: sin oferta, en el sitio y la Zona de Clientes, o sólo en la Zona de Clientes. --}}
+            @php($alcance = $producto->oferta?->value ?? '')
+            <label class="visually-hidden" for="oferta{{ $producto->id }}">Oferta de {{ $producto->codigo }}</label>
+            <select class="form-select form-select-sm producto-oferta-select js-producto-oferta" id="oferta{{ $producto->id }}"
+                data-producto="{{ $producto->id }}" data-codigo="{{ $producto->codigo }}" data-valor="{{ $alcance }}" data-anterior="{{ $alcance }}">
+                <option value="" @selected($alcance === '')>Sin oferta</option>
+                @foreach (\App\Enums\AlcanceOferta::cases() as $opcion)
+                    <option value="{{ $opcion->value }}" @selected($alcance === $opcion->value)>{{ $opcion === \App\Enums\AlcanceOferta::Publica ? 'Para todos' : 'Sólo clientes' }}</option>
+                @endforeach
+            </select>
         </td>
         <td class="producto-acciones" role="cell">
             <div class="producto-actions">

@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bmh;
 
+use App\Enums\AlcanceOferta;
 use App\Models\Admin;
 use App\Models\Producto;
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Tests\CreatesApplication;
 
 /**
- * Ofertas de la zona pública: el admin marca o desmarca un producto desde el listado y /ofertas
- * muestra el catálogo sólo con esos productos. Como CatalogoTest: base local, con una categoría y
- * productos propios que se borran al terminar.
+ * Ofertas con alcance: el admin las marca desde el listado (sin oferta / sitio y Zona de Clientes / sólo Zona de
+ * Clientes) y /ofertas muestra las que ve cada uno: un visitante, las del sitio; un cliente con sesión, también las
+ * «sólo clientes». Como CatalogoTest: base local, con una categoría y productos propios que se borran al terminar.
  */
 final class OfertasTest extends BaseTestCase
 {
@@ -47,7 +49,8 @@ final class OfertasTest extends BaseTestCase
             'updated_at' => now(),
         ]);
 
-        foreach (['A' => true, 'B' => true, 'C' => false] as $letra => $oferta) {
+        // A y B: en oferta en el sitio; C: sin oferta; D: sólo para la Zona de Clientes.
+        foreach (['A' => 'publica', 'B' => 'publica', 'C' => null, 'D' => 'clientes'] as $letra => $oferta) {
             $this->productos[$letra] = DB::table('productos')->insertGetId([
                 'codigo' => 'ZZOF'.$letra.substr(uniqid(), -5),
                 'nombre' => 'Producto de oferta '.$letra,
@@ -78,31 +81,38 @@ final class OfertasTest extends BaseTestCase
         return $admin;
     }
 
-    public function test_el_admin_marca_y_desmarca_una_oferta(): void
+    public function test_el_admin_cambia_el_alcance_de_la_oferta(): void
     {
         $id = $this->productos['C'];
+        $cambiar = fn (array $datos) => $this->actingAs($this->admin(), 'admin')
+            ->postJson(route('producto.oferta'), ['producto_id' => $id] + $datos)->assertOk();
+
+        $cambiar(['alcance' => 'clientes'])->assertJson(['producto_id' => $id, 'oferta' => true, 'alcance' => 'clientes', 'etiqueta' => 'Sólo Zona de Clientes']);
+        $this->assertSame(AlcanceOferta::Clientes, Producto::findOrFail($id)->oferta);
+
+        $cambiar(['alcance' => 'publica'])->assertJson(['alcance' => 'publica']);
+        $this->assertSame(AlcanceOferta::Publica, Producto::findOrFail($id)->oferta);
+
+        $cambiar(['alcance' => ''])->assertJson(['oferta' => false, 'alcance' => null]);
+        $this->assertNull(Producto::findOrFail($id)->oferta);
+
+        // Compatibilidad: sí/no y sin datos (invierte).
+        $cambiar(['oferta' => true])->assertJson(['alcance' => 'publica']);
+        $cambiar([])->assertJson(['alcance' => null]);
 
         $this->actingAs($this->admin(), 'admin')
-            ->postJson(route('producto.oferta'), ['producto_id' => $id])
-            ->assertOk()
-            ->assertJson(['producto_id' => $id, 'oferta' => true]);
-        $this->assertTrue(Producto::findOrFail($id)->oferta);
-
-        $this->actingAs($this->admin(), 'admin')
-            ->postJson(route('producto.oferta'), ['producto_id' => $id, 'oferta' => false])
-            ->assertOk()
-            ->assertJson(['oferta' => false]);
-        $this->assertFalse(Producto::findOrFail($id)->oferta);
+            ->postJson(route('producto.oferta'), ['producto_id' => $id, 'alcance' => 'cualquiera'])
+            ->assertUnprocessable();
     }
 
     public function test_un_visitante_no_puede_marcar_ofertas(): void
     {
-        $this->post(route('producto.oferta'), ['producto_id' => $this->productos['C']]);
+        $this->post(route('producto.oferta'), ['producto_id' => $this->productos['C'], 'alcance' => 'publica']);
 
-        $this->assertFalse(Producto::findOrFail($this->productos['C'])->oferta);
+        $this->assertNull(Producto::findOrFail($this->productos['C'])->oferta);
     }
 
-    public function test_ofertas_muestra_solo_los_productos_en_oferta(): void
+    public function test_un_visitante_ve_solo_las_ofertas_del_sitio(): void
     {
         $html = $this->get(route('ofertas', ['categoria' => $this->categoria]))->assertOk()->getContent();
 
@@ -111,6 +121,29 @@ final class OfertasTest extends BaseTestCase
         $this->assertStringContainsString('Producto de oferta A', $html);
         $this->assertStringContainsString('Producto de oferta B', $html);
         $this->assertStringNotContainsString('Producto de oferta C', $html);
+        $this->assertStringNotContainsString('Producto de oferta D', $html);
         $this->assertSame(2, substr_count($html, 'pbmh-card--oferta'));
+    }
+
+    public function test_un_cliente_ve_tambien_las_ofertas_solo_para_clientes(): void
+    {
+        $cliente = new User(['name' => 'Cliente', 'rol' => 'cliente']);
+        $cliente->id = 999999;
+
+        $html = $this->actingAs($cliente, 'web')->get(route('ofertas', ['categoria' => $this->categoria]))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('#<strong>3</strong>\s*productos\s*en oferta#', $html);
+        $this->assertStringContainsString('Producto de oferta D', $html);
+        $this->assertStringContainsString('Oferta para clientes', $html);
+        $this->assertSame(3, substr_count($html, 'pbmh-card--oferta'));
+    }
+
+    public function test_el_alcance_llega_del_formulario_con_valores_de_antes_y_de_ahora(): void
+    {
+        $this->assertNull(AlcanceOferta::desdeFormulario(''));
+        $this->assertNull(AlcanceOferta::desdeFormulario('0'));
+        $this->assertSame(AlcanceOferta::Publica, AlcanceOferta::desdeFormulario('1'));
+        $this->assertSame(AlcanceOferta::Clientes, AlcanceOferta::desdeFormulario('clientes'));
+        $this->assertNull(AlcanceOferta::desdeFormulario('cualquiera'));
     }
 }

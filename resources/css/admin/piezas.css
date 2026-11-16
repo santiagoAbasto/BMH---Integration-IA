@@ -628,3 +628,62 @@ td > .adm-acciones {
         }
     }
 }
+
+/* Oferta del producto (crear/editar): tres opciones como tarjetas; la elegida con oferta se marca en naranja. */
+.adm-oferta {
+    margin: 0;
+}
+
+.adm-oferta__opciones {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.adm-oferta__opcion {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--adm-border-strong);
+    border-radius: var(--adm-radius-sm);
+    background-color: var(--adm-surface);
+    cursor: pointer;
+
+    & input {
+        flex-shrink: 0;
+        margin-top: 0.2rem;
+    }
+
+    & strong {
+        display: block;
+        color: var(--adm-ink);
+        font-size: 0.875rem;
+    }
+
+    & small {
+        display: block;
+        color: var(--adm-muted);
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+
+    &:has(input:focus-visible) {
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 2px;
+    }
+
+    &:has(input:checked) {
+        border-color: var(--adm-brand-strong);
+        background-color: var(--adm-brand-softer);
+    }
+
+    &.adm-oferta__opcion--activa:has(input:checked) {
+        border-color: #c2410c;
+        background-color: #fff7ed;
+
+        & strong {
+            color: #9a3412;
+        }
+    }
+}
