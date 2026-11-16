@@ -226,3 +226,81 @@
     font-size: 1.25rem;
     font-weight: 300;
 }
+
+/* Tarjetas de categoría en celular (Home y Productos): el nombre con un tamaño fijo, sin cortar palabras con guiones,
+   y lugar para tres renglones en todas, así cada tarjeta mide lo mismo que su vecina sin importar el nombre. */
+@media (width < 768px) {
+    .bmh-grilla-rubros {
+        align-items: stretch;
+    }
+
+    .bmh-grilla-rubros > li,
+    .bmh-grilla-rubros .osole-category-card-v1 {
+        block-size: 100%;
+    }
+
+    .osole-category-card-v1 {
+        --osole-category-card-padding-inline: 0.75rem;
+        --osole-category-card-padding-block-start: 0.75rem;
+        --osole-category-card-padding-block-end: 0.875rem;
+        --osole-category-card-gap: 0.375rem;
+        --osole-category-card-icon-size: 1.125rem;
+    }
+
+    /* La flecha pasa a la foto (botón redondo arriba a la derecha): el nombre usa todo el ancho de la tarjeta. */
+    .osole-category-card-v1 {
+        position: relative;
+    }
+
+    .osole-category-card-v1 .osole-category-card-v1__icon {
+        position: absolute;
+        inset-block-start: 0.5rem;
+        inset-inline-end: 0.5rem;
+        display: grid;
+        place-items: center;
+        inline-size: 2rem;
+        block-size: 2rem;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 0.92);
+        box-shadow: 0 2px 8px rgb(10 14 20 / 0.15);
+
+        & svg {
+            inline-size: 1.125rem;
+            block-size: 1.125rem;
+        }
+    }
+
+    .osole-category-card-v1 .osole-category-card-v1__name {
+        display: -webkit-box;
+        min-block-size: 3rem; /* tres renglones de 16px */
+        overflow: hidden;
+        font-size: 0.6875rem; /* 11px: «PORTAESCOBILLAS» entra entera en una tarjeta de 320px */
+        line-height: 1rem;
+        letter-spacing: 0.01em;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+}
+
+/* Celulares de menos de 360px: un punto menos para que «PORTAESCOBILLAS» o «LIMPIAPARABRISAS» entren sin cortarse. */
+@media (width < 360px) {
+    .osole-category-card-v1 .osole-category-card-v1__name {
+        font-size: 0.625rem; /* 10px */
+        line-height: 0.9375rem;
+        min-block-size: 2.8125rem;
+        letter-spacing: 0;
+    }
+}
+
+/* Celulares anchos (400–767px): las tarjetas tienen más lugar y el nombre va un punto más grande. */
+@media (400px <= width < 768px) {
+    .osole-category-card-v1 .osole-category-card-v1__name {
+        font-size: 0.75rem; /* 12px */
+        line-height: 1.0625rem;
+        min-block-size: 3.1875rem;
+    }
+}
