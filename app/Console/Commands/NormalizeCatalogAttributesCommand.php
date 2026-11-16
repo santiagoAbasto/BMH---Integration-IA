@@ -21,6 +21,12 @@ final class NormalizeCatalogAttributesCommand extends Command
 
     public function handle(): int
     {
+        // Las columnas columna_N se borraron (2026_11_16_000002): los valores están en caracteristica_producto.
+        if (! Schema::hasColumn('productos', LegacyAttributeMap::column(1))) {
+            $this->error('Las columnas columna_N ya no existen: los atributos de los productos están en caracteristica_producto.');
+            return self::FAILURE;
+        }
+
         if (! Schema::hasTable('producto_atributo')) {
             $this->error('Falta ejecutar la migración que crea las tablas normalizadas.');
             return self::FAILURE;

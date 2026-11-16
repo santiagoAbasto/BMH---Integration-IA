@@ -88,6 +88,16 @@ final class CaracteristicasProductoBaseRealTest extends BaseTestCase
         $this->assertStringContainsString('value="HORARIO"', $html);
     }
 
+    public function test_traer_de_otra_categoria_la_encuentra_sin_importar_mayusculas(): void
+    {
+        $nombre = DB::table('categorias')->where('id', $this->categoria)->value('nombre');
+
+        $this->actingAs($this->admin(), 'admin')
+            ->getJson(route('caracteristicas.origenes', ['q' => mb_strtolower($nombre), 'tipo' => 'categoria']))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $this->categoria, 'titulo' => $nombre]);
+    }
+
     public function test_copiar_de_otro_producto_trae_sus_valores(): void
     {
         $this->actingAs($this->admin(), 'admin')

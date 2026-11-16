@@ -795,12 +795,6 @@ public function dash_productos(Request $request)
         $nuevo_producto->precioN = $request->precioN;
         $nuevo_producto->descuento = $request->descuento;
 
-        $nuevo_producto->diametroInterno = $request->diametroInterno;
-        $nuevo_producto->diametroExterno = $request->diametroExterno;
-        $nuevo_producto->anchoBanda = $request->anchoBanda;
-        $nuevo_producto->tolerancia = $request->tolerancia;
-        $nuevo_producto->blindaje = $request->blindaje;
-
         $nuevo_producto->marca = $request->marca;
         $nuevo_producto->modelo = $request->modelo;
 

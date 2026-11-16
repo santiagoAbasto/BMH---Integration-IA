@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Caracteristicas;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -180,7 +181,11 @@ final class MigracionCaracteristicas
                 }
             }
         }
-        foreach (DB::table('categoria_caracteristica')->whereNull('deleted_at')->get(['categoria_id', 'caracteristica_id']) as $v) {
+        // Si la tabla vieja ya se borró (2026_11_16_000002), no hay nada más que traer de ahí.
+        $viejas = Schema::hasTable('categoria_caracteristica')
+            ? DB::table('categoria_caracteristica')->whereNull('deleted_at')->get(['categoria_id', 'caracteristica_id'])
+            : collect();
+        foreach ($viejas as $v) {
             $clave = $v->categoria_id.'-'.$v->caracteristica_id;
             if (! isset($filas[$clave])) {
                 $filas[$clave] = ['categoria_id' => $v->categoria_id, 'caracteristica_id' => $v->caracteristica_id];
@@ -242,7 +247,7 @@ final class MigracionCaracteristicas
             });
 
         // Sistema anterior: la última fila de cada producto/característica (como lo mostraba el sitio).
-        $ultimas = DB::table('producto_caracteristica as pc')
+        $ultimas = ! Schema::hasTable('producto_caracteristica') ? collect() : DB::table('producto_caracteristica as pc')
             ->join('productos as p', 'p.id', '=', 'pc.producto_id')
             ->whereNull('pc.deleted_at')
             ->whereIn('pc.id', fn ($q) => $q->selectRaw('MAX(id)')->from('producto_caracteristica')->whereNull('deleted_at')->groupBy('producto_id', 'caracteristica_id'))
