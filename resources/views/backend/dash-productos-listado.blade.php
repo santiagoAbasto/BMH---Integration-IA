@@ -29,6 +29,9 @@
                     <option value="{{ $opcion->value }}" @selected($alcance === $opcion->value)>{{ $opcion === \App\Enums\AlcanceOferta::Publica ? 'Para todos' : 'Sólo clientes' }}</option>
                 @endforeach
             </select>
+            @if ($producto->porcentajeOferta())
+                <small class="producto-oferta-descuento">−{{ $producto->porcentajeOferta() }}% · ${{ number_format($producto->precioOferta(), 2, ',', '.') }}</small>
+            @endif
         </td>
         <td class="producto-acciones" role="cell">
             <div class="producto-actions">

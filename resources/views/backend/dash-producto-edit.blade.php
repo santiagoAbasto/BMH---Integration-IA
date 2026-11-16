@@ -196,7 +196,7 @@
                         </fieldset>
                     </div>
                     <div class="col-md-6">
-                        @include('backend.partials.oferta-producto', ['actual' => $producto->oferta?->value ?? ''])
+                        @include('backend.partials.oferta-producto', ['actual' => $producto->oferta?->value ?? '', 'tipo' => $producto->oferta_tipo, 'valor' => $producto->oferta_valor])
                     </div>
                 </div>
             </div>

@@ -42,7 +42,8 @@ final class ListaPreciosCompleta
             $hoja->setCellValue("B{$fila}", (string) $producto->nombre);
             $hoja->setCellValue("C{$fila}", (string) ($producto->categoria?->nombre ?? ''));
             $hoja->setCellValue("D{$fila}", self::ESTADOS[(int) $producto->estado] ?? '');
-            $hoja->setCellValue("E{$fila}", round((float) $producto->precio(), 2));
+            // Precio de lista oficial: las ofertas no cambian la lista de precios.
+            $hoja->setCellValue("E{$fila}", round($producto->precioLista(), 2));
             $fila++;
         }
 

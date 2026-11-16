@@ -300,33 +300,71 @@ class Producto extends Model
     }
 
 
+    public const OFERTA_PORCENTAJE = 'porcentaje';
+
+    public const OFERTA_PRECIO = 'precio';
+
+    /**
+     * Precio de lista que paga quien está mirando: el de la oferta si el producto está en oferta con descuento y lo
+     * mira un cliente con sesión (para el resto —visitantes, el admin, los Excel oficiales— es el de lista). Sobre
+     * éste se aplican después el descuento del producto, el del cliente, el IVA y el margen de reventa, así el
+     * carrito y el pedido cobran la oferta sin tocar nada más.
+     *
+     * (Antes acá había un Categoria::find por llamada cuyo resultado no se usaba: los aumentos y descuentos por
+     * categoría están comentados desde hace tiempo.)
+     */
     public function precio()
     {
-        $categoria = Categoria::find($this->categoria_id);  
-        $basePrecio = $this->precio;
-    
-        // // Aplicar aumento de la categoría
-        // if (!empty($categoria->aumento) && $categoria->aumento > 0) {
-        //     $basePrecio *= (1 + ($categoria->aumento / 100));
-        // } 
-        // // Aplicar descuento de la categoría
-        // elseif (!empty($categoria->descuento) && $categoria->descuento > 0) {
-        //     $basePrecio *= (1 - ($categoria->descuento / 100));
-        // }
-    
-        // // Aplicar aumento en el producto
-        // if (!empty($this->aumento) && $this->aumento > 0) {
-        //     $basePrecio *= (1 + ($this->aumento / 100));
-        // }
-        // // Aplicar descuento en el producto
-        // elseif (!empty($this->descuento) && $this->descuento > 0) {
-        //     $basePrecio *= (1 - ($this->descuento / 100));
-        // }
-    
-        return $basePrecio;
+        return $this->ofertaAplicaPrecio() ? $this->precioOferta() : $this->precio;
     }
-    
-    
+
+    /** El precio de lista cargado en el admin, sin oferta. */
+    public function precioLista(): float
+    {
+        return (float) $this->precio;
+    }
+
+    /** Precio de lista con el descuento de la oferta, o null si la oferta no tiene descuento (o no hay oferta). */
+    public function precioOferta(): ?float
+    {
+        $valor = (float) ($this->oferta_valor ?? 0);
+        if ($this->oferta === null || $valor <= 0) {
+            return null;
+        }
+
+        return match ($this->oferta_tipo) {
+            self::OFERTA_PORCENTAJE => $valor < 100 ? round($this->precioLista() * (1 - $valor / 100), 2) : null,
+            self::OFERTA_PRECIO => $valor < $this->precioLista() ? round($valor, 2) : null,
+            default => null,
+        };
+    }
+
+    /** ¿El precio de oferta se aplica a quien está mirando? (Sólo clientes con sesión ven y pagan precios.) */
+    public function ofertaAplicaPrecio(): bool
+    {
+        return self::veOfertasDeClientes() && $this->ofertaVisible(true) && $this->precioOferta() !== null;
+    }
+
+    /** Cuánto baja la oferta el precio de lista, en % entero (para la etiqueta «−15%»), o null. */
+    public function porcentajeOferta(): ?int
+    {
+        $oferta = $this->precioOferta();
+        $lista = $this->precioLista();
+
+        return $oferta !== null && $lista > 0 ? (int) round((1 - $oferta / $lista) * 100) : null;
+    }
+
+    /** Lo que pagaría el cliente sin la oferta (lista con el descuento del producto y el suyo): el «antes». */
+    public function precioClienteSinOferta(): float
+    {
+        $precio = $this->precioLista() * (1 - floatval($this->descuento) / 100);
+        if (Auth::guard('web')->check()) {
+            $precio *= 1 - (Auth::guard('web')->user()->descuento / 100);
+        }
+
+        return $precio;
+    }
+
     public function precio_final()
     {
         $precioConPorcentaje = $this->precio();

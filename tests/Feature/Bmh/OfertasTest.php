@@ -138,6 +138,71 @@ final class OfertasTest extends BaseTestCase
         $this->assertSame(3, substr_count($html, 'pbmh-card--oferta'));
     }
 
+    private function cliente(): User
+    {
+        $cliente = (new User())->forceFill(['name' => 'Cliente', 'rol' => 'cliente', 'descuento' => 10]);
+        $cliente->id = 999999;
+
+        return $cliente;
+    }
+
+    public function test_el_precio_de_oferta_se_calcula_con_porcentaje_o_precio_fijo(): void
+    {
+        DB::table('productos')->where('id', $this->productos['A'])->update(['precio' => 1000, 'oferta_tipo' => 'porcentaje', 'oferta_valor' => 20]);
+        DB::table('productos')->where('id', $this->productos['B'])->update(['precio' => 1000, 'oferta_tipo' => 'precio', 'oferta_valor' => 750]);
+        $a = Producto::findOrFail($this->productos['A']);
+        $b = Producto::findOrFail($this->productos['B']);
+
+        $this->assertSame(800.0, $a->precioOferta());
+        $this->assertSame(20, $a->porcentajeOferta());
+        $this->assertSame(750.0, $b->precioOferta());
+        $this->assertSame(25, $b->porcentajeOferta());
+
+        // Un visitante (y el admin) ve el precio de lista: la oferta sólo cambia el precio para clientes con sesión.
+        $this->assertEquals(1000, $a->precio());
+
+        $this->actingAs($this->cliente(), 'web');
+        $this->assertEquals(800, $a->precio());
+        // Antes: lista con el 10% del cliente; ahora: oferta con el mismo 10%.
+        $this->assertEqualsWithDelta(900.0, $a->precioClienteSinOferta(), 0.001);
+        $this->assertEqualsWithDelta(720.0, $a->precio_unitario_descontado(), 0.001);
+    }
+
+    public function test_la_tarjeta_del_cliente_muestra_el_precio_de_antes_y_el_de_ahora(): void
+    {
+        DB::table('productos')->where('id', $this->productos['A'])->update(['precio' => 1000, 'oferta_tipo' => 'porcentaje', 'oferta_valor' => 20]);
+
+        $html = $this->actingAs($this->cliente(), 'web')
+            ->get(route('ofertas', ['categoria' => $this->categoria]))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Precio de oferta', $html);
+        $this->assertStringContainsString('−20%', $html);
+        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__ahora">\$720,00#', $html);
+        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__antes">.*\$900,00#s', $html);
+        $this->assertStringContainsString('Ahorrás $180,00 por unidad', $html);
+
+        // Zona pública (sin sesión): ni precio de antes y de ahora ni porcentaje; sólo la etiqueta «Oferta».
+        auth('web')->logout();
+        $publico = $this->get(route('ofertas', ['categoria' => $this->categoria]))->getContent();
+        $this->assertStringNotContainsString('Precio de oferta', $publico);
+        $this->assertStringNotContainsString('−20%', $publico);
+        $this->assertStringNotContainsString('$720,00', $publico);
+        $this->assertStringContainsString('pbmh-card--oferta', $publico);
+    }
+
+    public function test_el_admin_no_puede_cargar_un_descuento_imposible(): void
+    {
+        DB::table('productos')->where('id', $this->productos['C'])->update(['precio' => 1000]);
+        $enviar = fn (array $datos) => $this->actingAs($this->admin(), 'admin')
+            ->from('/dashboard/productos/editar?id='.$this->productos['C'])
+            ->put(route('producto.update'), ['id' => $this->productos['C'], 'precio' => '1000', 'oferta' => 'publica'] + $datos);
+
+        $enviar(['oferta_tipo' => 'porcentaje', 'oferta_valor' => '100'])->assertSessionHasErrors('oferta_valor');
+        $enviar(['oferta_tipo' => 'precio', 'oferta_valor' => '1200'])->assertSessionHasErrors('oferta_valor');
+        $enviar(['oferta_tipo' => 'porcentaje', 'oferta_valor' => 'mucho'])->assertSessionHasErrors('oferta_valor');
+        $this->assertNull(Producto::findOrFail($this->productos['C'])->oferta);
+    }
+
     public function test_el_alcance_llega_del_formulario_con_valores_de_antes_y_de_ahora(): void
     {
         $this->assertNull(AlcanceOferta::desdeFormulario(''));

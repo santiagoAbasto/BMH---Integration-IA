@@ -515,11 +515,11 @@ a.bmh-contacto__valor:hover {
 }
 
 .pbmh-car-label {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    max-width: 70%;
     color: #9aa0a8;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    white-space: nowrap;
 }
 
 .pbmh-car-valor {
@@ -542,4 +542,72 @@ a.bmh-contacto__valor:hover {
 
 .pbmh-cars--ficha .pbmh-car {
     font-size: 0.875rem;
+}
+
+/* --- Oferta con precio (tarjeta del catálogo, Zona de Clientes): el precio de ahora grande en naranja, el de antes
+   tachado al lado y cuánto se ahorra. */
+.pbmh-oferta-precio {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid #fed7aa;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #fff7ed, #ffffff 70%);
+}
+
+.pbmh-oferta-precio__cabeza {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.pbmh-oferta-precio__titulo {
+    color: #9a3412;
+    font-family: var(--osole-font-heading);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.pbmh-oferta-precio__pct {
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    background: #f26b1d;
+    color: #fff;
+    font-family: var(--osole-font-heading);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.pbmh-oferta-precio__valores {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+}
+
+.pbmh-oferta-precio__ahora {
+    color: #c2410c;
+    font-family: var(--osole-font-heading);
+    font-size: 1.625rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.pbmh-oferta-precio__antes {
+    color: #8792a2;
+    font-size: 0.9375rem;
+    text-decoration-thickness: 1.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.pbmh-oferta-precio__ahorro {
+    margin: 0;
+    color: #3f8f1a;
+    font-size: 0.8125rem;
+    font-weight: 600;
 }

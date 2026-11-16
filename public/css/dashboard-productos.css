@@ -495,3 +495,11 @@
     color: #9a3412;
     font-weight: 600;
 }
+.productos-table .producto-oferta-descuento {
+    display: block;
+    margin-top: .25rem;
+    color: #9a3412;
+    font-size: .75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}

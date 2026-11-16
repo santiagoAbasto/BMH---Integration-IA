@@ -769,7 +769,7 @@ public function dash_productos(Request $request)
         $nuevo_producto = new Producto();
         $nuevo_producto->nombre = $request->nombre;
         if ($request->has('oferta')) {
-            $nuevo_producto->oferta = \App\Enums\AlcanceOferta::desdeFormulario($request->input('oferta'));
+            $nuevo_producto->forceFill($this->ofertaDelFormulario($request, (float) str_replace(',', '.', (string) $request->input('precio'))));
         }
         $nuevo_producto->orden = $request->orden;
         $nuevo_producto->codigo = $request->codigo;
@@ -900,8 +900,11 @@ public function dash_productos(Request $request)
 
         $producto = Producto::find($request->id);
         $sincronizar = app(SincronizarCaracteristicasProducto::class);
-        // Las características se validan antes de guardar nada: un valor mal escrito vuelve a su campo.
+        // Las características y la oferta se validan antes de guardar nada: un valor mal escrito vuelve a su campo.
         $this->validarCaracteristicas($request, $sincronizar);
+        $oferta = $request->has('oferta')
+            ? $this->ofertaDelFormulario($request, (float) str_replace(',', '.', (string) ($request->input('precio') ?? $producto?->precio)))
+            : null;
 
         if ($request->hasFile('imagenes')) {
             $files = $request->file('imagenes');
@@ -973,8 +976,8 @@ public function dash_productos(Request $request)
         $producto->orden_partes = Producto::normalizarModoOrden($request->input('orden_partes_mode'));
 
         // Oferta (zona pública): sólo si el formulario la manda, así no se pierde al guardar.
-        if ($request->has('oferta')) {
-            $producto->oferta = \App\Enums\AlcanceOferta::desdeFormulario($request->input('oferta'));
+        if ($oferta !== null) {
+            $producto->forceFill($oferta);
         }
 
         $producto->save();
@@ -1009,6 +1012,37 @@ public function dash_productos(Request $request)
 
         $existentes = \App\Models\Caracteristica::query()->whereIn('id', $ids)->pluck('id')->all();
         $categoria->caracteristicas()->syncWithoutDetaching($existentes);
+    }
+
+    /**
+     * La oferta tal como viene del formulario de crear/editar, validada: alcance (sin oferta / para todos / sólo
+     * clientes) y su descuento opcional, en porcentaje sobre el precio de lista o como precio de oferta. Sin oferta,
+     * el descuento se borra. Un valor imposible (100% o un precio de oferta mayor que el de lista) vuelve a su campo.
+     *
+     * @return array{oferta: ?\App\Enums\AlcanceOferta, oferta_tipo: ?string, oferta_valor: ?float}
+     */
+    private function ofertaDelFormulario(Request $request, float $precioLista): array
+    {
+        $alcance = \App\Enums\AlcanceOferta::desdeFormulario($request->input('oferta'));
+        $tipo = in_array($request->input('oferta_tipo'), [Producto::OFERTA_PORCENTAJE, Producto::OFERTA_PRECIO], true) ? $request->input('oferta_tipo') : null;
+        $crudo = trim((string) $request->input('oferta_valor'));
+        $valor = $crudo === '' ? null : str_replace(',', '.', $crudo);
+
+        if ($alcance === null || $tipo === null || $valor === null) {
+            return ['oferta' => $alcance, 'oferta_tipo' => null, 'oferta_valor' => null];
+        }
+
+        $error = match (true) {
+            ! is_numeric($valor) || (float) $valor <= 0 => 'Escribí un número mayor que cero.',
+            $tipo === Producto::OFERTA_PORCENTAJE && (float) $valor >= 100 => 'El descuento tiene que ser menor que 100%.',
+            $tipo === Producto::OFERTA_PRECIO && $precioLista > 0 && (float) $valor >= $precioLista => 'El precio de oferta tiene que ser menor que el precio de lista ($ '.number_format($precioLista, 2, ',', '.').').',
+            default => null,
+        };
+        if ($error !== null) {
+            throw ValidationException::withMessages(['oferta_valor' => $error]);
+        }
+
+        return ['oferta' => $alcance, 'oferta_tipo' => $tipo, 'oferta_valor' => round((float) $valor, 2)];
     }
 
     /** @return array<int|string, mixed> caracteristica_id => valor, como viene del formulario */
