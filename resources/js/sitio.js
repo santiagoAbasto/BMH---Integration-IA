@@ -5,3 +5,4 @@ import '../../vendor/osole/ui/resources/components/header-catalog/v1/header-cata
 import '../../vendor/osole/ui/resources/components/hero/v1/hero.js';
 import './components/contact-map';
 import './components/popovers-header';
+import './components/motion';
