@@ -32,28 +32,28 @@ ampliada con un **asesor técnico-comercial** que entiende mensajes incompletos,
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 📑 Contenido
+## <img src="docs/readme/ic-indice.svg" width="24" height="24" alt=""> Contenido
 
 - [El problema](#-el-problema)
 - [La solución](#-la-solución)
 - [Funcionalidades](#-funcionalidades)
-- [Arquitectura](#️-arquitectura)
+- [Arquitectura](#-arquitectura)
 - [Flujos de trabajo](#-flujos-de-trabajo)
-- [Modelo de datos](#️-modelo-de-datos)
+- [Modelo de datos](#-modelo-de-datos)
 - [Criterios y decisiones](#-criterios-y-decisiones)
 - [Stack](#-stack)
-- [Estructura del repo](#️-estructura-del-repo)
+- [Estructura del repo](#-estructura-del-repo)
 - [Puesta en marcha](#-puesta-en-marcha)
 - [Pruebas y calidad](#-pruebas-y-calidad)
 - [Despliegue](#-despliegue)
 - [Estado y pendientes](#-estado-y-pendientes)
 - [Licencia y autoría](#-licencia-y-autoría)
 
-## 🧩 El problema
+## <img src="docs/readme/ic-problema.svg" width="24" height="24" alt=""> El problema
 
 Un mostrador de repuestos eléctricos recibe pedidos como «la bobina del Gol que vino la otra vez» o una foto borrosa de un regulador. El catálogo de BMH tiene unos 5.000 productos con **74 atributos técnicos guardados en columnas posicionales** (`columna_57` es «terminales descripción»), códigos duplicados y equivalencias entre marcas. Identificar la pieza correcta dependía de que un vendedor la reconociera, y cotizarla, de aplicar a mano la fórmula de descuentos del cliente.
 
-## 💡 La solución
+## <img src="docs/readme/ic-solucion.svg" width="24" height="24" alt=""> La solución
 
 Una aplicación Laravel que ya resolvía catálogo, clientes, carrito y pedidos, más un **asesor conversacional** dentro de la Zona de Clientes que:
 
@@ -68,7 +68,7 @@ Una aplicación Laravel que ya resolvía catálogo, clientes, carrito y pedidos,
 | **Administrador** | Gestiona productos, categorías, atributos, clientes, pedidos, contenido, imágenes y listas de precios; revisa el laboratorio de IA |
 | **Vendedor** | Recibe las derivaciones del asesor con el contexto de la conversación |
 
-## ✨ Funcionalidades
+## <img src="docs/readme/ic-funcionalidades.svg" width="24" height="24" alt=""> Funcionalidades
 
 <details open>
 <summary><b>Sitio comercial y Zona de Clientes</b></summary>
@@ -111,7 +111,7 @@ Una aplicación Laravel que ya resolvía catálogo, clientes, carrito y pedidos,
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🏗️ Arquitectura
+## <img src="docs/readme/ic-arquitectura.svg" width="24" height="24" alt=""> Arquitectura
 
 <img src="docs/readme/flujo.svg" alt="Turno del asesor: el cliente escribe o manda una foto, el widget React lo envía por REST/SSE, el orquestador interpreta con IA y decide, busca en el catálogo legacy de solo lectura y responde con el precio de la fórmula de producción" width="100%">
 
@@ -177,7 +177,7 @@ Reglas que sostienen el diseño (detalle en [`docs/architecture.md`](docs/archit
 - **El tenant es el cliente de la sesión**: el asesor nunca acepta un `customer_id` del navegador.
 - **Interfaces del dominio** (`CatalogRepositoryInterface`, `PricingRepositoryInterface`…) atadas en `BmhAdvisorServiceProvider`: cuando BMH normalice su esquema, se cambia el binding y nada más.
 
-## 🔄 Flujos de trabajo
+## <img src="docs/readme/ic-flujos.svg" width="24" height="24" alt=""> Flujos de trabajo
 
 ### Un turno del asesor
 
@@ -226,7 +226,7 @@ stateDiagram-v2
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🗃️ Modelo de datos
+## <img src="docs/readme/ic-datos.svg" width="24" height="24" alt=""> Modelo de datos
 
 Entidades principales del sitio (base heredada) y del asesor (base `mysql_ai`, migración `2026_08_10_000100_create_bmh_advisor_tables.php` y siguientes):
 
@@ -292,7 +292,7 @@ erDiagram
 
 `CATALOG_SEARCH_DOCUMENTS` es el índice materializado (con `FULLTEXT`) que `bmh:catalog-sync` reconstruye con hash de contenido; no toca la base legacy.
 
-## 🧭 Criterios y decisiones
+## <img src="docs/readme/ic-criterios.svg" width="24" height="24" alt=""> Criterios y decisiones
 
 | Decisión | Por qué |
 |---|---|
@@ -307,7 +307,7 @@ erDiagram
 | La similitud visual pesa menos que un código exacto | Un código leído en una foto es una inferencia, no un hecho |
 | Productos con `estado = 0` fuera de resultados | Son productos despublicados |
 
-## 🧱 Stack
+## <img src="docs/readme/ic-stack.svg" width="24" height="24" alt=""> Stack
 
 | Capa | Tecnología | Versión |
 |---|---|---|
@@ -320,7 +320,7 @@ erDiagram
 | Integraciones | Georef (Argentina) · reCAPTCHA · Laravel Mail · PhpSpreadsheet 2.1 · Guzzle 7 | — |
 | Calidad | PHPUnit · Laravel Pint | 10.5 · 1 |
 
-## 🗂️ Estructura del repo
+## <img src="docs/readme/ic-estructura.svg" width="24" height="24" alt=""> Estructura del repo
 
 ```text
 app/
@@ -338,7 +338,7 @@ tests/Feature/Bmh/       suite principal del asesor y del dominio
 docs/                    arquitectura, IA, búsqueda, precios, seguridad, datos y despliegue
 ```
 
-## 🚀 Puesta en marcha
+## <img src="docs/readme/ic-arranque.svg" width="24" height="24" alt=""> Puesta en marcha
 
 Requisitos: PHP 8.1 o superior (la documentación usa 8.5 en local), Composer 2, Node.js 20+ y MySQL/MariaDB. Hace falta una copia **autorizada** del esquema legacy; los datos reales no se distribuyen.
 
@@ -370,7 +370,7 @@ npm run build && php artisan serve
 
 La guía paso a paso del asesor (bases locales, usuarios de demo, cómo probar el flujo en el navegador) está en [**README-ASESOR.md**](README-ASESOR.md); la normalización del catálogo, en [`docs/normalizacion-catalogo-runbook.md`](docs/normalizacion-catalogo-runbook.md).
 
-## 🧪 Pruebas y calidad
+## <img src="docs/readme/ic-pruebas.svg" width="24" height="24" alt=""> Pruebas y calidad
 
 ```bash
 php -d memory_limit=512M vendor/bin/phpunit --testsuite=BMH
@@ -382,7 +382,7 @@ php -d memory_limit=512M vendor/bin/phpunit --testsuite=BMH
 - Los tests heredados de Breeze (`tests/Feature/Auth`) fallan desde antes del asesor porque dependen de tablas que las migraciones no crean.
 - No hay pruebas E2E, de carga ni pipeline de CI.
 
-## 🚢 Despliegue
+## <img src="docs/readme/ic-despliegue.svg" width="24" height="24" alt=""> Despliegue
 
 Manual, en hosting Linux con cPanel ([`docs/deployment.md`](docs/deployment.md)):
 
@@ -394,14 +394,14 @@ Manual, en hosting Linux con cPanel ([`docs/deployment.md`](docs/deployment.md))
 
 No hay Docker, CI/CD ni infraestructura como código. La cola es síncrona y los correos salen en la misma solicitud.
 
-## 📌 Estado y pendientes
+## <img src="docs/readme/ic-estado.svg" width="24" height="24" alt=""> Estado y pendientes
 
 - **Último commit:** 5 de noviembre de 2026 (`feat: fortalecer correcciones y comparación visual del asesor IA`), en la rama `main`.
 - El asesor está implementado y probado; el acceso se limita a una lista de clientes (beta cerrada). Si la versión actual está en producción **no está verificado** desde el repositorio.
 - Pendientes documentados: búsqueda semántica con embeddings (apagada a propósito), panel de métricas del asesor (los datos ya se registran en `ai_audit_logs`, `ai_feedback` y `ai_handoffs`), pruebas E2E y antivirus para adjuntos.
 - Riesgos heredados del sitio: una clave de reCAPTCHA incrustada en el código antiguo (hay que rotarla y pasarla al entorno), vistas Blade que renderizan HTML administrable sin escape y el middleware CSP desactivado en el grupo `web`.
 
-## 📄 Licencia y autoría
+## <img src="docs/readme/ic-licencia.svg" width="24" height="24" alt=""> Licencia y autoría
 
 Software propietario de BMH. Todos los derechos reservados: no se distribuye ni se publica sin autorización. Los dumps SQL, imágenes y datos de clientes que hay en la carpeta de trabajo **no** forman parte de lo publicable.
 
