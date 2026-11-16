@@ -203,6 +203,30 @@ final class OfertasTest extends BaseTestCase
         $this->assertNull(Producto::findOrFail($this->productos['C'])->oferta);
     }
 
+    public function test_sin_ofertas_se_ve_el_cartel_con_el_boton_a_todos_los_productos(): void
+    {
+        // Sólo queda D, la oferta «sólo Zona de Clientes»: el visitante ve el cartel; el cliente, la oferta.
+        DB::table('productos')->whereIn('id', [$this->productos['A'], $this->productos['B']])->update(['oferta' => null]);
+        $url = route('ofertas', ['categoria' => $this->categoria]);
+
+        $visitante = $this->get($url)->assertOk()->getContent();
+        $this->assertStringContainsString('No hay ofertas disponibles en', $visitante);
+        $this->assertStringContainsString('href="'.route('productos').'"', $visitante);
+        $this->assertStringContainsString('Ver todos los productos', $visitante);
+        $this->assertStringNotContainsString('pbmh-card--oferta', $visitante, 'no sugiere productos que no están en oferta');
+        $this->assertStringNotContainsString('Sin coincidencias exactas', $visitante);
+
+        $cliente = $this->actingAs($this->cliente(), 'web')->get($url)->assertOk()->getContent();
+        $this->assertStringNotContainsString('No hay ofertas disponibles', $cliente);
+        $this->assertStringContainsString('Producto de oferta D', $cliente);
+
+        // Sin ninguna oferta, el cliente también ve el cartel.
+        DB::table('productos')->where('id', $this->productos['D'])->update(['oferta' => null]);
+        $cliente = $this->actingAs($this->cliente(), 'web')->get($url)->assertOk()->getContent();
+        $this->assertStringContainsString('No hay ofertas disponibles en', $cliente);
+        $this->assertStringContainsString('Ver todos los productos', $cliente);
+    }
+
     public function test_el_alcance_llega_del_formulario_con_valores_de_antes_y_de_ahora(): void
     {
         $this->assertNull(AlcanceOferta::desdeFormulario(''));

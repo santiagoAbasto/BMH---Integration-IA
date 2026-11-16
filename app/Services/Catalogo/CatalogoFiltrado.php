@@ -177,6 +177,12 @@ final class CatalogoFiltrado
         }
         $pool = $this->conValores($pool->map(fn (Producto $p) => (object) $p->getAttributes()), array_keys($columnasAtributo));
 
+        // En /ofertas los parecidos también tienen que estar en oferta: si no, «Ofertas» mostraba productos sin oferta.
+        if ($filtros->soloOfertas) {
+            $ofertas = Producto::query()->enOfertaVisible()->pluck('id')->flip();
+            $pool = $pool->filter(fn (object $p) => isset($ofertas[$p->id]))->values();
+        }
+
         $aplicaciones = $this->aplicacionesDe($pool);
         $gradosEquivalencia = $filtros->equivalencia !== null
             ? $this->equivalencias->coincidencias($filtros->equivalencia)

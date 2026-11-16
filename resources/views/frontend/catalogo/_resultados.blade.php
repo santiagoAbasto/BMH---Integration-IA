@@ -54,6 +54,26 @@
 
 @if ($total === 0 && $parecidos !== null)
     @include('frontend.catalogo._parecidos')
+@elseif ($total === 0 && $filtros->soloOfertas && ! $hayFiltros && ! $filtros->hayBusqueda())
+    {{-- /ofertas sin ofertas (para el visitante y para el cliente con sesión): el cartel lleva a todos los productos. --}}
+    <div class="catalogo__vacio catalogo__vacio--ofertas">
+        <span class="catalogo__vacio-icono" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>
+        </span>
+        @if (! empty($categoria))
+            <h2>No hay ofertas disponibles en {{ mb_convert_case($categoria->nombre, MB_CASE_TITLE, 'UTF-8') }}</h2>
+            <p>Por ahora no hay productos de esta línea en oferta. Mirá las ofertas de las otras líneas o todo el catálogo.</p>
+        @else
+            <h2>No hay ofertas disponibles</h2>
+            <p>Por ahora no tenemos productos en oferta. Volvé a fijarte pronto o recorré todo el catálogo.</p>
+        @endif
+        <div class="catalogo__vacio-acciones">
+            <a class="catalogo__boton catalogo__boton--lleno" href="{{ route('productos') }}">Ver todos los productos</a>
+            @if (! empty($categoria))
+                <a class="catalogo__boton" data-catalogo-link href="{{ route('ofertas') }}">Ver todas las ofertas</a>
+            @endif
+        </div>
+    </div>
 @elseif ($total === 0)
     <div class="catalogo__vacio">
         <span class="catalogo__vacio-icono" aria-hidden="true">
