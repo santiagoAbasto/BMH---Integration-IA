@@ -16,8 +16,10 @@ use App\Http\Requests\Assistant\StoreFeedbackRequest;
 use App\Models\Ai\AiAttachment;
 use App\Models\Ai\AiCartOperation;
 use App\Models\Ai\AiConversation;
+use App\Models\Ai\AiDemoAccount;
 use App\Models\Ai\AiFeedback;
 use App\Services\Ai\AiProviderManager;
+use App\Services\Ai\ApprovedCorrectionService;
 use App\Services\Ai\AssistantCartService;
 use App\Services\Ai\AttachmentService;
 use App\Services\Ai\ConversationOrchestrator;
@@ -48,6 +50,7 @@ final class AssistantController extends Controller
         private readonly HumanHandoffService $handoff,
         private readonly AiProviderManager $providers,
         private readonly AssistantCartService $cart,
+        private readonly ApprovedCorrectionService $approvedCorrections,
     ) {
     }
 
@@ -399,13 +402,6 @@ final class AssistantController extends Controller
             ], 422);
         }
 
-        if ($wasCorrect && $productId === null) {
-            return response()->json([
-                'message' => 'Elegí qué pieza confirmás.',
-                'code' => 'product_required',
-            ], 422);
-        }
-
         if ($wasCorrect && ($expectedProductId !== null || $expectedCode !== null)) {
             return response()->json([
                 'message' => 'La corrección esperada sólo corresponde cuando marcás que el resultado no fue correcto.',
@@ -413,7 +409,7 @@ final class AssistantController extends Controller
             ], 422);
         }
 
-        AiFeedback::query()->create([
+        $feedback = AiFeedback::query()->create([
             'conversation_id' => $conversation->id,
             'message_id' => $message->id,
             'customer_id' => $customer->id,
@@ -426,8 +422,24 @@ final class AssistantController extends Controller
             'review_status' => $wasCorrect ? 'confirmed' : 'pending',
         ]);
 
-        // Si acertó, se deja registrado el artículo resuelto: sirve para
-        // cotizar después sin volver a buscar.
+        // Las cuentas demo son probadores de confianza: lo que marcan se
+        // aprende ya (el código esperado se validó contra el catálogo arriba).
+        // El feedback de un cliente común sigue esperando a un administrador.
+        if (AiDemoAccount::isActive((int) $customer->id)) {
+            $rule = $this->approvedCorrections->rememberFromFeedback($feedback, 'demo_account');
+
+            if ($rule !== null && ! $wasCorrect) {
+                $feedback->update([
+                    'review_status' => 'approved',
+                    'reviewed_at' => now(),
+                    'admin_note' => 'Aprendida automáticamente (cuenta demo).',
+                ]);
+            }
+        }
+
+        // Una respuesta puede ser útil aunque no haya identificado una pieza.
+        // Sólo una confirmación que señala un candidato concreto resuelve la
+        // conversación y habilita las acciones posteriores sobre ese artículo.
         if ($wasCorrect && $productId !== null) {
             $conversation->update([
                 'resolved_product_id' => (int) $productId,
@@ -442,7 +454,7 @@ final class AssistantController extends Controller
 
         return response()->json([
             'ok' => true,
-            'confirmed_product_id' => $wasCorrect ? (int) $productId : null,
+            'confirmed_product_id' => $wasCorrect && $productId !== null ? (int) $productId : null,
         ]);
     }
 

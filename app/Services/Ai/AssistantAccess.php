@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ai;
 
+use App\Models\Ai\AiDemoAccount;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
@@ -26,8 +27,11 @@ final class AssistantAccess
             return true;
         }
 
+        $id = (int) $user->getAuthIdentifier();
         $permitidos = array_map('intval', (array) config('bmh.assistant_access.customer_ids', []));
 
-        return in_array((int) $user->getAuthIdentifier(), $permitidos, true);
+        // La lista del .env sigue valiendo; las cuentas demo se administran
+        // desde el panel (Aprendizaje de la IA) sin tocar el servidor.
+        return in_array($id, $permitidos, true) || AiDemoAccount::isActive($id);
     }
 }

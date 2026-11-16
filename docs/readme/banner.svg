@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#111827"/>
+  </linearGradient>
+  <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#0098DA"/><stop offset="1" stop-color="#ABD430"/>
+  </linearGradient>
+  <radialGradient id="glowA" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#0098DA" stop-opacity="0.55"/><stop offset="1" stop-color="#0098DA" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowB" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#ABD430" stop-opacity="0.45"/><stop offset="1" stop-color="#ABD430" stop-opacity="0"/>
+  </radialGradient>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity="0.05"/>
+  </pattern>
+  <clipPath id="card"><rect width="1200" height="340" rx="22"/></clipPath>
+</defs>
+<style>
+  .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;fill:#f8fafc} .s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;fill:#cbd5e1} .m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#94a3b8}
+  .floatA{animation:fa 14s ease-in-out infinite alternate} .floatB{animation:fb 17s ease-in-out infinite alternate}
+  .grid{animation:gd 20s linear infinite}
+  .bar{animation:br 3.2s ease-in-out infinite}
+  @keyframes fa{from{transform:translate(0,0)}to{transform:translate(160px,40px)}}
+  @keyframes fb{from{transform:translate(0,0)}to{transform:translate(-180px,-30px)}}
+  @keyframes gd{from{transform:translate(0,0)}to{transform:translate(40px,40px)}}
+  @keyframes br{0%,100%{opacity:.55}50%{opacity:1}}
+  .chip{animation:ch 4s ease-in-out infinite} @keyframes ch{0%,100%{opacity:1}50%{opacity:.75}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<g clip-path="url(#card)">
+  <rect width="1200" height="340" fill="url(#bg)"/>
+  <rect class="grid" x="-40" y="-40" width="1280" height="420" fill="url(#grid)"/>
+  <circle class="floatA" cx="220" cy="85" r="260" fill="url(#glowA)"/>
+  <circle class="floatB" cx="1000" cy="272" r="300" fill="url(#glowB)"/>
+  <text class="m" x="70" y="92" font-size="18" letter-spacing="3">PLATAFORMA B2B · REPUESTOS ELÉCTRICOS AUTOMOTORES</text>
+  <text class="t" x="70" y="154" font-size="64" font-weight="800">BMH · Asesor técnico IA</text>
+  <rect class="bar" x="70" y="172" width="120" height="6" rx="3" fill="url(#ac)"/>
+  <text class="s" x="70" y="220" font-size="24">Catálogo, pedidos y un asesor que identifica repuestos por texto, código o foto</text>
+  <g class="chip" style="animation-delay:0.00s"><rect x="70" y="262" width="145" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="142" y="282" font-size="15" font-weight="600" text-anchor="middle">Laravel 10.48</text></g>
+  <g class="chip" style="animation-delay:0.25s"><rect x="225" y="262" width="100" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="275" y="282" font-size="15" font-weight="600" text-anchor="middle">PHP ^8.1</text></g>
+  <g class="chip" style="animation-delay:0.50s"><rect x="335" y="262" width="100" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="385" y="282" font-size="15" font-weight="600" text-anchor="middle">React 19</text></g>
+  <g class="chip" style="animation-delay:0.75s"><rect x="445" y="262" width="136" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="513" y="282" font-size="15" font-weight="600" text-anchor="middle">TypeScript 7</text></g>
+  <g class="chip" style="animation-delay:1.00s"><rect x="591" y="262" width="109" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="646" y="282" font-size="15" font-weight="600" text-anchor="middle">Inertia 2</text></g>
+  <g class="chip" style="animation-delay:1.25s"><rect x="710" y="262" width="208" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="814" y="282" font-size="15" font-weight="600" text-anchor="middle">MySQL · 3 conexiones</text></g>
+  <g class="chip" style="animation-delay:1.50s"><rect x="70" y="302" width="226" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="183" y="322" font-size="15" font-weight="600" text-anchor="middle">Gemini · OpenAI · Mock</text></g>
+  <g class="chip" style="animation-delay:1.75s"><rect x="306" y="302" width="118" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="url(#ac)" stroke-opacity="0.7"/><text class="t" x="365" y="322" font-size="15" font-weight="600" text-anchor="middle">PHPUnit 10</text></g>
+  <circle cx="1130" cy="86" r="7" fill="#0098DA"><animate attributeName="r" values="6;9;6" dur="2.4s" repeatCount="indefinite"/></circle>
+  <circle cx="1130" cy="86" r="7" fill="none" stroke="#0098DA"><animate attributeName="r" values="7;22" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" repeatCount="indefinite"/></circle>
+  <rect width="1200" height="340" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+</g>
+</svg>

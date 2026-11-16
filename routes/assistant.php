@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AiLearningController;
 use App\Http\Controllers\AiTestLabController;
 use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\AssistantPageController;
@@ -27,6 +28,26 @@ Route::middleware(['admin', 'throttle:assistant'])
             ->whereNumber('feedback')->name('feedback.review');
         Route::get('attachments/{attachment}', [AiTestLabController::class, 'attachmentShow'])
             ->whereNumber('attachment')->name('attachments.show');
+    });
+
+// Dirigir al asesor: enseñarle qué foto es qué código, cuentas demo y métricas.
+Route::middleware(['admin'])
+    ->prefix('dashboard/ia/aprendizaje')
+    ->name('admin.ai-learning.')
+    ->group(function (): void {
+        Route::get('/', [AiLearningController::class, 'index'])->name('index');
+        Route::post('cuentas-demo', [AiLearningController::class, 'storeDemoAccount'])->name('demo.store');
+        Route::post('cuentas-demo/{account}/alternar', [AiLearningController::class, 'toggleDemoAccount'])
+            ->whereNumber('account')->name('demo.toggle');
+        Route::delete('cuentas-demo/{account}', [AiLearningController::class, 'destroyDemoAccount'])
+            ->whereNumber('account')->name('demo.destroy');
+        Route::post('ensenar', [AiLearningController::class, 'teach'])->name('teach');
+        Route::post('reglas/{rule}/alternar', [AiLearningController::class, 'toggleRule'])
+            ->whereNumber('rule')->name('rules.toggle');
+        Route::delete('reglas/{rule}', [AiLearningController::class, 'destroyRule'])
+            ->whereNumber('rule')->name('rules.destroy');
+        Route::get('reglas/{rule}/imagen', [AiLearningController::class, 'ruleImage'])
+            ->whereNumber('rule')->name('rules.image');
     });
 
 /*

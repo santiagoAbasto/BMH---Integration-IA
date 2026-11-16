@@ -57,7 +57,7 @@ final class ProductImageService
 
     public function exists(string $filename): bool
     {
-        return $this->existsCache[$filename] ??= is_file(public_path(self::PUBLIC_DIR . '/' . $filename));
+        return $this->existsCache[$filename] ??= is_file($this->absolutePath($filename));
     }
 
     /**
@@ -86,7 +86,14 @@ final class ProductImageService
 
     public function absolutePath(string $filename): string
     {
-        return public_path(self::PUBLIC_DIR . '/' . $filename);
+        return rtrim($this->directory(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($filename, DIRECTORY_SEPARATOR);
+    }
+
+    private function directory(): string
+    {
+        $configured = trim((string) config('bmh.catalog_images.path', ''));
+
+        return $configured !== '' ? $configured : public_path(self::PUBLIC_DIR);
     }
 
     /**

@@ -63,6 +63,7 @@ $secciones = [
 if ($esAdministrador) {
     $secciones[] = ['title' => 'Administración', 'items' => [
         ['label' => 'Pruebas IA', 'href' => route('admin.ai-tests.index'), 'icon' => $icono('<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>')],
+        ['label' => 'Aprendizaje IA', 'href' => route('admin.ai-learning.index'), 'icon' => $icono('<path d="m2 9 10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5M22 9v6"/>'), 'active' => request()->routeIs('admin.ai-learning.*') ? 'page' : null],
         ['label' => 'Usuarios', 'icon' => $icono('<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/>'), 'items' => [
             ['label' => 'Crear usuario', 'href' => route('nuevo.usuario')],
             ['label' => 'Editar usuarios', 'href' => route('usuarios')],

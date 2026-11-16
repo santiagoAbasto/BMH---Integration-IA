@@ -138,13 +138,23 @@ final class ConversationOrchestrator
          * búsqueda de siempre.
          */
         $usableAnalysis = $this->firstUsableAnalysis($analyses);
+        // La huella visual del catálogo también puede reconocer una captura
+        // aunque el análisis semántico no haya podido nombrar la pieza.
+        $analysisForMatch = $usableAnalysis ?? $analyses[0] ?? null;
 
-        if ($usableAnalysis !== null) {
-            $match = $this->visionMatch->match($usableAnalysis, $query, $provider, $visionImagePath);
+        if ($analysisForMatch !== null) {
+            $match = $this->visionMatch->match($analysisForMatch, $query, $provider, $visionImagePath);
 
             $candidates = $match['candidates'];
             $strategy = $match['strategy'];
             $visionNotes = $match['notes'];
+
+            // Conserva el comportamiento anterior cuando una foto realmente
+            // no se puede leer y tampoco coincide con el índice visual: el
+            // texto que escribió el cliente todavía puede servir para buscar.
+            if ($strategy === 'unusable_image' && ! $query->isEmpty()) {
+                $candidates = $this->search->search($query, true);
+            }
         } elseif (! $query->isEmpty()) {
             $candidates = $this->search->search($query, $attachments !== []);
         }
@@ -867,6 +877,21 @@ final class ConversationOrchestrator
             }
         }
 
+        $titulo = null;
+
+        foreach ($utiles as $a) {
+            $titulo ??= $a->productText;
+        }
+
+        $captura = null;
+
+        foreach ($utiles as $a) {
+            if ($a->isCatalogScreenshot() && $a->catalogCode !== null) {
+                $captura = $a;
+                break;
+            }
+        }
+
         $texto = [];
         $codigos = [];
         $atributos = [];
@@ -885,7 +910,7 @@ final class ConversationOrchestrator
              * correctamente un texto distinto.
              */
             if ($a->hasReliableCode()) {
-                foreach ($a->visibleCodes as $c) {
+                foreach ($a->searchCodes() as $c) {
                     $codigos[$c] = true;
                 }
 
@@ -927,6 +952,11 @@ final class ConversationOrchestrator
             // así ninguna lectura recibe más confianza que la que tenía en su
             // imagen de origen.
             textConfidence: $confTexto === [] ? 0.0 : min($confTexto),
+            // Una captura del catálogo con producto principal manda sobre el
+            // resto: su código es texto impreso, no una lectura de bajorrelieve.
+            imageKind: $captura?->imageKind ?? $mejor->imageKind,
+            catalogCode: $captura?->catalogCode,
+            productText: $titulo,
         );
     }
 
