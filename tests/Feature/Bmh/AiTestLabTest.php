@@ -56,6 +56,11 @@ final class AiTestLabTest extends TestCase
             '--force' => true,
         ])->assertSuccessful();
 
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
         foreach (['ai_test_reviews', 'ai_audit_logs', 'ai_handoffs', 'ai_correction_rules', 'ai_feedback', 'ai_customer_context',
             'ai_product_candidates', 'ai_message_tool_calls', 'ai_attachments',
             'ai_messages', 'ai_conversations'] as $table) {

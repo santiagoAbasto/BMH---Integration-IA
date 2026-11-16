@@ -123,9 +123,8 @@ final class ImagePayload
             imagejpeg($destino, null, self::CALIDAD_JPEG);
             $salida = (string) ob_get_clean();
 
-            imagedestroy($origen);
-            imagedestroy($destino);
-
+            // Sin imagedestroy(): deprecado en PHP 8.5 y innecesario desde 8.0
+            // (GdImage es un objeto y se libera al salir de la función).
             return $salida === '' ? null : $salida;
         } catch (\Throwable $e) {
             Log::warning('bmh.ai.image_payload.resize_failed', [

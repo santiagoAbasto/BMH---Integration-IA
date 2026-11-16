@@ -443,6 +443,15 @@ $nuevosPedidos = Pedido::where('created_at', '>=', Carbon::now()->subDay())->cou
                   </a>
                 </h2>
               </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="aprendizaje-ia">
+                  <a class="menu-item" href="{{ route('admin.ai-learning.index') }}">
+                    <button class="accordion-button nav-link {{ request()->routeIs('admin.ai-learning.*') ? 'selected' : '' }}" type="button">
+                      <i class="fa-solid fa-graduation-cap"></i> Aprendizaje IA
+                    </button>
+                  </a>
+                </h2>
+              </div>
             @endif
 
             <hr>

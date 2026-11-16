@@ -53,6 +53,7 @@ final class VisionMatchService
         private readonly CandidateRankingService $ranking,
         private readonly ProductImageService $images,
         private readonly CatalogFamilyResolver $familias,
+        private readonly CatalogImageFingerprintIndex $catalogImageIndex,
     ) {
     }
 
@@ -74,6 +75,54 @@ final class VisionMatchService
         $notes = [];
         $codigoDescartado = false;
         $notaDelCodigo = null;
+
+        /*
+         * Antes de pedirle atributos a la foto, buscamos si es (o es casi) una
+         * imagen que ya pertenece al catálogo. Este camino no depende de que
+         * la IA haya sabido nombrar el rubro: es el que cubre una captura o una
+         * foto descargada de la propia web.
+         */
+        // Un código IMPRESO en una captura del catálogo que existe en la base
+        // manda sobre un parecido visual: una página de celular (alta y casi
+        // toda blanca) se parecía por casualidad a fotos sueltas, el índice
+        // devolvía otro producto y se salteaba la lectura del código.
+        $codigoImpreso = $analysis->isCatalogScreenshot()
+            && $analysis->catalogCode !== null
+            && $this->productosPorCodigoImpreso($analysis->catalogCode) !== [];
+
+        if ($customerImagePath !== null && ! $codigoImpreso) {
+            $indexed = $this->candidatesFromCatalogImageIndex($customerImagePath);
+
+            if ($indexed !== []) {
+                $compared = false;
+
+                if ($provider !== null) {
+                    $comparison = $this->compararImagenes($provider, $customerImagePath, $indexed);
+
+                    if ($comparison !== null) {
+                        $indexed = $comparison['candidates'];
+                        $compared = true;
+
+                        if ($comparison['note'] !== null) {
+                            $notes[] = $comparison['note'];
+                        }
+                    }
+                }
+
+                array_unshift($notes, 'La foto coincide visualmente con una imagen del catálogo. Confirmame la pieza antes de agregarla al carrito.');
+
+                return [
+                    'candidates' => $indexed,
+                    'strategy' => $compared ? 'catalog_image_index+vision_compared' : 'catalog_image_index',
+                    'code_hits' => [],
+                    'compared' => $compared,
+                    'notes' => $notes,
+                ];
+            }
+        }
+
+        // El código recordado de un turno anterior no puede pisar a la foto nueva.
+        $notes = array_merge($notes, $this->soltarCodigoDeUnTurnoAnterior($baseQuery, $analysis));
 
         if (! $analysis->imageUsable && ! $analysis->hasReliableCode()) {
             return [
@@ -136,7 +185,7 @@ final class VisionMatchService
             $query->codeConfidence = $analysis->textConfidence;
 
             $notes[] = sprintf(
-                'Leí %s en la pieza y %s en el catálogo.',
+                'Leí %s en '.($analysis->isCatalogScreenshot() ? 'la captura' : 'la pieza').' y %s en el catálogo.',
                 $this->enumerar($codigosQueExisten),
                 count($codigosQueExisten) === 1 ? 'está' : 'están',
             );
@@ -155,9 +204,38 @@ final class VisionMatchService
         // sería confuso —figuraba, pero era otra pieza—.
         if ($analysis->hasCode() && ! $codigoDescartado) {
             $notes[] = sprintf(
-                'Leí %s en la pieza, pero no figura en el catálogo de BMH.',
-                $this->enumerar(array_slice($analysis->visibleCodes, 0, 3)),
+                'Leí %s en '.($analysis->isCatalogScreenshot() ? 'la captura' : 'la pieza').', pero no figura en el catálogo de BMH.',
+                $this->enumerar(array_slice($analysis->searchCodes(), 0, 3)),
             );
+        }
+
+        // --- 1.b El título impreso en la imagen ---------------------------
+        $porTitulo = $this->buscarPorTitulo($analysis);
+
+        if ($porTitulo !== []) {
+            $notes[] = 'El título que se lee en la imagen coincide con el catálogo. Confirmame la pieza antes de agregarla al carrito.';
+            $compared = false;
+
+            if ($provider !== null && $customerImagePath !== null) {
+                $comparados = $this->compararImagenes($provider, $customerImagePath, $porTitulo);
+
+                if ($comparados !== null) {
+                    $porTitulo = $comparados['candidates'];
+                    $compared = true;
+
+                    if ($comparados['note'] !== null) {
+                        $notes[] = $comparados['note'];
+                    }
+                }
+            }
+
+            return [
+                'candidates' => $porTitulo,
+                'strategy' => $compared ? 'vision_title+vision_compared' : 'vision_title',
+                'code_hits' => [],
+                'compared' => $compared,
+                'notes' => $notes,
+            ];
         }
 
         // --- 2. Rubro + atributos observados ------------------------------
@@ -268,6 +346,188 @@ final class VisionMatchService
     }
 
     /**
+     * El código impreso en una captura, tal cual o con las confusiones típicas
+     * de OCR. Sólo productos públicos.
+     *
+     * @return list<ProductView>
+     */
+    private function productosPorCodigoImpreso(string $codigo): array
+    {
+        $productos = $this->catalog->findByCode($codigo);
+
+        if ($productos === []) {
+            $productos = $this->catalog->findByNormalizedCode($codigo);
+        }
+
+        if ($productos === []) {
+            $productos = $this->productosPorCodigoConfundible($codigo);
+        }
+
+        return array_values(array_filter(
+            $productos,
+            static fn (ProductView $p): bool => $p->condition->isPublic(),
+        ));
+    }
+
+    /**
+     * Prueba el código cambiando I/L por 1 y O por 0 (y al revés), de a uno y
+     * de a dos, o sacando un carácter ambiguo de más. Sólo se usa cuando el código exacto no existe: un cambio que
+     * da con un producto real es casi seguro la lectura correcta.
+     *
+     * @return list<ProductView>
+     */
+    private function productosPorCodigoConfundible(string $codigo): array
+    {
+        $codigo = mb_strtoupper(trim($codigo));
+        $pares = ['I' => '1', 'L' => '1', '1' => 'I', 'O' => '0', '0' => 'O'];
+        $posiciones = [];
+
+        for ($i = 0, $n = strlen($codigo); $i < $n; $i++) {
+            if (isset($pares[$codigo[$i]])) {
+                $posiciones[] = $i;
+            }
+        }
+
+        // Más de 8 caracteres ambiguos es demasiado ruido para adivinar.
+        if ($posiciones === [] || count($posiciones) > 8) {
+            return [];
+        }
+
+        $variantes = [];
+
+        foreach ($posiciones as $a) {
+            $variantes[] = substr_replace($codigo, $pares[$codigo[$a]], $a, 1);
+        }
+
+        foreach ($posiciones as $indice => $a) {
+            foreach (array_slice($posiciones, $indice + 1) as $b) {
+                $v = substr_replace($codigo, $pares[$codigo[$a]], $a, 1);
+                $variantes[] = substr_replace($v, $pares[$codigo[$b]], $b, 1);
+            }
+        }
+
+        // El OCR también agrega un trazo vertical de más ("POLI16066" por
+        // POL16066): se prueba sacando, de a uno, cada carácter ambiguo.
+        foreach ($posiciones as $a) {
+            $variantes[] = substr_replace($codigo, '', $a, 1);
+        }
+
+        foreach (array_unique($variantes) as $variante) {
+            if (strlen($variante) < 3) {
+                continue;
+            }
+
+            $productos = $this->catalog->findByCode($variante);
+
+            if ($productos !== []) {
+                return $productos;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Busca por el nombre del producto cuando se lee impreso en la imagen.
+     *
+     * Caso real: una foto hecha a la pantalla, con el visor ampliado de la foto
+     * del producto, donde sólo se lee «PASSAT, AMAROK POLEA CRICKET BOSCH». No
+     * hay código, pero el nombre da con un único producto. Un número del texto
+     * (cotas, voltajes, precios) endurece la búsqueda sin identificar nada: se
+     * ignora. Sólo cuenta si el título deja 3 productos o menos; uno genérico
+     * («ALTERNADOR BOSCH») trae medio catálogo y no identifica.
+     *
+     * @return list<Candidate>
+     */
+    private function buscarPorTitulo(ImageAnalysis $analysis): array
+    {
+        if ($analysis->productText === null) {
+            return [];
+        }
+
+        $palabras = array_values(array_filter(
+            preg_split('/[\s,;:]+/u', $analysis->productText) ?: [],
+            static fn (string $w): bool => mb_strlen($w) >= 3 && preg_match('/\d/u', $w) !== 1,
+        ));
+
+        if (count($palabras) < 2) {
+            return [];
+        }
+
+        $candidates = $this->search->search(
+            new SearchQuery(rawText: implode(' ', $palabras), fromVision: true, limit: 4),
+            true,
+        );
+
+        if ($candidates === [] || count($candidates) > 3) {
+            return [];
+        }
+
+        foreach ($candidates as $candidate) {
+            $candidate->addSignal('catalog_title', (float) config('bmh.ranking.weights.catalog_title', 55.0));
+            $candidate->matchedOn[] = 'el título impreso en la imagen';
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * El `code` de la consulta base sale de la MEMORIA de la conversación: lo
+     * escribió el cliente en un turno anterior, no lo leyó esta foto.
+     *
+     * Caso real: el cliente escribió "2232" (un rotor) y en el turno siguiente
+     * subió la foto de una ficha. El código viejo se buscaba como coincidencia
+     * exacta y el asesor contestó "ROTOR BOSCH 2232", confianza muy alta, a la
+     * foto de un conector.
+     *
+     * Se descarta sólo si la foto es clara, contradice al producto de ese código
+     * (misma regla que para un código leído) y el cliente no lo repitió en este
+     * mensaje. Modifica la consulta recibida a propósito: el orquestador la usa
+     * después para redactar y no debe seguir hablando del código viejo.
+     *
+     * @return list<string> notas para el cliente
+     */
+    private function soltarCodigoDeUnTurnoAnterior(SearchQuery $query, ImageAnalysis $analysis): array
+    {
+        if ($query->code === null || ! $analysis->imageUsable) {
+            return [];
+        }
+
+        $codigo = CatalogSemanticLayer::normalizeCode($query->code);
+
+        // Si lo escribió en este mismo mensaje, lo dice él ahora: se respeta.
+        if ($codigo !== '' && str_contains(CatalogSemanticLayer::normalizeCode((string) $query->rawText), $codigo)) {
+            return [];
+        }
+
+        $productos = $this->catalog->findByCode($query->code);
+
+        if ($productos === []) {
+            $productos = $this->catalog->findByNormalizedCode($query->code);
+        }
+
+        $productos = array_values(array_filter(
+            $productos,
+            static fn (ProductView $p): bool => $p->condition->isPublic(),
+        ));
+
+        $rubros = $query->categoryIds !== [] ? $query->categoryIds : $this->resolverRubros($analysis);
+
+        if ($productos === [] || ! $this->elCodigoContradiceLaFoto($productos, $rubros, $analysis)) {
+            return [];
+        }
+
+        $descartado = $query->code;
+        $query->code = null;
+        $query->codeConfidence = null;
+
+        return [sprintf(
+            'Antes me pasaste el código %s, pero esta foto parece otra pieza, así que busco por lo que se ve en la foto.',
+            $descartado,
+        )];
+    }
+
+    /**
      * Prueba cada código leído contra el catálogo: exacto, normalizado,
      * equivalencia y —último recurso— parcial.
      *
@@ -287,7 +547,7 @@ final class VisionMatchService
         // leyó: en la pieza dice "17705" y en el catálogo es "REG17705".
         $efectivo = null;
 
-        foreach ($analysis->visibleCodes as $codigo) {
+        foreach ($analysis->searchCodes() as $codigo) {
             $delCodigo = [];
 
             foreach ([
@@ -299,6 +559,8 @@ final class VisionMatchService
                 // arrastra la polea POL17705 del mismo número.
                 'prefijo' => fn (): array => $this->familias->completarCodigo($codigo, $rubros),
                 'equivalente' => fn (): array => $this->catalog->findByEquivalence($codigo, 10),
+                // El OCR confunde I/L con 1 y O con 0: "POLI6066" es POL16066.
+                'confundible' => fn (): array => $this->productosPorCodigoConfundible($codigo),
             ] as $nombre => $intento) {
                 $delCodigo = $intento();
 
@@ -306,7 +568,7 @@ final class VisionMatchService
                     // Reconstruir el código no es una coincidencia parcial: es
                     // el código exacto, escrito como lo escribe BMH. El ranking
                     // tiene que verlo así o el acierto queda en confianza baja.
-                    if ($nombre === 'prefijo') {
+                    if ($nombre === 'prefijo' || $nombre === 'confundible') {
                         $efectivo ??= $delCodigo[0]->code;
                     }
 
@@ -925,6 +1187,42 @@ final class VisionMatchService
             'candidates' => $candidates,
             'note' => $razon === '' ? null : 'Comparando las fotos: '.mb_substr($razon, 0, 180),
         ];
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function candidatesFromCatalogImageIndex(string $customerImagePath): array
+    {
+        $matches = $this->catalogImageIndex->matches($customerImagePath);
+
+        if ($matches === []) {
+            return [];
+        }
+
+        $products = [];
+
+        foreach ($this->catalog->findMany(array_column($matches, 'product_id')) as $product) {
+            $products[$product->id] = $product;
+        }
+
+        $candidates = [];
+        $weight = (float) config('bmh.ranking.weights.catalog_image_fingerprint', 60.0);
+
+        foreach ($matches as $match) {
+            $product = $products[$match['product_id']] ?? null;
+
+            if ($product === null) {
+                continue;
+            }
+
+            $candidate = new Candidate($product);
+            $candidate->addSignal('catalog_image_fingerprint', $weight, $match['strength']);
+            $candidate->matchedOn[] = 'coincidencia visual con una imagen del catálogo';
+            $candidates[] = $candidate;
+        }
+
+        return $candidates;
     }
 
     private function shouldAddVisualSimilaritySignal(float $similarity): bool

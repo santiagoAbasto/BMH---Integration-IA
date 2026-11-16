@@ -340,6 +340,100 @@ constructiva (BOSCH, VALEO, MITSUBISHI…), que el catálogo guarda como TIPO.
 Los conteos se comparan por número, no con `LIKE`: buscar 9 con `LIKE '%9%'`
 traía también los de 19, y buscar 1 traía medio rubro.
 
+### Capturas del catálogo
+
+Una captura de la web de BMH no es una foto de pieza: el código es **texto impreso**.
+El modelo marca `image_kind = catalog_screenshot` y `catalog_code` con el producto
+principal de la ficha; los códigos de «productos relacionados» salen en el mismo
+texto pero **no son el pedido**, así que `ImageAnalysis::searchCodes()` busca sólo
+el principal. Antes se buscaban todos y llegaban artículos que el cliente no pidió.
+
+La imagen se analiza a `AI_VISION_ANALYSIS_IMAGE_MAX_PX` (1600) con `detail: high`.
+A 512 px el texto de una captura es ilegible y el modelo rellena con lo que supone.
+
+### Índice visual del catálogo (foto sacada de la propia web)
+
+`bmh:index-catalog-images` guarda una huella (promedio + diferencia, 8×8) de cada foto
+de producto. La huella se calcula sobre el **contenido recortado** de la imagen
+(`CatalogImageFingerprintIndex::contentSquare()`): se descarta el fondo claro y los
+marcos grises (< rgb 200 cuenta como contenido), y la pieza se centra en un cuadrado.
+Se aplica igual al indexar y al consultar. Sin eso, una captura con el borde de la
+tarjeta web no se parecía a la foto original.
+
+Medido con 200 fotos del catálogo, ¿el producto correcto queda en la lista devuelta?
+
+| Captura simulada | Índice v1 (8/6/3) | v2 recortado (8/6/3) | v2 + umbral 12/9/8 |
+|---|---|---|---|
+| con marco de tarjeta web | 0 % | 87 % | **92 %** |
+| reenviada (70 % + JPEG) | 80 % | 88 % | **94 %** |
+| recortada 8 % por lado (prueba dura) | 14 % | 79 % | 84 % |
+
+(umbral = distancia total / por huella / tamaño de la lista; `AI_CATALOG_IMAGE_*`.)
+Las fotos de piezas que **no** son del catálogo —las de las pruebas reales de
+producción— quedan a distancia 14 o más con 10 o más por huella, así que el tope no
+las deja pasar. Las **reglas enseñadas** conservan el umbral estricto 8/6
+(`ApprovedCorrectionService::RULE_MAX_DISTANCE`): una regla empuja un producto al primer
+lugar, el índice sólo propone candidatos para confirmar.
+
+Lo que queda son fichas de aspecto idéntico (pares macho/hembra, variantes con la misma
+foto): la distancia no los separa, los resuelven la comparación visual y la
+confirmación del cliente. Un resultado de índice **nunca** equivale a un código.
+Cambiar la versión invalida el archivo anterior: hay que volver a correr el comando.
+
+### Prueba a escala con la web (2026-11-16)
+
+30 productos reales de 14 categorías, 4 imágenes cada uno (120): captura de escritorio,
+captura de celular, **foto hecha a la pantalla** (perspectiva, desenfoque, reflejo, ruido)
+y recorte de la foto del producto con el marco de la tarjeta. Flujo completo (visión +
+índice + búsqueda) contra el código correcto:
+
+| Imagen | 1.º correcto | En los 3 primeros |
+|---|---|---|
+| captura de escritorio | 97 % | 100 % |
+| captura de celular | 100 % | 100 % |
+| foto a la pantalla | 100 % | 100 % |
+| recorte de la foto con marco | 63 % | 80 % |
+
+(Medido con la API real, sin errores. Tras un último ajuste —el OCR que agrega una `I` de más, «POLI16066»— las capturas quedan en 30 de 30 por código.)
+
+Cero casos de producto equivocado con confianza alta. Lo que cuenta como error en capturas es `RP033155`: dos
+productos distintos con el mismo código y nombre (duplicado del catálogo). Tres defectos
+que apareció y se corrigieron:
+
+- **El índice corría antes de leer el código.** Una captura de celular (página alta y casi
+  toda blanca) se parecía por casualidad a fotos sueltas, devolvía otro producto y se
+  salteaba la lectura. Un código impreso que existe en la base manda sobre el parecido.
+- **El OCR confunde I/L con 1 y O con 0**: `POLI6066` por `POL16066`. Si el código exacto
+  no existe se prueban esas variantes (de a una y de a dos, hasta 8 caracteres ambiguos).
+- **Variantes casi iguales** (una polea de otra, un color de otro) quedaban a distancia de
+  hash parecida. `CatalogImageFingerprintIndex::fineSignature()` (miniatura RGB 16×16 del
+  contenido) **reordena** los candidatos: el hash decide quién pasa, la firma fina quién va
+  primero. Subió el primero correcto de 40 % a 63 %. Como filtro no sirve (el correcto y su
+  variante quedan a distancias parecidas), y ampliar el pool del hash a 16/12 sube la lista a
+  90 % pero multiplica por 5 los falsos positivos, así que no se hizo.
+
+Para medir bien: la web hace un fade-in de la foto, y una captura tomada a mitad de la
+animación sale desvanecida (el recorte pasa a ser casi blanco). Esperar a que cargue.
+
+### Título impreso en la imagen
+
+Una foto hecha a la pantalla (inclinada, con reflejo) o el visor ampliado de la foto de
+un producto no dan código ni huella parecida, pero suelen mostrar el nombre. La visión
+devuelve `product_text`; `VisionMatchService::buscarPorTitulo()` lo busca ignorando
+números (cotas, voltajes, precios) y sólo vale si deja **3 productos o menos**: un título
+genérico («ALTERNADOR BOSCH») no identifica. Suma la señal `catalog_title` (peso 55):
+coincidencia parcial que el cliente confirma, nunca «muy alta». Después corre la
+comparación visual. Caso real: «PASSAT, AMAROK POLEA CRICKET BOSCH» → `30032`.
+
+### Un código de un turno anterior no le gana a una foto nueva
+
+El `code` de la consulta sale de la memoria de la conversación. Si el cliente
+escribió «2232» (un rotor) y después sube la foto de una ficha, ese código no se
+busca como exacto: `VisionMatchService::soltarCodigoDeUnTurnoAnterior()` lo descarta
+cuando la foto es clara, contradice al producto del código y el cliente no lo
+repitió en ese mensaje. Caso real: contestaba «ROTOR BOSCH 2232», confianza muy alta,
+a la foto de un conector.
+
 ### Peso de las imágenes
 
 Las fotos del catálogo llegan a 4,5 MB. Se reducen a 512 px antes de mandarlas
@@ -390,8 +484,32 @@ con un proveedor que lanza excepción en todos sus métodos, la consulta por có
 
 ## 13. Feedback y aprendizaje
 
-Después de una identificación, "¿Era este?" Sí/No → `ai_feedback`.
+> Actualizado 2026-11-16: hay aprendizaje con personas en el circuito (abajo). Sigue sin haber auto-training del proveedor.
+
+Después de cada respuesta, 👍/👎 → `ai_feedback`.
 
 Con el tiempo esto arma un dataset (foto + consulta + producto finalmente
 vendido). **No hay auto-training.** Primero recolectar, limpiar, anonimizar,
 revisar y versionar. Hoy sólo se almacena feedback estructurado.
+
+### Reglas aprendidas (2026-11-16)
+
+`ai_correction_rules` liga una **entrada** (foto/captura o texto) a un producto, y se
+aplica con `ApprovedCorrectionService`. La foto se reconoce igual si llega reenviada o
+recomprimida (huella perceptual con el umbral estricto del índice del catálogo); nunca
+se adivina que dos fotos distintas son la misma pieza. Tres orígenes:
+
+| Origen | Confianza | Cómo nace |
+|---|---|---|
+| `admin_teach` | máxima | *Aprendizaje IA → Enseñar*: foto + código correcto |
+| `demo_account` | alta | 👍/👎 de una cuenta demo (se aprende al instante) |
+| `feedback` | tras revisión | 👎 de un cliente con código esperado, aprobado por un admin |
+
+Una regla suma 120 puntos al producto y el asesor sigue pidiendo confirmar antes de
+agregar al carrito. Se desactiva o elimina desde el panel y deja de aplicarse al instante.
+Cuentas demo: `ai_demo_accounts`, administradas en `/dashboard/ia/aprendizaje`.
+
+Los recortes (63 % / 80 %) fallan casi siempre por variantes de la misma familia con fotos
+casi idénticas (poleas `POL16066`↔`POL16005`, `ZEN1173`↔`ZEN1487`): el asesor las propone con
+confianza 0,57–0,62 y pide confirmar, nunca las afirma. Sin texto en la imagen, la foto sola
+no las separa; las separa una cota o el código.

@@ -16,6 +16,7 @@ final class AiCorrectionRule extends Model
     protected $fillable = [
         'feedback_id', 'input_fingerprint', 'fingerprint_kind', 'expected_product_id',
         'approved_by_admin_id', 'approved_at', 'active',
+        'average_hash', 'difference_hash', 'source', 'note', 'reference_path', 'hits', 'last_hit_at',
     ];
 
     protected $casts = [
@@ -24,6 +25,8 @@ final class AiCorrectionRule extends Model
         'approved_by_admin_id' => 'integer',
         'approved_at' => 'datetime',
         'active' => 'boolean',
+        'hits' => 'integer',
+        'last_hit_at' => 'datetime',
     ];
 
     public function feedback(): BelongsTo

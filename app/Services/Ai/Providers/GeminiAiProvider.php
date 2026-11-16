@@ -117,7 +117,7 @@ final class GeminiAiProvider implements AiProviderInterface
                     ['text' => ImageAnalysisSchema::userPrompt($context)],
                     ['inlineData' => array_combine(
                         ['mimeType', 'data'],
-                        ImagePayload::encode($imagePath),
+                        ImagePayload::encode($imagePath, (int) config('bmh.vision.analysis_image_max_px', 1600)),
                     )],
                 ],
             ]],

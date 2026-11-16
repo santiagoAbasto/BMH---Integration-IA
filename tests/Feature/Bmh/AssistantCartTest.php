@@ -224,7 +224,12 @@ final class AssistantCartTest extends TestCase
 
         $this->actingAs($this->customer)->postJson(
             "/api/assistant/conversations/{$conversation}/feedback",
-            ['message_id' => $messageId, 'product_id' => $productId, 'was_correct' => false],
+            [
+                'message_id' => $messageId,
+                'product_id' => $productId,
+                'was_correct' => false,
+                'reason' => 'El cliente indicó que la pieza confirmada no corresponde.',
+            ],
         )->assertOk()
             ->assertJsonPath('confirmed_product_id', null);
 
