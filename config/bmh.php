@@ -145,17 +145,26 @@ return [
         'comparison_max_images' => (int) env('AI_VISION_COMPARISON_MAX_IMAGES', 24),
         'comparison_candidate_limit' => (int) env('AI_VISION_COMPARISON_CANDIDATE_LIMIT', 12),
         'comparison_images_per_product' => (int) env('AI_VISION_COMPARISON_IMAGES_PER_PRODUCT', 3),
+        // Lado máximo de la imagen que se analiza. A 512 px el texto de una
+        // captura del catálogo es ilegible y el modelo rellena con lo que
+        // supone; con 1600 lee los códigos impresos y los grabados.
+        'analysis_image_max_px' => (int) env('AI_VISION_ANALYSIS_IMAGE_MAX_PX', 1600),
         // Más detalle que el análisis rápido: permite leer cotas impresas en
         // fichas de catálogo sin mandar los originales de varios megabytes.
         'comparison_image_max_px' => (int) env('AI_VISION_COMPARISON_IMAGE_MAX_PX', 1024),
-        // Búsqueda global y estricta para fotos que vienen del propio catálogo.
-        // No identifica piezas por apariencia general: sólo recupera imágenes
-        // con huellas casi idénticas y pide confirmación.
+        // Búsqueda global para fotos que vienen del propio catálogo. No identifica
+        // piezas por apariencia general: sólo PROPONE candidatos con huellas muy
+        // parecidas y pide confirmación (después se comparan con visión).
+        // Medido con 200 fotos del catálogo (docs/ai-architecture.md): con 8/6/3
+        // el producto correcto quedaba en la lista 87 % (marco de tarjeta o
+        // reenviada) y 79 % (recortada); con 12/9/8, 94 % / 96 % / 90 %. Las
+        // fotos de piezas que NO son del catálogo quedan a distancia 14 o más,
+        // con 10 o más por huella: fuera de estos topes.
         'catalog_image_index' => [
             'enabled' => env('AI_CATALOG_IMAGE_INDEX_ENABLED', true),
-            'max_distance' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE', 8),
-            'max_distance_per_hash' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE_PER_HASH', 6),
-            'limit' => (int) env('AI_CATALOG_IMAGE_LIMIT', 3),
+            'max_distance' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE', 12),
+            'max_distance_per_hash' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE_PER_HASH', 9),
+            'limit' => (int) env('AI_CATALOG_IMAGE_LIMIT', 8),
         ],
     ],
 
@@ -187,6 +196,7 @@ return [
             'semantic_similarity' => 4.0,
             'vision_similarity' => 3.0,   // deliberadamente bajo
             'catalog_image_fingerprint' => 60.0, // foto casi idéntica; siempre se confirma
+            'catalog_title' => 55.0, // título impreso en la imagen que identifica <= 3 productos; se confirma
             'customer_history' => 7.0,
             'popularity' => 2.0,
         ],

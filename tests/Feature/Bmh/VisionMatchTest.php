@@ -516,6 +516,55 @@ final class VisionMatchTest extends TestCase
         $this->assertContains('REG17705', $codigos, 'la pieza de la foto tiene que estar entre las más cercanas');
     }
 
+    public function test_un_codigo_de_un_turno_anterior_no_le_gana_a_una_foto_de_otra_pieza(): void
+    {
+        /*
+         * Caso real de producción (conversación 9). El cliente escribió "2232"
+         * —un rotor— y en el turno siguiente subió la foto de una ficha. El
+         * código viejo seguía en la memoria de la conversación y se buscaba
+         * como coincidencia exacta: el asesor contestó "ROTOR BOSCH 2232" con
+         * confianza muy alta a una foto de un conector.
+         *
+         * 1833 también es un rotor; la foto muestra un regulador de 5 pines.
+         */
+        $foto = new ImageAnalysis(
+            partType: 'regulador de voltaje',
+            confidence: 0.95,
+            attributes: ['pins' => '5'],
+            categoryHints: ['reguladores'],
+            textConfidence: 0.0,
+        );
+        $consulta = new SearchQuery(rawText: 'necesito saber que codigo es este', code: '1833');
+
+        $resultado = $this->vision()->match($foto, $consulta);
+
+        $codigos = array_map(static fn ($c): string => (string) $c->product->code, $resultado['candidates']);
+
+        $this->assertNotContains('1833', $codigos, 'un rotor del turno anterior no es la ficha de la foto nueva');
+        $this->assertNull($consulta->code, 'el código viejo tampoco debe seguir en la consulta');
+        $this->assertNotEmpty(array_filter(
+            $resultado['notes'],
+            static fn (string $n): bool => str_contains($n, '1833') && str_contains($n, 'foto'),
+        ));
+    }
+
+    public function test_un_codigo_que_el_cliente_repite_en_este_mensaje_se_respeta(): void
+    {
+        $foto = new ImageAnalysis(
+            partType: 'regulador de voltaje',
+            confidence: 0.95,
+            attributes: ['pins' => '5'],
+            categoryHints: ['reguladores'],
+            textConfidence: 0.0,
+        );
+        // El cliente escribe el código junto con la foto: lo dice él, ahora.
+        $consulta = new SearchQuery(rawText: 'el 1833, mirá la foto', code: '1833');
+
+        $this->vision()->match($foto, $consulta);
+
+        $this->assertSame('1833', $consulta->code);
+    }
+
     public function test_un_codigo_que_contradice_la_foto_no_se_cree(): void
     {
         /*

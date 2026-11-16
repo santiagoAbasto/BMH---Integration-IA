@@ -23,7 +23,8 @@ use Illuminate\Support\Facades\File;
  */
 final class CatalogImageFingerprintIndex
 {
-    private const VERSION = 1;
+    // 2: la huella se calcula sobre el contenido recortado (ver contentSquare()).
+    private const VERSION = 2;
 
     private const INDEX_PATH = 'app/ai-private/catalog-image-index.json';
 
@@ -151,7 +152,63 @@ final class CatalogImageFingerprintIndex
         $matches = array_values($byProduct);
         usort($matches, static fn (array $a, array $b): int => $a['distance'] <=> $b['distance']);
 
-        return array_slice($matches, 0, max(1, (int) config('bmh.vision.catalog_image_index.limit', 3)));
+        return array_slice(
+            $this->sortByFineSignature($customerImagePath, $matches),
+            0,
+            max(1, (int) config('bmh.vision.catalog_image_index.limit', 3)),
+        );
+    }
+
+    /**
+     * El hash decide QUIÉN pasa; la firma fina decide quién va PRIMERO.
+     *
+     * Con capturas reales de la web, la foto correcta quedaba primera sólo el
+     * 40 % de las veces: sus variantes casi idénticas (una polea de otra, un
+     * color de otro) quedaban a una distancia de hash parecida. Reordenando por
+     * color y detalle sube al 63 %, sin dejar pasar nada nuevo.
+     *
+     * Las fuerzas se vuelven decrecientes en el nuevo orden para que el score
+     * posterior lo respete; la de la primera no cambia (de ella depende la
+     * confianza).
+     *
+     * @param  list<array{product_id:int,path:string,distance:int,strength:float}>  $matches
+     * @return list<array{product_id:int,path:string,distance:int,strength:float}>
+     */
+    private function sortByFineSignature(string $customerImagePath, array $matches): array
+    {
+        if (count($matches) < 2) {
+            return $matches;
+        }
+
+        $needle = $this->fineSignature($customerImagePath);
+
+        if ($needle === null) {
+            return $matches;
+        }
+
+        $pool = array_slice($matches, 0, 12);
+
+        foreach ($pool as &$match) {
+            $signature = $this->fineSignature($this->images->absolutePath($match['path']));
+            $match['fine'] = $signature === null ? 255.0 : self::fineDistance($needle, $signature);
+        }
+        unset($match);
+
+        usort($pool, static fn (array $a, array $b): int => [$a['fine'], $a['distance']] <=> [$b['fine'], $b['distance']]);
+
+        $previous = null;
+
+        foreach ($pool as &$match) {
+            if ($previous !== null) {
+                $match['strength'] = min($match['strength'], round($previous - 0.001, 4));
+            }
+
+            $previous = $match['strength'];
+            unset($match['fine']);
+        }
+        unset($match);
+
+        return $pool;
     }
 
     /** @return list<array{product_id:int,path:string,average_hash:string,difference_hash:string}> */
@@ -190,8 +247,13 @@ final class CatalogImageFingerprintIndex
         return $entries;
     }
 
-    /** @return array{average_hash:string,difference_hash:string}|null */
-    private function fingerprints(string $path): ?array
+    /**
+     * Huella perceptual de un archivo de imagen. También la usan las
+     * correcciones aprendidas para reconocer la misma captura recomprimida.
+     *
+     * @return array{average_hash:string,difference_hash:string}|null
+     */
+    public function fingerprints(string $path): ?array
     {
         if (! is_file($path) || ! is_readable($path)) {
             return null;
@@ -204,16 +266,154 @@ final class CatalogImageFingerprintIndex
             return null;
         }
 
+        $content = $this->contentSquare($source);
+
         $fingerprints = [
-            'average_hash' => $this->averageHash($source),
-            'difference_hash' => $this->differenceHash($source),
+            'average_hash' => $this->averageHash($content),
+            'difference_hash' => $this->differenceHash($content),
         ];
+        unset($content);
         // En PHP 8.5 GdImage se libera como objeto; imagedestroy() está
         // deprecado y no aporta nada. Soltar la referencia mantiene acotada
         // la memoria al construir miles de huellas.
         unset($source);
 
         return $fingerprints;
+    }
+
+    /**
+     * Miniatura RGB de 16×16 del contenido recortado, para ORDENAR candidatos.
+     *
+     * El hash de 8×8 en blanco y negro acerca bien, pero no separa dos
+     * variantes casi iguales (una polea de otra, un color de otro): en capturas
+     * reales de la web, la foto correcta y su vecina quedaban a distancias
+     * parecidas. Esta firma conserva el color y más detalle, y se calcula al
+     * consultar sólo para los pocos candidatos que ya pasó el hash.
+     *
+     * @return list<int>|null 768 valores (16×16×3), o null si no se pudo leer
+     */
+    public function fineSignature(string $path): ?array
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $binary = @file_get_contents($path);
+        $source = is_string($binary) ? @imagecreatefromstring($binary) : false;
+
+        if ($source === false) {
+            return null;
+        }
+
+        $thumb = $this->thumbnail($this->contentSquare($source), 16, 16);
+        $values = [];
+
+        for ($y = 0; $y < 16; $y++) {
+            for ($x = 0; $x < 16; $x++) {
+                $color = imagecolorat($thumb, $x, $y);
+                array_push($values, ($color >> 16) & 0xff, ($color >> 8) & 0xff, $color & 0xff);
+            }
+        }
+
+        return $values;
+    }
+
+    /** Diferencia media absoluta entre dos firmas finas: 0 = idénticas, 255 = opuestas. */
+    public static function fineDistance(array $left, array $right): float
+    {
+        $sum = 0;
+
+        foreach ($left as $index => $value) {
+            $sum += abs($value - $right[$index]);
+        }
+
+        return $sum / max(1, count($left));
+    }
+
+    /**
+     * Sólo el CONTENIDO de la imagen, centrado en un cuadrado blanco.
+     *
+     * Una captura de la web trae márgenes blancos y el borde gris de la tarjeta
+     * (en una captura real: 2 px de rgb 216,216,216); la foto del catálogo es
+     * la pieza sola. Con la imagen entera esas dos no se parecen: en una
+     * prueba con 200 fotos del catálogo, 0 de 200 capturas con marco se
+     * reconocían. Recortar al contenido —y hacerlo igual al indexar y al
+     * consultar— vuelve comparable lo que realmente es la misma foto.
+     *
+     * Contenido = lo más oscuro que rgb 200 en algún canal. Un renglón o
+     * columna cuenta sólo con 2 o más puntos, para que un píxel suelto o el
+     * ruido del JPEG no estire el recorte.
+     */
+    private function contentSquare(\GdImage $source): \GdImage
+    {
+        $scale = min(1.0, 192 / max(1, max(imagesx($source), imagesy($source))));
+        $width = max(1, (int) round(imagesx($source) * $scale));
+        $height = max(1, (int) round(imagesy($source) * $scale));
+        $work = $this->thumbnail($source, $width, $height);
+
+        $rows = array_fill(0, $height, 0);
+        $columns = array_fill(0, $width, 0);
+
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $color = imagecolorat($work, $x, $y);
+
+                if (min(($color >> 16) & 0xff, ($color >> 8) & 0xff, $color & 0xff) < 200) {
+                    $rows[$y]++;
+                    $columns[$x]++;
+                }
+            }
+        }
+
+        $yRange = $this->range($rows);
+        $xRange = $this->range($columns);
+
+        // Imagen en blanco o sin forma reconocible: se usa entera.
+        if ($yRange === null || $xRange === null) {
+            return $work;
+        }
+
+        [$x0, $x1] = $xRange;
+        [$y0, $y1] = $yRange;
+        $side = max($x1 - $x0 + 1, $y1 - $y0 + 1);
+        $padding = (int) ceil($side * 0.04);
+        $canvasSide = $side + 2 * $padding;
+
+        $canvas = imagecreatetruecolor($canvasSide, $canvasSide);
+        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+        imagecopy(
+            $canvas,
+            $work,
+            (int) (($canvasSide - ($x1 - $x0 + 1)) / 2),
+            (int) (($canvasSide - ($y1 - $y0 + 1)) / 2),
+            $x0,
+            $y0,
+            $x1 - $x0 + 1,
+            $y1 - $y0 + 1,
+        );
+
+        return $canvas;
+    }
+
+    /**
+     * Primer y último índice con 2 o más puntos de contenido.
+     *
+     * @param  list<int>  $counts
+     * @return array{0:int,1:int}|null
+     */
+    private function range(array $counts): ?array
+    {
+        $first = null;
+        $last = null;
+
+        foreach ($counts as $index => $count) {
+            if ($count >= 2) {
+                $first ??= $index;
+                $last = $index;
+            }
+        }
+
+        return $first === null ? null : [$first, $last];
     }
 
     private function averageHash(\GdImage $source): string
@@ -320,7 +520,7 @@ final class CatalogImageFingerprintIndex
         return storage_path(self::INDEX_PATH);
     }
 
-    private static function hamming(string $left, string $right): int
+    public static function hamming(string $left, string $right): int
     {
         $distance = 0;
 
