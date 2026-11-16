@@ -8,6 +8,8 @@
     public/js/catalogo.js reemplaza sin recargar la página.
 --}}
 
+@section('turbo-cache', 'no-cache')
+
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=6">
 @endsection

@@ -452,6 +452,8 @@ background-size: 100% 100%;
     </style>
 @endsection
 
+@section('turbo-cache', 'no-cache')
+
 @section('content')
     {{-- <section>
     <div class="container-fluid" style="background: var(--Verde, #236644);">

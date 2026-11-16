@@ -1,4 +1,6 @@
 @extends('layouts.plantilla-front')
+@section('turbo-cache', 'no-cache')
+
 @section('content')
 
 @section('styles')

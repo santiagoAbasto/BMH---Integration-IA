@@ -334,8 +334,17 @@
   }
   initFotorama();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFotorama);
-  // Fotorama genera sus elementos después de cargar jQuery y las imágenes.
-  document.querySelectorAll('.fotorama[data-gallery-images]').forEach(function (root) {
-    new MutationObserver(initFotorama).observe(root, { childList: true, subtree: true });
-  });
+  // Fotorama genera sus elementos después de cargar jQuery y las imágenes. Con Turbo, en cada visita (el visor
+  // <dialog> es permanente y este archivo corre una sola vez).
+  var observadorFotorama = null;
+  function observarFotorama() {
+    if (observadorFotorama) observadorFotorama.disconnect();
+    observadorFotorama = new MutationObserver(initFotorama);
+    document.querySelectorAll('.fotorama[data-gallery-images]').forEach(function (root) {
+      observadorFotorama.observe(root, { childList: true, subtree: true });
+    });
+    initFotorama();
+  }
+  observarFotorama();
+  document.addEventListener('turbo:load', observarFotorama);
 })();

@@ -25,6 +25,25 @@
   var header = document.getElementById('site-header');
   var DEBOUNCE_TEXTO = 600;
 
+  // Con Turbo este archivo corre en cada visita al catálogo: lo que se engancha a document/window lleva la señal de
+  // la página (se suelta solo al pasar a otra) y los observadores se desconectan.
+  var senal = window.bmhSenalPagina ? window.bmhSenalPagina() : undefined;
+  var conSenal = function (opciones) { return senal ? Object.assign({ signal: senal }, opciones || {}) : opciones; };
+  var observadores = [];
+  if (senal) senal.addEventListener('abort', function () { observadores.forEach(function (o) { o.disconnect(); }); if (observador) observador.disconnect(); });
+
+  // Historial: cada filtro es una entrada del historial de Turbo, así «atrás» y «adelante» (también desde otra
+  // página) los resuelve Turbo cargando esa URL, en vez de quedar una entrada que Turbo no reconoce.
+  function guardarEnHistorial(url, modo) {
+    var historial = window.Turbo && window.Turbo.session && window.Turbo.session.history;
+    var id = window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    if (historial && typeof historial.push === 'function') {
+      historial[modo === 'replace' ? 'replace' : 'push'](new URL(url, window.location.href), id);
+    } else {
+      history[modo === 'replace' ? 'replaceState' : 'pushState']({}, '', url);
+    }
+  }
+
   var pedidoFiltros = null;
   var temporizadorTexto = null;
   var observador = null;
@@ -463,7 +482,7 @@
     document.querySelectorAll('.desplegable--abierto').forEach(function (caja) {
       if (!caja.contains(e.target) && caja.cerrarDesplegable) caja.cerrarDesplegable(false);
     });
-  });
+  }, conSenal());
 
   // -------------------------------------------------------- aplicar filtros
 
@@ -519,8 +538,7 @@
         devolverFoco(foco);
 
         var limpia = sinParciales(url);
-        if (historial === 'push') history.pushState({ catalogo: true }, '', limpia);
-        if (historial === 'replace') history.replaceState({ catalogo: true }, '', limpia);
+        if (historial === 'push' || historial === 'replace') guardarEnHistorial(limpia, historial);
 
         // Si los resultados quedaron arriba, fuera de la vista, volver a ellos.
         var resultados = contenedor.querySelector('[data-catalogo-resultados]');
@@ -591,9 +609,7 @@
     }
   });
 
-  window.addEventListener('popstate', function () {
-    if (!esDetalle) cargarContenido(window.location.href, null);
-  });
+  // «Atrás» y «adelante» entre filtros: los resuelve Turbo (ver guardarEnHistorial).
 
   // ------------------------------------------------------- scroll infinito
 
@@ -680,11 +696,11 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && document.body.classList.contains('filtros-abiertos')) cerrarFiltros();
-  });
+  }, conSenal());
 
   window.addEventListener('resize', function () {
     if (!esCelular()) cerrarFiltros();
-  });
+  }, conSenal());
 
   // -------------------------------------------- sidebar debajo del header
 
@@ -722,18 +738,19 @@
   arriba.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   raiz.appendChild(arriba);
 
-  window.addEventListener('scroll', alHacerScroll, { passive: true });
-  window.addEventListener('resize', alHacerScroll);
+  window.addEventListener('scroll', alHacerScroll, conSenal({ passive: true }));
+  window.addEventListener('resize', alHacerScroll, conSenal());
   // El header cambia de alto con una transición al pasar a fijo: sin esto el
   // sidebar se quedaba con el tope viejo hasta el próximo scroll.
   if (header) {
     header.addEventListener('transitionend', alHacerScroll);
-    if (window.ResizeObserver) new ResizeObserver(alHacerScroll).observe(header);
+    if (window.ResizeObserver) { var oHeader = new ResizeObserver(alHacerScroll); oHeader.observe(header); observadores.push(oHeader); }
   }
   // Al cargar estilos, fuentes e imágenes la página se reacomoda sin que haya
   // scroll: el sidebar se vuelve a medir para no pasarse de la pantalla.
-  window.addEventListener('load', alHacerScroll);
-  if (window.ResizeObserver) new ResizeObserver(alHacerScroll).observe(document.body);
+  // En una visita de Turbo no hay evento load: se mide igual al cambiar de tamaño el body.
+  window.addEventListener('load', alHacerScroll, conSenal());
+  if (window.ResizeObserver) { var oBody = new ResizeObserver(alHacerScroll); oBody.observe(document.body); observadores.push(oBody); }
 
   // ----------------------------------------------------------------- inicio
 
@@ -743,6 +760,5 @@
     alHacerScroll();
   }
 
-  if (!esDetalle) history.replaceState({ catalogo: true }, '', window.location.href);
   iniciar();
 })();

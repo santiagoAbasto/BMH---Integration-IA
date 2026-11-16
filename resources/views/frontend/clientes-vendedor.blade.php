@@ -1,6 +1,8 @@
 @extends('layouts.plantilla-front')
 
 @section('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <style>
     .modal-body{
         padding: 30px;
@@ -119,4 +121,14 @@
     </section>
     
     
+@endsection
+
+@section('script')
+    <script>
+        // Select2 llega por el head: en una visita de Turbo se carga después del body, así que se espera a que esté.
+        (function iniciarSelect2(intentos) {
+            if (window.jQuery && jQuery.fn.select2) { jQuery('.js-example-tags').select2({ tags: true }); return; }
+            if (intentos > 0) setTimeout(function () { iniciarSelect2(intentos - 1); }, 50);
+        })(100);
+    </script>
 @endsection

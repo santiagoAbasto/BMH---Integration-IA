@@ -91,6 +91,8 @@ foreach ($secciones as $seccion) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{-- El admin no navega con Turbo: si una visita del sitio llega acá (p. ej. por una redirección), carga completa. --}}
+  <meta name="turbo-visit-control" content="reload">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="robots" content="noindex, nofollow">
   <title>{{ $miga ? $miga['pagina'].' · ' : '' }}Administrador BMH</title>

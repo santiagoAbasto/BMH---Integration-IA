@@ -39,7 +39,7 @@ $cart = Cart::content();
   {{-- FONTS --}}
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Quicksand:wght@300..700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
   @vite(['resources/css/sitio.css', 'resources/js/sitio.js'])
   
@@ -53,14 +53,10 @@ $cart = Cart::content();
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     
     
-  {{-- FOTORAMA --}}
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/fotorama/4.6.4/fotorama.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fotorama/4.6.4/fotorama.js"></script>
+  {{-- Fotorama sólo en la ficha del producto (frontend/producto, en su @section('styles')). --}}
   
   
 
-  {{-- MERCADOPAGO --}}
-  <script src="https://sdk.mercadopago.com/js/v2"></script>
   
   {{-- IZITOAST --}}
     <link href="https://cdn.jsdelivr.net/npm/izitoast@1.4.0/dist/css/iziToast.min.css" rel="stylesheet">
@@ -70,12 +66,8 @@ $cart = Cart::content();
    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/toastr.min.js"></script>
 
-  {{-- LOADING.IO --}}
-  <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/loadingio/ldbutton@latest/dist/index.min.css"/>
 
-  {{-- SELECT2 --}}
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  {{-- Select2 sólo donde se usa (frontend/clientes-vendedor, en su @section('styles')). --}}
   
   {{-- Bootstrap y los scripts globales del sitio van en el head (defer): con Turbo el head queda y el
        body se reemplaza en cada visita, así no se vuelven a ejecutar. --}}
@@ -104,16 +96,44 @@ $cart = Cart::content();
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
       else fn();
     };
+
+    // Señal de la página actual: los listeners que una página pone en document o window la usan
+    // ({ signal: bmhSenalPagina() }) y se sacan solos antes de mostrar la siguiente (si no, se acumulan visita a visita).
+    (function () {
+      var actual = new AbortController();
+      window.bmhSenalPagina = function () { return actual.signal; };
+      document.addEventListener('turbo:before-render', function () { actual.abort(); actual = new AbortController(); });
+    })();
+
+    // Antes de guardar la página en la caché de Turbo: modales y popovers cerrados, sin fondos oscuros colgados.
+    document.addEventListener('turbo:before-cache', function () {
+      document.querySelectorAll('.modal.show').forEach(function (m) { m.classList.remove('show'); m.style.display = 'none'; m.removeAttribute('aria-modal'); });
+      document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+      document.body.classList.remove('modal-open', 'filtros-abiertos', 'buscador-abierto');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+      document.querySelectorAll('[popover]').forEach(function (p) { try { if (p.matches(':popover-open')) p.hidePopover(); } catch (e) {} });
+      var zoom = document.getElementById('pbmh-zoom');
+      if (zoom) zoom.classList.remove('is-visible');
+      // La copia en caché no conserva los listeners: que la lupa se vuelva a enganchar al restaurarla.
+      document.querySelectorAll('[data-pbmh-zoom-attached]').forEach(function (n) { n.removeAttribute('data-pbmh-zoom-attached'); });
+      document.querySelectorAll('[data-pbmh-zoom-attached-thumb]').forEach(function (n) { n.removeAttribute('data-pbmh-zoom-attached-thumb'); });
+    });
   </script>
 
-  {{-- Turbo (navegación sin recarga): cada página lo activa con @section('turbo', true) cuando su JS ya es
-       compatible; las demás se cargan completas, como siempre. --}}
-  @hasSection('turbo')
-  @else
+  {{-- Navegación sin recarga (Turbo) en todo el sitio, como Conelec. Una página que necesite cargarse completa
+       usa @section('sin-turbo'); las que el JS modifica mucho (catálogo, ficha, carrito) piden no guardarse en la
+       caché de Turbo con @section('turbo-cache', 'no-cache'), así «atrás» las trae limpias. --}}
+  @hasSection('sin-turbo')
     <meta name="turbo-visit-control" content="reload">
   @endif
+  @hasSection('turbo-cache')
+    <meta name="turbo-cache-control" content="@yield('turbo-cache')">
+  @endif
 
-  @yield('styles')
+  {{-- Estilos propios de cada página: Turbo los saca al pasar a otra (data-turbo-track="dynamic"); si no, se
+       acumulaban en el head y el CSS de una página afectaba a las siguientes. --}}
+  {!! preg_replace('/<(style|link)\b(?![^>]*data-turbo-track)/i', '<$1 data-turbo-track="dynamic"', $__env->yieldContent('styles')) !!}
   <script>
     // Abre o cierra un modal de Bootstrap por id (carrito, home, listados).
     // Bootstrap se carga al final de la página: se busca recién al llamarla.
@@ -197,6 +217,7 @@ $cart = Cart::content();
   
   
   @include('frontend.components.galeria-modal')
+  <div id="pbmh-zoom" data-turbo-permanent aria-hidden="true"></div>
   @yield('script')
   {{-- TAILWIND --}}
   {{-- <script src="https://cdn.tailwindcss.com"></script>  --}}
@@ -249,6 +270,10 @@ if (_togglePwd) _togglePwd.addEventListener("click", function () {
     document.addEventListener('turbo:load', function () {
       if (window.jQuery && jQuery('#anuncio').length) jQuery('#anuncio').modal('show');
       if (window.AOS) AOS.init({ once: true, duration: 650, offset: 100 });
+      // Fotorama se inicializa solo al cargar su script; en las visitas siguientes de Turbo, acá.
+      if (window.jQuery && jQuery.fn.fotorama) {
+        jQuery('.fotorama').each(function () { if (!jQuery(this).data('fotorama')) jQuery(this).fotorama(); });
+      }
     }, { once: true });
 
 
@@ -291,9 +316,7 @@ if (_togglePwd) _togglePwd.addEventListener("click", function () {
         }
       });
 
-      $(".js-example-tags").select2({
-        tags: true
-      });
+      // Select2 (pantalla del vendedor): lo inicia esa página, que es la que lo carga.
 
       $('.ingreso').submit(function(){
         event.preventDefault()

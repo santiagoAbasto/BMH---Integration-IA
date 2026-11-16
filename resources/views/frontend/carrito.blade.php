@@ -302,6 +302,8 @@ color: #0098DA !important;
     </style>
 @endsection
 
+@section('turbo-cache', 'no-cache')
+
 @section('content')
 
     {{-- <div class="container"

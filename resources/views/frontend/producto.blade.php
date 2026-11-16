@@ -1,6 +1,11 @@
 @extends('layouts.plantilla-front')
 
+@section('turbo-cache', 'no-cache')
+
 @section('styles')
+    {{-- Fotorama: sólo la ficha lo usa (antes se cargaba en todas las páginas). --}}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fotorama/4.6.4/fotorama.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fotorama/4.6.4/fotorama.js"></script>
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v=6">
     <style>
     
@@ -759,8 +764,7 @@
         @if (config('imagenes.zoom_hover'))
         // Lupa zoom para el fotorama del show (mismo comportamiento que en las cards)
         (function () {
-            if (window.__pbmhZoomDetalleInit) return;
-            window.__pbmhZoomDetalleInit = true;
+            // Se arma en cada visita (Turbo): los listeners de document/window llevan la señal de la página.
             var preview = document.getElementById('pbmh-zoom');
             if (!preview) { preview = document.createElement('div'); preview.id = 'pbmh-zoom'; document.body.appendChild(preview); }
             var lens = document.createElement('div');
@@ -795,7 +799,7 @@
                 pendingEvent = null;
                 if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             }
-            document.addEventListener('product-gallery:open', function () { dragging = false; hovering = false; hideFotorama(); });
+            document.addEventListener('product-gallery:open', function () { dragging = false; hovering = false; hideFotorama(); }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
             function moveFotorama(e) {
                 if (!activeImg || !activeBox || dragging) return;
                 pendingEvent = e;
@@ -855,8 +859,8 @@
                 // Mientras el usuario arrastra (swipe) para cambiar de imagen, ocultamos la lupa;
                 // al soltar se reanuda sola en el próximo mousemove.
                 stage.addEventListener('pointerdown', function () { dragging = true; preview.style.display = 'none'; lens.style.display = 'none'; });
-                window.addEventListener('pointerup', function () { dragging = false; });
-                window.addEventListener('pointercancel', function () { dragging = false; });
+                window.addEventListener('pointerup', function () { dragging = false; }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
+                window.addEventListener('pointercancel', function () { dragging = false; }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
                 function getActiveImg() {
                     return stage.querySelector('.fotorama__active img')
                         || stage.querySelector('img.fotorama__img')
@@ -900,11 +904,9 @@
             }
             // Fotorama se inicializa asincrónicamente, reintentar
             function initDetalleZoom() { attachFotorama(); initZoomThumbsDetalle(); }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function () { setTimeout(initDetalleZoom, 600); setTimeout(initDetalleZoom, 1800); });
-            } else { setTimeout(initDetalleZoom, 600); setTimeout(initDetalleZoom, 1800); }
+            window.bmhAlListo(function () { setTimeout(initDetalleZoom, 600); setTimeout(initDetalleZoom, 1800); });
             // Reintentar al abrir el tab Partes relacionadas (panel estaba oculto al inicio)
-            document.addEventListener('click', function (e) { if (e.target.closest('.pbmh-tab[data-tab="partes"]')) setTimeout(initZoomThumbsDetalle, 80); });
+            document.addEventListener('click', function (e) { if (e.target.closest('.pbmh-tab[data-tab="partes"]')) setTimeout(initZoomThumbsDetalle, 80); }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
             // También observar cambios de imagen activa
             var obs = new MutationObserver(function () { /* si cambia la imagen, actualizar src en próximo hover */ });
             var fotoramaRoot = document.querySelector('.fotorama');

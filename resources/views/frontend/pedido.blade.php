@@ -160,6 +160,8 @@
 </style>
 @endsection
 
+@section('turbo-cache', 'no-cache')
+
 @section('content')
 
     <?php
@@ -366,7 +368,7 @@
 
 @section('script')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    window.bmhAlListo(function() {
 
         // ACTUALIZAR LOCALIDADES
         document.getElementById('select-provincia').addEventListener('change', function() {

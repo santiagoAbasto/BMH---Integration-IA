@@ -1,7 +1,6 @@
 @extends('layouts.plantilla-front')
 
 {{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
-@section('turbo', true)
 
 @section('content')
     @include('layouts.partials.sitio-migas', ['items' => [['label' => 'Novedades']]])

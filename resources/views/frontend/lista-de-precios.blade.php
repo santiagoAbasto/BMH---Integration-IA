@@ -1,7 +1,6 @@
 @extends('layouts.plantilla-front')
 
 {{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
-@section('turbo', true)
 
 @section('content')
     @include('layouts.partials.sitio-migas', ['items' => [['label' => 'Lista de precios']]])
@@ -42,7 +41,7 @@
                         <td data-titulo="Formato">Excel</td>
                         <td>
                             <div class="bmh-docs__acciones">
-                                <a class="bmh-docs__boton bmh-docs__boton--primario" href="{{ route('lista.completa') }}">Descargar</a>
+                                <a class="bmh-docs__boton bmh-docs__boton--primario" href="{{ route('lista.completa') }}" data-turbo="false">Descargar</a>
                             </div>
                         </td>
                     </tr>

@@ -1,4 +1,4 @@
-<dialog id="product-gallery" class="foto-galeria" aria-labelledby="foto-galeria-titulo" aria-describedby="foto-galeria-ayuda">
+<dialog id="product-gallery" class="foto-galeria" data-turbo-permanent aria-labelledby="foto-galeria-titulo" aria-describedby="foto-galeria-ayuda">
     <div class="foto-galeria__layout">
         <header class="foto-galeria__cabecera">
             <div class="foto-galeria__identidad">

@@ -1,7 +1,6 @@
 @extends('layouts.plantilla-front')
 
 {{-- Navegación con Turbo: el JS de esta página ya es compatible (ver layouts/plantilla-front). --}}
-@section('turbo', true)
 
 @php
     // Texto con algo para mostrar (el editor del admin deja «<p><br></p>» cuando está vacío).

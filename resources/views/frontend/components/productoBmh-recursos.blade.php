@@ -147,9 +147,9 @@
     // Lupa zoom para las imágenes de las cards (hover -> preview flotante al costado)
     if (!window.__pbmhZoomInit) {
         window.__pbmhZoomInit = true;
-        var preview = document.createElement('div');
-        preview.id = 'pbmh-zoom';
-        document.body.appendChild(preview);
+        // El layout trae #pbmh-zoom (permanente para Turbo); si no está, se crea.
+        var preview = document.getElementById('pbmh-zoom');
+        if (!preview) { preview = document.createElement('div'); preview.id = 'pbmh-zoom'; document.body.appendChild(preview); }
         var lens = document.createElement('div');
         lens.className = 'pbmh-lens';
         var activeImg = null, activeBox = null, activeSrc = '', zoom = 2.4;
@@ -296,8 +296,9 @@
         } else {
             initZoomBoxes();
         }
-        // Cards que agrega el catálogo al filtrar o al hacer scroll (public/js/catalogo.js).
+        // Cards que agrega el catálogo al filtrar o al hacer scroll (public/js/catalogo.js), y las de cada visita de Turbo.
         document.addEventListener('catalogo:cards', initZoomBoxes);
+        document.addEventListener('turbo:load', initZoomBoxes);
         // Por si las filas de partes se abren después (panel oculto al inicio), reintentar al abrir tabs
         document.addEventListener('click', function (e) {
             if (e.target.closest('.pbmh-tab')) setTimeout(initZoomBoxes, 80);
