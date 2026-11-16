@@ -18,6 +18,9 @@
     </x-slot:actions>
 </x-osole::admin-page-header.v1>
 
+@if (session('warning'))
+    <div class="alert alert-warning" role="alert">{{ session('warning') }}</div>
+@endif
 @if (session('success'))
     <div class="alert alert-success" role="status">{{ session('success') }}</div>
 @endif
@@ -88,16 +91,38 @@
             ]"
         >
             <x-slot:actions>
-                <a class="btn btn-primary btn-sm" href="{{ $abierto->mailtoRespuesta() }}">
+                <a class="btn btn-primary btn-sm" href="#osole-admin-inbox-reply" data-ir-a-responder>
                     <i class="fa-solid fa-reply" aria-hidden="true"></i> Responder
                 </a>
             </x-slot:actions>
 
-            @if (filled($abierto->mensaje))
-                <div class="contacto-bandeja__texto">{{ $abierto->mensaje }}</div>
-            @else
-                <p class="contacto-bandeja__texto contacto-bandeja__texto--vacio">No dejó un mensaje: escribile o llamalo para ver qué necesita.</p>
-            @endif
+            @php
+                $respuestas = $abierto->respuestas;
+                $cantidad = $respuestas->count();
+            @endphp
+            <x-osole::admin-inbox.v1.chat :summary="$cantidad === 0 ? 'Sin respuestas todavía' : ($cantidad === 1 ? '1 respuesta' : $cantidad.' respuestas')">
+                <x-osole::admin-inbox.v1.bubble :author="$abierto->nombre" :time="$abierto->created_at->format('d/m/Y H:i')" :datetime="$abierto->created_at->toIso8601String()" :label="$abierto->motivo" empty-text="No dejó un mensaje: escribile o llamalo para ver qué necesita.">{{ $abierto->mensaje }}</x-osole::admin-inbox.v1.bubble>
+                @foreach ($respuestas as $respuesta)
+                    <x-osole::admin-inbox.v1.bubble from="reply" id="respuesta-{{ $respuesta->id }}" :author="filled($respuesta->autor) ? $respuesta->autor : 'BMH'" :time="$respuesta->created_at->format('d/m/Y H:i')" :datetime="$respuesta->created_at->toIso8601String()"
+                        :status="$respuesta->enviada() ? 'Enviada por email' : 'No se pudo enviar'" :failed="! $respuesta->enviada()">{{ $respuesta->cuerpo }}
+                        @unless ($respuesta->enviada())
+                            <x-slot:actions>
+                                <form method="POST" action="{{ route('contacto.mensajes.reenviar', [$abierto, $respuesta, ...$query]) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Volver a enviar</button>
+                                </form>
+                            </x-slot:actions>
+                        @endunless
+                    </x-osole::admin-inbox.v1.bubble>
+                @endforeach
+                <x-slot:composer>
+                    @error('cuerpo')<div class="alert alert-danger py-2 mb-2" role="alert">{{ $message }}</div>@enderror
+                    <x-osole::admin-inbox.v1.composer :action="route('contacto.mensajes.responder', [$abierto, ...$query])" submit-label="Enviar respuesta" :placeholder="'Escribile a '.$abierto->nombreDePila().'…'">
+                        @csrf
+                        <x-slot:hint>Le llega a {{ $abierto->email }} con el formato de BMH y su consulta citada abajo. Si contesta, te llega a tu email de avisos.</x-slot:hint>
+                    </x-osole::admin-inbox.v1.composer>
+                </x-slot:composer>
+            </x-osole::admin-inbox.v1.chat>
 
             <p class="contacto-bandeja__nota">
                 @if ($abierto->aviso_enviado_at)
@@ -122,7 +147,7 @@
             </x-slot:footer>
         </x-osole::admin-inbox.v1.reader>
     @else
-        <x-osole::admin-inbox.v1.placeholder title="Elegí una consulta para leerla." text="Al abrirla se marca como leída. Con «Responder» le escribís desde tu correo, con el asunto ya puesto." />
+        <x-osole::admin-inbox.v1.placeholder title="Elegí una consulta para leerla." text="Al abrirla se marca como leída. Le respondés desde acá mismo: le llega por email con el formato de BMH." />
     @endif
 </x-osole::admin-inbox.v1>
 
@@ -146,6 +171,15 @@
 
 @section('script')
 <script>
+    // «Responder» lleva al cuadro de respuesta y lo deja listo para escribir.
+    document.querySelector('[data-ir-a-responder]')?.addEventListener('click', function (e) {
+        var cuadro = document.getElementById('osole-admin-inbox-reply');
+        if (!cuadro) return;
+        e.preventDefault();
+        cuadro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cuadro.focus({ preventScroll: true });
+    });
+
     (function () {
         var modal = document.getElementById('contacto-confirmar');
         var pendiente = null;

@@ -2,62 +2,32 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\Pedido;
+use App\Support\MailMarca;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
+/** Confirmación al cliente de su pedido (formato BMH): el detalle, el total y cómo sigue la entrega. */
 class PedidoClienteMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    public function __construct(public Pedido $data, public ?string $mensaje = null) {}
 
-    public $data;
-    public $mensaje;
-
-    /**
-     * Create a new message instance.
-     */
-    public function __construct($data, $mensaje)
-    {
-        $this->data = $data;
-        $this->mensaje = $mensaje;
-
-    }
-
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '¡Gracias por tu compra!',
+            from: new Address((string) config('mail.from.address'), MailMarca::NOMBRE),
+            subject: 'Recibimos tu pedido #'.$this->data->id,
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            view: 'pedido-mail',
-            with: [
-                'pedido' => $this->data,
-                'mensaje' => $this->mensaje,
-
-            ],
+            view: 'mail.pedido.cliente',
+            text: 'mail.pedido.cliente-texto',
+            with: ['pedido' => $this->data, 'mensajeEnvio' => $this->mensaje],
         );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
     }
 }

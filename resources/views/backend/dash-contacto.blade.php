@@ -36,12 +36,12 @@
 
     <div class="adm-pila">
 
-        {{-- Avisos del formulario --}}
+        {{-- Avisos por email: consultas, clientes nuevos y pedidos --}}
         <div class="card" id="avisos">
             <div class="card-header">
                 <div class="adm-card-titulo">
-                    <h2>Avisos del formulario</h2>
-                    <p>Cada consulta se guarda en <a href="{{ route('dashboard.contacto.mensajes') }}">Mensajes</a> y además llega por email.</p>
+                    <h2>Avisos por email</h2>
+                    <p>A qué cuentas de BMH llega cada aviso: consultas del formulario, clientes que se registran y pedidos nuevos.</p>
                 </div>
                 @if ($destinatarios)
                     <span class="adm-chip adm-chip--ok">Llegan a {{ count($destinatarios) === 1 ? '1 email' : count($destinatarios).' emails' }}</span>
@@ -52,6 +52,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-12">
+                        <h3 class="contacto-avisos__titulo"><i class="fa-regular fa-envelope" aria-hidden="true"></i> Consultas del formulario</h3>
                         <label for="emails_aviso" class="form-label">¿A qué mail querés que lleguen los mensajes?</label>
                         <textarea id="emails_aviso" name="emails_aviso" rows="2" maxlength="500" aria-describedby="emails_aviso-ayuda"
                             @class(['form-control', 'is-invalid' => $errors->has('emails_aviso')])
@@ -82,6 +83,30 @@
                             Mandar acuse de recibo a quien escribe
                         </label>
                     </div>
+
+                    @foreach ([
+                        'emails_aviso_registro' => ['fa-regular fa-user', 'Clientes nuevos', '¿A qué mail llega el aviso cuando alguien se crea una cuenta?', 'Trae sus datos y el link para habilitarlo en Clientes.'],
+                        'emails_aviso_pedidos' => ['fa-solid fa-bag-shopping', 'Pedidos nuevos', '¿A qué mail llega cada pedido de la Zona de Clientes?', 'Trae el detalle del pedido, el archivo adjunto si lo hay y el link al pedido en el panel.'],
+                    ] as $campo => [$icono, $titulo, $pregunta, $que])
+                        <div class="col-12 contacto-avisos__bloque">
+                            <h3 class="contacto-avisos__titulo"><i class="{{ $icono }}" aria-hidden="true"></i> {{ $titulo }}</h3>
+                            <label for="{{ $campo }}" class="form-label">{{ $pregunta }}</label>
+                            <textarea id="{{ $campo }}" name="{{ $campo }}" rows="2" maxlength="500" aria-describedby="{{ $campo }}-ayuda"
+                                @class(['form-control', 'is-invalid' => $errors->has($campo)])
+                                placeholder="ventas@bmh.com.ar, administracion@bmh.com.ar">{{ $valor($campo) }}</textarea>
+                            @error($campo)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <p class="contacto-avisos__ayuda" id="{{ $campo }}-ayuda">
+                                {{ $que }}
+                                @if (blank($contacto->{$campo}))
+                                    @if ($destinatarios)
+                                        Mientras esté vacío, llega a los mismos que las consultas: <strong>{{ implode(', ', $destinatarios) }}</strong>.
+                                    @else
+                                        Vacío y sin email de consultas, no llega a nadie.
+                                    @endif
+                                @endif
+                            </p>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>

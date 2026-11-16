@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Consulta que llegó por el formulario de /contacto (Contacto › Mensajes en el admin). */
 final class ContactoMensaje extends Model
@@ -54,6 +55,18 @@ final class ContactoMensaje extends Model
         if ($this->leido_at === null) {
             $this->forceFill(['leido_at' => now()])->save();
         }
+    }
+
+    /** Las respuestas escritas desde el panel, de la más vieja a la más nueva. */
+    public function respuestas(): HasMany
+    {
+        return $this->hasMany(ContactoRespuesta::class)->oldest()->oldest('id');
+    }
+
+    /** Nombre de pila para saludar («Hola Juan,»). */
+    public function nombreDePila(): string
+    {
+        return trim((string) strtok(trim((string) $this->nombre), ' ')) ?: trim((string) $this->nombre);
     }
 
     /** Asunto para responder desde el cliente de correo. */

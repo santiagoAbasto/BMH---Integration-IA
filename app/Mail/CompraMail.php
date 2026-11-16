@@ -2,60 +2,34 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Support\MailMarca;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
+/**
+ * Mail al cliente con un texto que se carga en el panel (Mails: bienvenida al registrarse y aviso de cuenta
+ * habilitada), dentro del formato de BMH.
+ */
 class CompraMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    public function __construct(public $subject, public $content, public $data = null) {}
 
-    public $subject;
-    public $content;
-
-    /**
-     * Create a new message instance.
-     */
-    public function __construct($subject, $content, $data)
-    {
-        $this->subject = $subject;
-        $this->content = $content;
-        $this->data = $data;
-    }
-
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->subject,
+            from: new Address((string) config('mail.from.address'), MailMarca::NOMBRE),
+            subject: (string) $this->subject,
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            view: 'compra-mail',
-            with: [
-                'data' => $this->data,
-            ],
+            view: 'mail.mensaje',
+            text: 'mail.mensaje-texto',
+            with: ['titulo' => (string) $this->subject, 'contenido' => (string) $this->content],
         );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
     }
 }

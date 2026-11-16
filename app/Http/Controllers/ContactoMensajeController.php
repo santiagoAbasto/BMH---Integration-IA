@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\ContactoMensaje;
+use App\Models\ContactoRespuesta;
+use App\Services\RespuestasContacto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,7 +26,7 @@ final class ContactoMensajeController extends Controller
         $abierto = null;
 
         if ($request->filled('mensaje')) {
-            $abierto = ContactoMensaje::query()->find($request->integer('mensaje'));
+            $abierto = ContactoMensaje::query()->with('respuestas')->find($request->integer('mensaje'));
             $abierto?->marcarLeido();
         }
 
@@ -68,6 +70,38 @@ final class ContactoMensajeController extends Controller
 
         return redirect()->to($this->bandeja($request))
             ->with('success', $borrados === 1 ? 'Se eliminó 1 consulta.' : "Se eliminaron {$borrados} consultas.");
+    }
+
+    /** Responder desde el panel: queda en la conversación y le llega por email, con el formato de BMH. */
+    public function responder(Request $request, ContactoMensaje $mensaje, RespuestasContacto $respuestas): RedirectResponse
+    {
+        $cuerpo = $request->validate(
+            ['cuerpo' => ['required', 'string', 'max:10000']],
+            ['cuerpo.required' => 'Escribí la respuesta.', 'cuerpo.max' => 'La respuesta admite hasta 10.000 caracteres.'],
+        )['cuerpo'];
+
+        $respuesta = $respuestas->responder($mensaje, trim(str_replace("
+", "
+", $cuerpo)), $request->user('admin'));
+
+        return $this->despuesDeResponder($request, $mensaje, $respuesta);
+    }
+
+    /** «Volver a enviar» una respuesta que no salió. */
+    public function reenviar(Request $request, ContactoMensaje $mensaje, ContactoRespuesta $respuesta, RespuestasContacto $respuestas): RedirectResponse
+    {
+        abort_unless($respuesta->contacto_mensaje_id === $mensaje->id, 404);
+
+        return $this->despuesDeResponder($request, $mensaje, $respuesta->enviada() ? $respuesta : $respuestas->enviar($respuesta));
+    }
+
+    private function despuesDeResponder(Request $request, ContactoMensaje $mensaje, ContactoRespuesta $respuesta): RedirectResponse
+    {
+        $volver = redirect()->to($this->bandeja($request, $mensaje->id).'#respuesta-'.$respuesta->id);
+
+        return $respuesta->enviada()
+            ? $volver->with('success', "Respuesta enviada a {$mensaje->email}.")
+            : $volver->with('warning', 'La respuesta quedó guardada pero el email no salió. Revisá el correo y tocá «Volver a enviar».');
     }
 
     /** @return array{filtro: string|null, q: string} */

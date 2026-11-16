@@ -103,6 +103,9 @@ class RegisteredUserController extends Controller
                     report($e);
                 }
 
+                // Aviso a BMH (Contacto › Contenido › Avisos por email), después de responder: no demora el registro.
+                dispatch(fn () => app(\App\Services\AvisosBmh::class)->clienteNuevo($user))->afterResponse();
+
                 // Auth::login($user);
                 return redirect()->route('home', ['registro' => true]);
                 break;

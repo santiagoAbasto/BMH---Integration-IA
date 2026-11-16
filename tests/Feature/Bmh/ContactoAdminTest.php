@@ -106,7 +106,9 @@ final class ContactoAdminTest extends BaseTestCase
         $this->actingAs($this->admin(), 'admin')->get(route('dashboard.contacto.mensajes', ['mensaje' => $mensaje->id]))
             ->assertOk()
             ->assertSee('Necesito precios de inducidos.')
-            ->assertSee('mailto:pedro.bandeja@example.com?subject=', false);
+            // Se responde desde el panel: el cuadro de respuesta apunta a la ruta de responder.
+            ->assertSee(route('contacto.mensajes.responder', $mensaje), false)
+            ->assertSee('Sin respuestas todavía');
 
         $this->assertNotNull($mensaje->fresh()->leido_at);
     }

@@ -44,7 +44,7 @@ final class MailMarca
         }
 
         if ($message === null) {
-            return asset('imagenes/'.basename($archivo));
+            return asset(ltrim(str_replace([public_path(), DIRECTORY_SEPARATOR], ['', '/'], $archivo), '/'));
         }
 
         self::$embebidos ??= new \WeakMap;
@@ -79,6 +79,13 @@ final class MailMarca
 
         $archivo = $path ? public_path('imagenes/'.$path) : null;
 
-        return $archivo && is_file($archivo) ? $archivo : null;
+        // Sólo PNG, JPG o GIF y livianos: Gmail y Outlook no muestran WebP ni SVG, y uno pesado engorda cada mail.
+        // Si el logo de Extras no sirve para mail, va el PNG de BMH que trae el sitio (img/mail/bmh-logo.png).
+        $sirve = $archivo && is_file($archivo)
+            && in_array(strtolower(pathinfo($archivo, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif'], true)
+            && filesize($archivo) <= 300 * 1024;
+        $respaldo = public_path('img/mail/bmh-logo.png');
+
+        return $sirve ? $archivo : (is_file($respaldo) ? $respaldo : null);
     }
 }

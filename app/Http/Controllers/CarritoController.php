@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Mail\PedidoClienteMail;
-use App\Mail\PedidoEmpresaMail;
 use App\Models\Bonificacion;
 use App\Models\Carrito;
 use App\Models\Contacto;
@@ -326,17 +325,13 @@ class CarritoController extends Controller
 
         Cart::destroy();
 
-        try {
-            $email = new PedidoClienteMail($pedido, $mensajeEnvio);
-            Mail::to($pedido->mail)->send($email);
-
-            $contacto = Contacto::find(1);
-            $mail_empresa = $contacto->mail;
-            $email = new PedidoEmpresaMail($pedido, $request->archivo, $mensajeEnvio);
-            Mail::to($mail_empresa)->send($email);
-        } catch (Exception $e) {
-            echo 'Se ha producido una excepción: '.$e->getMessage();
+        // Confirmación al cliente y aviso a BMH (a las cuentas de Contacto › Contenido › Avisos por email), con el
+        // formato de BMH. Un SMTP caído no rompe el pedido: ya quedó guardado y se ve en el panel.
+        if (filter_var($pedido->mail, FILTER_VALIDATE_EMAIL)) {
+            app(\App\Services\EnvioMail::class)->enviar(fn () => Mail::to($pedido->mail)->send(new PedidoClienteMail($pedido, $mensajeEnvio)), 'confirmación de pedido al cliente', ['pedido_id' => $pedido->id]);
         }
+        $archivo = $request->file('archivo');
+        app(\App\Services\AvisosBmh::class)->pedidoNuevo($pedido, $archivo instanceof \Illuminate\Http\UploadedFile ? $archivo : null, $mensajeEnvio);
 
         //Limpiar carrito
         // Cart::destroy();

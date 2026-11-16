@@ -29,6 +29,19 @@ class ContactoController extends Controller
     /** Admin → Contacto › Contenido: datos, mapa, redes y a quién le llegan las consultas. */
     public function update(Request $request): RedirectResponse
     {
+        // Una lista de hasta 10 emails separados por comas (las tres listas de avisos).
+        $listaEmails = ['nullable', 'string', 'max:500', function (string $atributo, mixed $valor, \Closure $falla): void {
+            $emails = Contacto::separarEmails($valor);
+            if (count($emails) > 10) {
+                $falla('Cargá hasta 10 emails.');
+            }
+            foreach ($emails as $email) {
+                if (validator(['e' => $email], ['e' => 'email:rfc'])->fails()) {
+                    $falla("«{$email}» no es un email válido. Separá los emails con comas.");
+                }
+            }
+        }];
+
         $datos = $request->validate([
             'direccion' => ['nullable', 'string', 'max:255'],
             'iframe' => ['nullable', 'string', 'max:5000'],
@@ -38,17 +51,9 @@ class ContactoController extends Controller
             'facebook' => ['nullable', 'string', 'max:255'],
             'instagram' => ['nullable', 'string', 'max:255'],
             'tiktok' => ['nullable', 'string', 'max:255'],
-            'emails_aviso' => ['nullable', 'string', 'max:500', function (string $atributo, mixed $valor, \Closure $falla): void {
-                $emails = Contacto::separarEmails($valor);
-                if (count($emails) > 10) {
-                    $falla('Cargá hasta 10 emails.');
-                }
-                foreach ($emails as $email) {
-                    if (validator(['e' => $email], ['e' => 'email:rfc'])->fails()) {
-                        $falla("«{$email}» no es un email válido. Separá los emails con comas.");
-                    }
-                }
-            }],
+            'emails_aviso' => $listaEmails,
+            'emails_aviso_registro' => $listaEmails,
+            'emails_aviso_pedidos' => $listaEmails,
             'asunto_aviso' => ['nullable', 'string', 'max:150'],
             'acuse_recibo' => ['nullable', Rule::in(['0', '1'])],
         ], [
@@ -58,9 +63,11 @@ class ContactoController extends Controller
 
         $contacto = Contacto::find(1) ?? new Contacto();
         $contacto->forceFill([
-            ...collect($datos)->except(['emails_aviso', 'acuse_recibo', 'iframe'])->map(fn ($valor) => filled($valor) ? trim($valor) : null)->all(),
+            ...collect($datos)->except(['emails_aviso', 'emails_aviso_registro', 'emails_aviso_pedidos', 'acuse_recibo', 'iframe'])->map(fn ($valor) => filled($valor) ? trim($valor) : null)->all(),
             'iframe' => trim((string) ($datos['iframe'] ?? '')),
             'emails_aviso' => implode(', ', Contacto::separarEmails($datos['emails_aviso'] ?? null)) ?: null,
+            'emails_aviso_registro' => implode(', ', Contacto::separarEmails($datos['emails_aviso_registro'] ?? null)) ?: null,
+            'emails_aviso_pedidos' => implode(', ', Contacto::separarEmails($datos['emails_aviso_pedidos'] ?? null)) ?: null,
             'acuse_recibo' => ($datos['acuse_recibo'] ?? '0') === '1',
         ])->save();
 

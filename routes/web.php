@@ -492,6 +492,8 @@ Route::controller(\App\Http\Controllers\ContactoMensajeController::class)->middl
     Route::delete('dashboard/contacto/mensajes', 'destroyMany')->name('contacto.mensajes.destroy-many');
     Route::patch('dashboard/contacto/mensajes/{mensaje}/leido', 'leido')->whereNumber('mensaje')->name('contacto.mensajes.leido');
     Route::delete('dashboard/contacto/mensajes/{mensaje}', 'destroy')->whereNumber('mensaje')->name('contacto.mensajes.destroy');
+    Route::post('dashboard/contacto/mensajes/{mensaje}/respuestas', 'responder')->whereNumber('mensaje')->middleware('throttle:20,1')->name('contacto.mensajes.responder');
+    Route::post('dashboard/contacto/mensajes/{mensaje}/respuestas/{respuesta}/reenviar', 'reenviar')->whereNumber(['mensaje', 'respuesta'])->middleware('throttle:20,1')->name('contacto.mensajes.reenviar');
 });
 
 Route::controller(ImagenController::class)->middleware('admin')->group(function () {

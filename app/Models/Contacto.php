@@ -55,6 +55,24 @@ class Contacto extends Model
         return $validos(self::separarEmails($this->emails_aviso)) ?: $validos(self::separarEmails($this->mail));
     }
 
+    /** A quién le llega el aviso de un cliente que se registró: su lista o, si está vacía, la de las consultas. */
+    public function destinatariosRegistro(): array
+    {
+        return $this->emailsValidos($this->emails_aviso_registro) ?: $this->destinatariosAviso();
+    }
+
+    /** A quién le llega el aviso de un pedido nuevo: su lista o, si está vacía, la de las consultas. */
+    public function destinatariosPedidos(): array
+    {
+        return $this->emailsValidos($this->emails_aviso_pedidos) ?: $this->destinatariosAviso();
+    }
+
+    /** @return list<string> */
+    private function emailsValidos(?string $lista): array
+    {
+        return array_values(array_filter(self::separarEmails($lista), fn (string $email) => filter_var($email, FILTER_VALIDATE_EMAIL) !== false));
+    }
+
     public function asuntoAviso(): string
     {
         return filled($this->asunto_aviso) ? trim($this->asunto_aviso) : self::ASUNTO_AVISO;
