@@ -159,14 +159,18 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                 </div>
             )}
 
-            {/* "¿Era este?" — discreto, sólo cuando hubo una identificación. */}
-            {candidates.length > 0 && typeof message.id === 'number' && (
+            {/* La evaluación pertenece a la respuesta, no sólo a una tarjeta.
+                Si no se logró identificar una pieza, la X sigue siendo el
+                camino para reportar el caso y aportar el código correcto. */}
+            {typeof message.id === 'number' && !message.pending && (
                 <div className="flex items-center gap-2">
                     {message.feedbackGiven === true ? (
                         <p className="text-caption text-ink-tertiary">Gracias, lo tenemos en cuenta.</p>
                     ) : (
                         <>
-                            <span className="text-caption text-ink-tertiary">¿Era este?</span>
+                            <span className="text-caption text-ink-tertiary">
+                                {candidates.length > 0 ? '¿Era este?' : '¿Te sirvió esta respuesta?'}
+                            </span>
                             <button
                                 type="button"
                                 onClick={() => onFeedback(message.id, topProductId, true)}
@@ -188,7 +192,7 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                 </div>
             )}
 
-            {candidates.length > 0 && typeof message.id === 'number' && message.feedbackGiven !== true && showCorrection && (
+            {typeof message.id === 'number' && !message.pending && message.feedbackGiven !== true && showCorrection && (
                 <form
                     className="max-w-bubble rounded-card border border-state-danger/30 bg-surface-raised p-3"
                     onSubmit={(event) => {

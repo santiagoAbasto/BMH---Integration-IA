@@ -248,6 +248,30 @@ servidor antes de correrlo**: en el hosting no hay espacio para duplicarlo.
 Copiar `docs/deploy/imagenes.htaccess` a `public_html/imagenes/.htaccess`: sirve
 el `.webp` cuando se pide el nombre viejo `.png`/`.jpg`.
 
+### 6.7 Índice visual del catálogo
+
+El asesor sólo puede contrastar fotos que PHP puede leer desde el servidor. Si
+el código vive en `bmh/` pero las fotos viven únicamente en `public_html/imagenes/`,
+declarar la ruta real en el `.env` (sin copiar ni publicar archivos):
+
+```dotenv
+BMH_CATALOG_IMAGES_PATH=/ruta/absoluta/a/public_html/imagenes
+```
+
+Después de actualizar imágenes, o una vez al día, reconstruir el índice:
+
+```bash
+php artisan config:clear
+php artisan bmh:index-catalog-images
+```
+
+El comando sólo lee `imagenes` y genera `storage/app/ai-private/catalog-image-index.json`.
+No modifica productos ni la base legacy. El total de **Indexadas** debe ser
+coherente con las fotos de producto existentes; si da `0`, la ruta configurada
+no es la que PHP está usando. Esta búsqueda usa una huella estricta para fotos
+o capturas del propio catálogo y presenta el resultado para confirmación: no
+reemplaza la validación por código o medida cuando la imagen no es la misma.
+
 ---
 
 ## 7. Tests

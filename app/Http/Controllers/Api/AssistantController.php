@@ -399,13 +399,6 @@ final class AssistantController extends Controller
             ], 422);
         }
 
-        if ($wasCorrect && $productId === null) {
-            return response()->json([
-                'message' => 'Elegí qué pieza confirmás.',
-                'code' => 'product_required',
-            ], 422);
-        }
-
         if ($wasCorrect && ($expectedProductId !== null || $expectedCode !== null)) {
             return response()->json([
                 'message' => 'La corrección esperada sólo corresponde cuando marcás que el resultado no fue correcto.',
@@ -426,8 +419,9 @@ final class AssistantController extends Controller
             'review_status' => $wasCorrect ? 'confirmed' : 'pending',
         ]);
 
-        // Si acertó, se deja registrado el artículo resuelto: sirve para
-        // cotizar después sin volver a buscar.
+        // Una respuesta puede ser útil aunque no haya identificado una pieza.
+        // Sólo una confirmación que señala un candidato concreto resuelve la
+        // conversación y habilita las acciones posteriores sobre ese artículo.
         if ($wasCorrect && $productId !== null) {
             $conversation->update([
                 'resolved_product_id' => (int) $productId,
@@ -442,7 +436,7 @@ final class AssistantController extends Controller
 
         return response()->json([
             'ok' => true,
-            'confirmed_product_id' => $wasCorrect ? (int) $productId : null,
+            'confirmed_product_id' => $wasCorrect && $productId !== null ? (int) $productId : null,
         ]);
     }
 

@@ -53,6 +53,7 @@ final class VisionMatchService
         private readonly CandidateRankingService $ranking,
         private readonly ProductImageService $images,
         private readonly CatalogFamilyResolver $familias,
+        private readonly CatalogImageFingerprintIndex $catalogImageIndex,
     ) {
     }
 
@@ -74,6 +75,43 @@ final class VisionMatchService
         $notes = [];
         $codigoDescartado = false;
         $notaDelCodigo = null;
+
+        /*
+         * Antes de pedirle atributos a la foto, buscamos si es (o es casi) una
+         * imagen que ya pertenece al catálogo. Este camino no depende de que
+         * la IA haya sabido nombrar el rubro: es el que cubre una captura o una
+         * foto descargada de la propia web.
+         */
+        if ($customerImagePath !== null) {
+            $indexed = $this->candidatesFromCatalogImageIndex($customerImagePath);
+
+            if ($indexed !== []) {
+                $compared = false;
+
+                if ($provider !== null) {
+                    $comparison = $this->compararImagenes($provider, $customerImagePath, $indexed);
+
+                    if ($comparison !== null) {
+                        $indexed = $comparison['candidates'];
+                        $compared = true;
+
+                        if ($comparison['note'] !== null) {
+                            $notes[] = $comparison['note'];
+                        }
+                    }
+                }
+
+                array_unshift($notes, 'La foto coincide visualmente con una imagen del catálogo. Confirmame la pieza antes de agregarla al carrito.');
+
+                return [
+                    'candidates' => $indexed,
+                    'strategy' => $compared ? 'catalog_image_index+vision_compared' : 'catalog_image_index',
+                    'code_hits' => [],
+                    'compared' => $compared,
+                    'notes' => $notes,
+                ];
+            }
+        }
 
         if (! $analysis->imageUsable && ! $analysis->hasReliableCode()) {
             return [
@@ -925,6 +963,42 @@ final class VisionMatchService
             'candidates' => $candidates,
             'note' => $razon === '' ? null : 'Comparando las fotos: '.mb_substr($razon, 0, 180),
         ];
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function candidatesFromCatalogImageIndex(string $customerImagePath): array
+    {
+        $matches = $this->catalogImageIndex->matches($customerImagePath);
+
+        if ($matches === []) {
+            return [];
+        }
+
+        $products = [];
+
+        foreach ($this->catalog->findMany(array_column($matches, 'product_id')) as $product) {
+            $products[$product->id] = $product;
+        }
+
+        $candidates = [];
+        $weight = (float) config('bmh.ranking.weights.catalog_image_fingerprint', 60.0);
+
+        foreach ($matches as $match) {
+            $product = $products[$match['product_id']] ?? null;
+
+            if ($product === null) {
+                continue;
+            }
+
+            $candidate = new Candidate($product);
+            $candidate->addSignal('catalog_image_fingerprint', $weight, $match['strength']);
+            $candidate->matchedOn[] = 'coincidencia visual con una imagen del catálogo';
+            $candidates[] = $candidate;
+        }
+
+        return $candidates;
     }
 
     private function shouldAddVisualSimilaritySignal(float $similarity): bool

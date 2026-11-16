@@ -148,6 +148,22 @@ return [
         // Más detalle que el análisis rápido: permite leer cotas impresas en
         // fichas de catálogo sin mandar los originales de varios megabytes.
         'comparison_image_max_px' => (int) env('AI_VISION_COMPARISON_IMAGE_MAX_PX', 1024),
+        // Búsqueda global y estricta para fotos que vienen del propio catálogo.
+        // No identifica piezas por apariencia general: sólo recupera imágenes
+        // con huellas casi idénticas y pide confirmación.
+        'catalog_image_index' => [
+            'enabled' => env('AI_CATALOG_IMAGE_INDEX_ENABLED', true),
+            'max_distance' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE', 8),
+            'max_distance_per_hash' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE_PER_HASH', 6),
+            'limit' => (int) env('AI_CATALOG_IMAGE_LIMIT', 3),
+        ],
+    ],
+
+    // En cPanel el document root puede ser public_html y el código vivir en
+    // un directorio hermano. Esta ruta opcional permite que PHP lea esas fotos
+    // sin duplicarlas. Vacía = public/imagenes de Laravel.
+    'catalog_images' => [
+        'path' => env('BMH_CATALOG_IMAGES_PATH'),
     ],
 
     /*
@@ -170,6 +186,7 @@ return [
             'text_similarity' => 5.0,
             'semantic_similarity' => 4.0,
             'vision_similarity' => 3.0,   // deliberadamente bajo
+            'catalog_image_fingerprint' => 60.0, // foto casi idéntica; siempre se confirma
             'customer_history' => 7.0,
             'popularity' => 2.0,
         ],

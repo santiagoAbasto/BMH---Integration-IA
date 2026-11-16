@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#111827"/>
+  </linearGradient>
+  <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#0098DA"/><stop offset="1" stop-color="#ABD430"/>
+  </linearGradient>
+  <radialGradient id="glowA" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#0098DA" stop-opacity="0.55"/><stop offset="1" stop-color="#0098DA" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowB" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#ABD430" stop-opacity="0.45"/><stop offset="1" stop-color="#ABD430" stop-opacity="0"/>
+  </radialGradient>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity="0.05"/>
+  </pattern>
+  <clipPath id="card"><rect width="1200" height="300" rx="22"/></clipPath>
+</defs>
+<style>
+  .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;fill:#f8fafc} .s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;fill:#cbd5e1} .m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#94a3b8}
+  .floatA{animation:fa 14s ease-in-out infinite alternate} .floatB{animation:fb 17s ease-in-out infinite alternate}
+  .grid{animation:gd 20s linear infinite}
+  .bar{animation:br 3.2s ease-in-out infinite}
+  @keyframes fa{from{transform:translate(0,0)}to{transform:translate(160px,40px)}}
+  @keyframes fb{from{transform:translate(0,0)}to{transform:translate(-180px,-30px)}}
+  @keyframes gd{from{transform:translate(0,0)}to{transform:translate(40px,40px)}}
+  @keyframes br{0%,100%{opacity:.55}50%{opacity:1}}
+  .dash{animation:ds 1.2s linear infinite} @keyframes ds{to{stroke-dashoffset:-24}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<g clip-path="url(#card)">
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect class="grid" x="-40" y="-40" width="1280" height="380" fill="url(#grid)"/>
+  <circle class="floatA" cx="220" cy="75" r="260" fill="url(#glowA)"/>
+  <circle class="floatB" cx="1000" cy="240" r="300" fill="url(#glowB)"/>
+  <text class="m" x="50" y="48" font-size="17" letter-spacing="3">CÓMO FUNCIONA UN TURNO DEL ASESOR</text>
+  <rect x="50" y="126" width="183" height="130" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="url(#ac)" stroke-opacity="0.65"/>
+  <text class="m" x="142" y="160" font-size="14" text-anchor="middle">01</text>
+  <text class="t" x="142" y="196" font-size="22" font-weight="700" text-anchor="middle">Cliente</text>
+  <text class="s" x="142" y="222" font-size="14" text-anchor="middle">texto, código o foto</text>
+  <path id="p0" d="M237 191 L275 191" stroke="#0098DA" stroke-width="3" stroke-dasharray="6 6" class="dash"/>
+  <path d="M267 185 L275 191 L267 197" fill="none" stroke="#ABD430" stroke-width="3" stroke-linecap="round"/>
+  <circle r="5" fill="#f8fafc"><animateMotion dur="1.6s" begin="0.0s" repeatCount="indefinite"><mpath href="#p0"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" dur="1.6s" begin="0.0s" repeatCount="indefinite"/></circle>
+  <rect x="279" y="126" width="183" height="130" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="url(#ac)" stroke-opacity="0.65"/>
+  <text class="m" x="371" y="160" font-size="14" text-anchor="middle">02</text>
+  <text class="t" x="371" y="196" font-size="22" font-weight="700" text-anchor="middle">Widget React</text>
+  <text class="s" x="371" y="222" font-size="14" text-anchor="middle">Shadow DOM, REST y</text>
+  <text class="s" x="371" y="240" font-size="14" text-anchor="middle">SSE</text>
+  <path id="p1" d="M466 191 L504 191" stroke="#0098DA" stroke-width="3" stroke-dasharray="6 6" class="dash"/>
+  <path d="M496 185 L504 191 L496 197" fill="none" stroke="#ABD430" stroke-width="3" stroke-linecap="round"/>
+  <circle r="5" fill="#f8fafc"><animateMotion dur="1.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" dur="1.6s" begin="0.4s" repeatCount="indefinite"/></circle>
+  <rect x="508" y="126" width="183" height="130" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="url(#ac)" stroke-opacity="0.65"/>
+  <text class="m" x="600" y="160" font-size="14" text-anchor="middle">03</text>
+  <text class="t" x="600" y="196" font-size="22" font-weight="700" text-anchor="middle">Orquestador</text>
+  <text class="s" x="600" y="222" font-size="14" text-anchor="middle">la IA interpreta, la</text>
+  <text class="s" x="600" y="240" font-size="14" text-anchor="middle">app decide</text>
+  <path id="p2" d="M696 191 L734 191" stroke="#0098DA" stroke-width="3" stroke-dasharray="6 6" class="dash"/>
+  <path d="M726 185 L734 191 L726 197" fill="none" stroke="#ABD430" stroke-width="3" stroke-linecap="round"/>
+  <circle r="5" fill="#f8fafc"><animateMotion dur="1.6s" begin="0.8s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" dur="1.6s" begin="0.8s" repeatCount="indefinite"/></circle>
+  <rect x="738" y="126" width="183" height="130" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="url(#ac)" stroke-opacity="0.65"/>
+  <text class="m" x="829" y="160" font-size="14" text-anchor="middle">04</text>
+  <text class="t" x="829" y="196" font-size="17" font-weight="700" text-anchor="middle">Catálogo legacy</text>
+  <text class="s" x="829" y="222" font-size="14" text-anchor="middle">solo lectura, ranking</text>
+  <text class="s" x="829" y="240" font-size="14" text-anchor="middle">multifactor</text>
+  <path id="p3" d="M925 191 L963 191" stroke="#0098DA" stroke-width="3" stroke-dasharray="6 6" class="dash"/>
+  <path d="M955 185 L963 191 L955 197" fill="none" stroke="#ABD430" stroke-width="3" stroke-linecap="round"/>
+  <circle r="5" fill="#f8fafc"><animateMotion dur="1.6s" begin="1.2s" repeatCount="indefinite"><mpath href="#p3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" dur="1.6s" begin="1.2s" repeatCount="indefinite"/></circle>
+  <rect x="967" y="126" width="183" height="130" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="url(#ac)" stroke-opacity="0.65"/>
+  <text class="m" x="1058" y="160" font-size="14" text-anchor="middle">05</text>
+  <text class="t" x="1058" y="196" font-size="22" font-weight="700" text-anchor="middle">Respuesta</text>
+  <text class="s" x="1058" y="222" font-size="14" text-anchor="middle">precio con la fórmula</text>
+  <text class="s" x="1058" y="240" font-size="14" text-anchor="middle">de producción</text>
+  <rect width="1200" height="300" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+</g>
+</svg>

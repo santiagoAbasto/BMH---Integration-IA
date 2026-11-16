@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="24" viewBox="0 0 1200 24" role="img">
+<defs>
+  <linearGradient id="ln" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#0098DA" stop-opacity="0"/><stop offset="0.5" stop-color="#0098DA" stop-opacity="0.6"/><stop offset="1" stop-color="#ABD430" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="sp" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#ABD430"/><stop offset="1" stop-color="#ABD430" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<style>.sp{animation:mv 5s ease-in-out infinite} @keyframes mv{from{transform:translateX(0)}to{transform:translateX(1040px)}} @media (prefers-reduced-motion:reduce){.sp{animation:none}}</style>
+<rect x="0" y="11" width="1200" height="2" rx="1" fill="url(#ln)"/>
+<ellipse class="sp" cx="80" cy="12" rx="70" ry="6" fill="url(#sp)" opacity="0.8"/>
+</svg>

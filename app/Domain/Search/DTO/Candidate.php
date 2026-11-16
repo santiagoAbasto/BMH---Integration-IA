@@ -83,6 +83,16 @@ final class Candidate
             return max($base, (float) config('bmh.confidence.ambiguous', 0.5));
         }
 
+        $catalogImageWeight = (float) config('bmh.ranking.weights.catalog_image_fingerprint', 60.0);
+        $catalogImageSignal = $this->signals['catalog_image_fingerprint'] ?? 0.0;
+
+        // Una huella visual casi idéntica recupera la foto original aunque el
+        // texto no dé pistas. No llega a "alta": una imagen reutilizada puede
+        // servir a más de un código o a una variante muy parecida.
+        if ($catalogImageWeight > 0.0 && $catalogImageSignal / $catalogImageWeight >= 0.9) {
+            return max($base, 0.65);
+        }
+
         return $base;
     }
 

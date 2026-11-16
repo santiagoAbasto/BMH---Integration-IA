@@ -1028,6 +1028,29 @@ final class AssistantConversationTest extends TestCase
         $this->assertSame('resolved', $conversation->status);
     }
 
+    public function test_el_cliente_puede_valorar_una_respuesta_sin_candidato(): void
+    {
+        $conversationId = $this->startConversation();
+        $message = AiMessageRecord::query()->create([
+            'conversation_id' => $conversationId,
+            'role' => 'assistant',
+            'content' => 'Necesito una medida adicional para poder identificar la pieza.',
+        ]);
+
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/feedback",
+            ['message_id' => $message->id, 'was_correct' => true],
+        )->assertOk()->assertJsonPath('confirmed_product_id', null);
+
+        $feedback = AiFeedback::query()->latest('id')->firstOrFail();
+        $conversation = AiConversation::query()->findOrFail($conversationId);
+
+        $this->assertTrue($feedback->was_correct);
+        $this->assertNull($feedback->product_id);
+        $this->assertNull($conversation->resolved_product_id);
+        $this->assertSame('active', $conversation->status);
+    }
+
     public function test_una_correccion_negativa_exige_motivo_y_guarda_el_producto_esperado(): void
     {
         $conversationId = $this->startConversation();
