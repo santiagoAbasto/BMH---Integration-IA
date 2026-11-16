@@ -1,6 +1,6 @@
 # Rediseño BMH — estado y pendientes
 
-Rama `rediseno` (Laravel 13, PHP 8.4, osole/ui). Corte: 2026-11-12.
+Rama `rediseno` (Laravel 13, PHP 8.4, osole/ui). Actualizado: 2026-11-16.
 **No va a producción todavía.** Producción sigue en `new-products-schema` (Laravel 10, PHP 8.2).
 
 ---
@@ -25,65 +25,44 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
 - `2026_11_12_000002_add_seo_to_metadatos` — `metadatos.titulo` + tabla `seo_settings`.
 - `2026_11_12_000003_create_contacto_mensajes_table` — `contacto_mensajes` + columnas de avisos en `contacto`.
 - `2026_11_12_000010_normalizar_caracteristicas` — características relacionales (ver punto 2).
+- `2026_11_16_000001_quitar_columna_caracteristicas_de_productos` — saca `productos.caracteristicas` (texto viejo vacío que
+  tapaba la relación); si tuviera datos la renombra a `caracteristicas_texto`.
 
 Para importar el backup parcial en una base que ya tenga el resto: `mysql -u USUARIO BASE < database/backups/rediseno-2026-11-12-sin-datos-personales.sql`
 (reemplaza esas 7 tablas).
 
 ---
 
-## 2. Características de productos — **a medio hacer** (lo más importante)
+## 2. Características de productos — **hecho**
 
-Pedido: sacar las 78 columnas sueltas (`categorias.columna_N` = nombre, `productos.columna_N` = valor) y el sistema viejo
-(`categoria_caracteristica` / `producto_caracteristica`) y pasar a tablas relacionales, con muy buena UI/UX en el admin.
+Antes vivían en 78 columnas sueltas (`categorias.columna_N` = nombre, `productos.columna_N` = valor), en las tablas
+`categoria_caracteristica` / `producto_caracteristica` (valor cortado a 50) y con la regla de voltaje/diámetro en el código.
 
-### Hecho (en `rediseno`)
-- `bedf7d8` — Esquema y datos:
-  - `caracteristicas`: `nombre` único, `orden` de 2 caracteres (aa, ab…), formato opcional `mayusculas` / `numerica` / `unidad`
-    (VOLTAJE → `12V`, DIÁMETRO → `59.5MM`), utf8mb4.
-  - `caracteristica_categoria` y `caracteristica_producto` (con `valor` hasta 255): FKs y PK por par.
-  - Datos migrados y verificados: 157 características, 373 vínculos con categorías, 18.048 valores, **0 perdidos**.
-    `-` = sin dato. EQUIVALENCIA estaba en dos columnas (51 y 70): quedó una sola.
-  - `App\Support\Caracteristicas\FormatoCaracteristica` (normaliza valores) + tests.
-- `2319974` — Modelos sobre las tablas nuevas (`Caracteristica`, `Categoria::caracteristicas()`, `Producto::caracteristicas()`)
-  y un solo lugar para guardar valores (`SincronizarCaracteristicasProducto`).
-- **Las columnas `columna_N` y las tablas viejas NO se borraron** (respaldo). El código de `rediseno` todavía las lee: el sitio
-  funciona igual que antes.
+- **Base** (`bedf7d8`): `caracteristicas` (nombre único, orden de 2 caracteres, formato opcional: mayúsculas / numérica /
+  unidad), `caracteristica_categoria` y `caracteristica_producto` con FKs. 157 características, 373 vínculos, 18.048 valores,
+  0 perdidos.
+- **Todo el sitio lee las tablas nuevas**: catálogo, filtros (`c[ID]=valor`; los links viejos `columna_N` redirigen),
+  búsqueda, equivalencias, parecidos, fichas, zona privada, Excel y la capa de IA. Nada lee ni escribe `columna_N`
+  (salvo `MigracionCaracteristicas` y el comando `bmh:normalize-catalog-attributes` de la capa de IA, que no se tocó).
+- **Admin** (`882ca3c`):
+  - *Características*: buscador, orden, «Todas / Sin usar», formato con ejemplo en vivo («12,50 → se guarda 12.5V»),
+    aplicar el formato a los valores cargados mostrando cuántos cambian, borrar con impacto y fusionar duplicadas.
+  - *Categorías*: selector con buscador (chips, teclado), crear al vuelo, traer de otra categoría o producto y las sin usar.
+  - *Productos*: «Usar las de la categoría», copiar de otro producto (con o sin valores), crear al vuelo, validación en vivo
+    y aviso de las que la categoría no usa (no se ven en el sitio) con «Sumarla a la categoría».
 
-### Trabajo en curso guardado en la rama `rediseno-wip-caracteristicas` (commit `e06a3ac`)
-Se cortó a mitad de camino: **no está terminado ni probado en conjunto. No mergear sin completar.**
-- Catálogo, filtros, búsqueda, equivalencias, parecidos y capa de IA leyendo las tablas nuevas.
-- Se sacan `NormalizadorUnidades`, `UnidadesProducto`, `ProductCaracteristica` y sus tests.
-- Actions `AplicarFormatoCaracteristica` y `FusionarCaracteristicas`, CSS/JS del admin, cambios en el modal de categorías y en
-  crear/editar producto. Estaba pasando las rutas cuando se cortó.
-
-### Falta
-1. **Terminar la lectura en las tablas nuevas** y que nada lea/escriba `columna_N` (salvo `MigracionCaracteristicas`):
-   `ProductoController` (Excel import/export), vistas `carrito-productos`, `productos-clientes-listado`, `modalCarrito`,
-   `producto`, `productoBmh`, `productoRodamiento`; filtros del catálogo con parámetro estable `c[ID]=valor`
-   (redirigir los `columna_N` viejos).
-2. **Admin → Características**: buscador, uso (categorías/productos), editar nombre/orden/formato con ejemplo en vivo
-   («escribís 12 → se guarda 12V»), aplicar formato a valores ya cargados mostrando cuántos cambian, eliminar con impacto,
-   fusionar duplicados.
-3. **Modal de categorías**: sin los 78 checkboxes; selector con buscador (estilo partes relacionadas) con chips, crear
-   característica rápido, «ver/traer de otra categoría o producto», y al final «características sin usar».
-4. **Crear/editar producto**: sección Características con «Usar características de la categoría», «Copiar de otro producto»
-   (con o sin valores), agregar existente o crear nueva, validación en vivo con el formato; al cambiar de categoría no borrar
-   valores, avisar.
-5. Tests: actualizar `CatalogoTest`, `CatalogoParecidosTest`, `BuscadorHeaderTest`, `BusquedaPorEquivalenciaTest`,
-   `ExcelProductosTest`, `CaracteristicaDashboardTest`, `AssistantConversationTest`, `LegacyCatalogMappingTest`; suite completa.
-6. Verificar cada pantalla en navegador (1366 y 390).
-7. **Decidir después**: migración que borre `columna_N` y las tablas viejas (sólo cuando lo anterior esté probado);
-   fusionar los 2 pares casi duplicados («DISTANCIA ENTRE ORIFICIOS - [D1] (MM)» / «(D1) MM» y
-   «DIAMETRO ORIFICIOS - [DA] (MM)» / «-(DA) MM»); unos pocos valores raros en numéricas quedaron como texto
-   (p. ej. VOLTAJE «380VAC 3-FASES 50HZ», «.»).
-- No tocar `atributos_producto` / `producto_atributo` ni `NormalizeCatalogAttributesCommand` (son de la capa de IA de Santiago).
+### Para decidir
+- **Borrar lo viejo**: las 78 columnas `columna_N` de `productos` y `categorias` y las tablas `categoria_caracteristica` /
+  `producto_caracteristica` siguen como respaldo. Cuando esté probado, una migración las saca.
+- **Duplicadas**: «DISTANCIA ENTRE ORIFICIOS - [D1] (MM)» / «(D1) MM» y «DIAMETRO ORIFICIOS - [DA] (MM)» / «-(DA) MM»: se
+  fusionan desde el admin (botón «Fusionar»).
+- Valores raros en numéricas que quedaron como texto (p. ej. VOLTAJE «380VAC 3-FASES 50HZ», «.»): revisarlos.
+- Hay productos con valores en características que su categoría no usa (no se ven en el sitio): el admin los marca.
 
 ---
 
 ## 3. Otros pendientes del rediseño
 
-- **Sacar las rutas viejas de Breeze** (`routes/auth.php`: `POST login`, `forgot-password`, `reset-password`): siguen vivas y
-  `POST /login` parece roto. El usuario ya pidió sacarlas.
 - **Páginas del Figma que faltan**: Carrito (nodo 3147:2500), Mis datos (3147:3439, con «Margen de reventa» general y por
   categoría; hoy el form de reventa está en productos-zona-privada), listado de productos de la zona privada (3173:6308),
   detalle de novedad; header/migas del listado y la ficha públicos.
@@ -91,8 +70,12 @@ Se cortó a mitad de camino: **no está terminado ni probado en conjunto. No mer
 - Turbo: sumar `@section('turbo', true)` en las páginas cuyo JS ya sea compatible.
 - osole/ui: ícono opcional en «Leer más» de post-card; evaluar `whatsapp-button.v1` y `contact-form`/`contact-list` para Contacto.
 - Rutas del vendedor (`vendedor.*`) están comentadas en `routes/web.php`: definir si se usan.
-- Tests conocidos que fallan desde antes: `AssistantCartTest::test_una_correccion_posterior_revoca_la_confirmacion_del_carrito`
-  y `LegacyCatalogMappingTest`.
+- Test conocido que falla desde antes: `AssistantCartTest::test_una_correccion_posterior_revoca_la_confirmacion_del_carrito`
+  (y `ExampleTest`, porque la base de tests no tiene todas las tablas). `phpunit` sin argumentos avisa que `tests/Feature/Bmh`
+  está en dos suites de `phpunit.xml`: correr `vendor/bin/phpunit tests/Feature/Bmh`.
+- **Animaciones**: AOS sigue cargado para tres pantallas viejas (carrito, registro y lista de productos del detalle); sacarlo
+  cuando pasen al rediseño. La foto del hero trae un texto tenue («CALIDAD QUE MANTIENE TU MUNDO EN MOVIMIENTO») incrustado:
+  conviene reemplazarla por una sin texto.
 
 ---
 
@@ -102,7 +85,9 @@ Rediseño público (home, nosotros, categorías, novedades, contacto con mapa, o
 footer pixel perfect, Turbo), admin rediseñado con osole/ui (login, sidebar, todas las pantallas, modales), Metadatos SEO como
 Conelec con imagen para compartir y sitemap, Contacto en el admin (Mensajes / Contenido, destinatarios, mails con formato BMH),
 anti-bots en lugar de reCAPTCHA (honeypot, token de tiempo firmado, origen, rate limits), Asesor IA con el estilo del rediseño,
-PDF de pedidos rediseñado, año del footer automático y arreglos de seguridad (Zona de Clientes por `?id=`, `/datos-kc`).
+PDF de pedidos rediseñado, año del footer automático, características relacionales con su admin, animaciones (entrada del
+hero y apariciones al scrollear, como Conelec/Rapivac, con Turbo y «reducir movimiento») y arreglos de seguridad (Zona de
+Clientes por `?id=`, `/datos-kc`, rutas viejas de Breeze y `/profile` fuera).
 
 **Ya en producción** (rama `new-products-schema`, `88704ef`): arreglo de la subida pública de `/datos-kc` (sólo planillas,
 extensión decidida por el servidor, límite de envíos) y `.htaccess` que impide ejecutar scripts en `public_html/archivos`.
