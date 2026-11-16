@@ -262,6 +262,10 @@ class UserController extends Controller
         ]);
 
         
+        // El nombre que muestra el panel acompaña al usuario (no hay un campo aparte para editarlo).
+        if (blank($usuario->name) || $usuario->name === $usuario->username || $usuario->name === 'alberto') {
+            $usuario->name = $request->username;
+        }
         $usuario->username = $request->username;
         $usuario->email = $request->email;
         $usuario->rol = $request->rol;

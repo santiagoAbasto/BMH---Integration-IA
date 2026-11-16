@@ -26,7 +26,8 @@ class Admin extends Authenticatable
         'localidad',
         'provincia',
         'cp',
-        'username'
+        'username',
+        'email'
     ];
 
     /**

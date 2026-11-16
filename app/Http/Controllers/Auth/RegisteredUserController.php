@@ -68,7 +68,9 @@ class RegisteredUserController extends Controller
             
             default:
                 $request->validate([
-                    'name' => ['required', 'string', 'max:255'],
+                    'name' => ['nullable', 'string', 'max:255'],
+                    // La tabla admins exige un email único (sin él, el alta fallaba con un error 500).
+                    'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.Admin::class],
                     'username' => ['required', 'string', 'lowercase', 'max:255', 'unique:'.User::class],
                     'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 ]);
@@ -136,9 +138,12 @@ class RegisteredUserController extends Controller
             default:
                 // Usuarios del panel (dash-nuevo-usuario): sólo estos dos roles.
                 abort_unless(in_array($request->rol, ['usuario', 'administrador'], true), 422);
+                // El panel muestra este nombre abajo a la izquierda: si no se carga uno, el usuario (antes el form
+                // mandaba siempre «alberto» en un campo oculto).
                 $user = Admin::create([
-                    'name' => $request->name,
+                    'name' => filled($request->name) ? $request->name : $request->username,
                     'username' => $request->username,
+                    'email' => $request->email,
                     'rol' => $request->rol,
                     'password' => Hash::make($request->password),
                 ]);
