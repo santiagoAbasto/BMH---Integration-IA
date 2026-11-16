@@ -27,6 +27,14 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
 - `2026_11_12_000010_normalizar_caracteristicas` — características relacionales (ver punto 2).
 - `2026_11_16_000001_quitar_columna_caracteristicas_de_productos` — saca `productos.caracteristicas` (texto viejo vacío que
   tapaba la relación); si tuviera datos la renombra a `caracteristicas_texto`.
+- `2026_11_16_000002_borrar_caracteristicas_viejas` — **borra con sus datos** las 78 `columna_N` de `productos` y
+  `categorias`, las columnas fijas de rodamientos y las tablas `categoria_caracteristica` / `producto_caracteristica`
+  (decisión del usuario; el respaldo es la base de producción). No corre si `caracteristica_producto` está vacía.
+- `2026_11_16_000003_categorias_nombre_sin_distinguir_mayusculas` — `categorias.nombre` de `utf8mb3_bin` a
+  `utf8mb4_unicode_ci` (las búsquedas por nombre de categoría distinguían mayúsculas).
+
+**En producción el orden importa:** correr todas juntas con `php artisan migrate` (primero la 000010 migra los datos,
+después la 000002 del 16/11 borra lo viejo). Hacer el respaldo de la base de producción antes.
 
 Para importar el backup parcial en una base que ya tenga el resto: `mysql -u USUARIO BASE < database/backups/rediseno-2026-11-12-sin-datos-personales.sql`
 (reemplaza esas 7 tablas).
@@ -52,8 +60,6 @@ Antes vivían en 78 columnas sueltas (`categorias.columna_N` = nombre, `producto
     y aviso de las que la categoría no usa (no se ven en el sitio) con «Sumarla a la categoría».
 
 ### Para decidir
-- **Borrar lo viejo**: las 78 columnas `columna_N` de `productos` y `categorias` y las tablas `categoria_caracteristica` /
-  `producto_caracteristica` siguen como respaldo. Cuando esté probado, una migración las saca.
 - **Duplicadas**: «DISTANCIA ENTRE ORIFICIOS - [D1] (MM)» / «(D1) MM» y «DIAMETRO ORIFICIOS - [DA] (MM)» / «-(DA) MM»: se
   fusionan desde el admin (botón «Fusionar»).
 - Valores raros en numéricas que quedaron como texto (p. ej. VOLTAJE «380VAC 3-FASES 50HZ», «.»): revisarlos.
@@ -73,7 +79,8 @@ Antes vivían en 78 columnas sueltas (`categorias.columna_N` = nombre, `producto
 - Test conocido que falla desde antes: `AssistantCartTest::test_una_correccion_posterior_revoca_la_confirmacion_del_carrito`
   (y `ExampleTest`, porque la base de tests no tiene todas las tablas). `phpunit` sin argumentos avisa que `tests/Feature/Bmh`
   está en dos suites de `phpunit.xml`: correr `vendor/bin/phpunit tests/Feature/Bmh`.
-- **Animaciones**: AOS sigue cargado para tres pantallas viejas (carrito, registro y lista de productos del detalle); sacarlo
+- **Animaciones**: verificadas también en la Zona de Clientes con sesión real (Lista de precios, Historial, Mis datos y
+  Carrito: nada queda invisible). AOS sigue cargado para tres pantallas viejas (carrito, registro y lista de productos del detalle); sacarlo
   cuando pasen al rediseño. La foto del hero trae un texto tenue («CALIDAD QUE MANTIENE TU MUNDO EN MOVIMIENTO») incrustado:
   conviene reemplazarla por una sin texto.
 
