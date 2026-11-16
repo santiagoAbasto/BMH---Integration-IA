@@ -120,15 +120,18 @@ final class LegacyCatalogMappingTest extends TestCase
         }
     }
 
-    public function test_extrae_las_piezas_relacionadas_del_eav_moderno(): void
+    public function test_extrae_las_piezas_relacionadas_de_la_tabla_moderna(): void
     {
         $product = $this->catalog()->findByCode('1833')[0] ?? null;
 
         $this->assertNotNull($product);
 
-        $labels = array_map(static fn ($r): string => $r->label, $product->relatedParts);
+        $collector = collect($product->relatedParts)->first(
+            static fn ($reference): bool => $reference->code === 'A105',
+        );
 
-        $this->assertContains('COLECTOR', $labels, 'El rotor 1833 tiene un COLECTOR asociado en la base.');
+        $this->assertNotNull($collector, 'El rotor 1833 tiene el colector A105 asociado en la base.');
+        $this->assertStringContainsString('COLECTOR', $collector->label);
     }
 
     public function test_normaliza_codigos_para_busqueda_tolerante(): void
