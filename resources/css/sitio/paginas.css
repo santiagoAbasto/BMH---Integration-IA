@@ -472,3 +472,35 @@ a.bmh-contacto__valor:hover {
     padding-block: 1.375rem 0;
     background: transparent;
 }
+
+/* --- Catálogo y Ofertas: «todo en mayúscula» (comentario del Figma en «Productos – Listado»): el título, el total, el
+   orden y el panel de filtros completo, con un poco de aire entre letras. Las migas y las tarjetas quedan como están. */
+.catalogo__cabecera :is(.catalogo__titulo, .catalogo__total, .catalogo__orden-titulo),
+.catalogo__cabecera .desplegable,
+.catalogo__sidebar,
+.catalogo__sidebar :is(input, select, button)::placeholder {
+    text-transform: uppercase;
+}
+
+.catalogo__cabecera :is(.catalogo__total, .catalogo__orden-titulo),
+.catalogo__cabecera .desplegable__boton,
+.catalogo__sidebar :is(.desplegable__boton, .filtros__estado-nombre, .filtros__texto, .filtros__ayuda, .filtros__nota) {
+    letter-spacing: 0.02em;
+}
+
+/* Bootstrap deja botones y selects en text-transform: none: los desplegables de filtros son botones. */
+.catalogo__sidebar :is(input, select, button),
+.catalogo__cabecera :is(select, button) {
+    text-transform: uppercase;
+}
+
+/* Más específico que public/css/catalogo.css (170px), que carga después. */
+.catalogo__cabecera .catalogo__orden .desplegable {
+    width: 12.5rem; /* «PREDETERMINADO» entero */
+}
+
+/* En mayúsculas los valores ocupan más: como en el Figma, van un punto más chicos. */
+.catalogo__grilla .desplegable__valor,
+.catalogo__cabecera .desplegable__valor {
+    font-size: 0.8125rem;
+}
