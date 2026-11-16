@@ -140,19 +140,8 @@
                                         <input type="text" class="form-control" name='nombre' required>
                                     </div>
 
-                                    <h3 class="adm-subtitulo mt-2">Atributos de la ficha técnica</h3>
-                                    <div class="checkbox-group">
-<div class="row">
-                                                    @foreach ($caracteristicas as $caracteristica)
-                                                        <div class="col-md-4">
-                                                            <label>
-                                                                <input type="checkbox" name="caracteristicas[]" value="{{ $caracteristica->id }}">
-                                                                {{ $caracteristica->nombre }}
-                                                            </label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                
+                                    <div class="col-12">
+                                        @include('backend.partials.caracteristicas.selector-categoria', ['uid' => 'car-crear', 'seleccionadas' => [], 'categoriaId' => null])
                                     </div>
 
 
@@ -254,30 +243,8 @@
                 <input type="number" class="form-control" name='descuento' value={{$categoria->descuento}} required>
               </div> --}}
 
-                                <div class="col-lg-12">
-
-                                    <div class="checkbox-group">
-<div class="row">
-                                                @foreach($caracteristicas as $caracteristica)
-                                                    <div class="col-md-4">
-                                                        <label>
-                                                            <input
-                                                                type="checkbox"
-                                                                name="caracteristicas[]"
-                                                                value="{{ $caracteristica->id }}"
-                                                                @if($categoria->caracteristicas->contains($caracteristica->id)) checked @endif
-                                                            >
-                                                            {{ $caracteristica->nombre }}
-                                                        </label>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                            
-
-                                            
-
-
-                                    </div>
+                                <div class="col-12">
+                                    @include('backend.partials.caracteristicas.selector-categoria', ['uid' => 'car-editar-'.$categoria->id, 'seleccionadas' => $categoria->caracteristicas, 'categoriaId' => $categoria->id])
                                 </div>
                                 <div class="my-3">
                                     <label for="portada" class="form-label">Imagen <span

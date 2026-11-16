@@ -237,7 +237,11 @@
 }
 
 .car-unidad {
-    inline-size: 7rem;
+    inline-size: min(100%, 22rem);
+
+    & input {
+        max-inline-size: 8rem;
+    }
 }
 
 /* Ejemplo en vivo: «Escribís 12 → se guarda 12V». */
@@ -252,7 +256,11 @@
 @media (width >= 576px) {
     .car-ejemplo {
         grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
-        align-items: end;
+        align-items: center;
+    }
+
+    .car-ejemplo__resultado {
+        grid-column: 1 / -1;
     }
 }
 

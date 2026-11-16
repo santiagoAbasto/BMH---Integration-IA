@@ -2,32 +2,6 @@
 
 @section('styles')
     <style>
-        /* Ficha técnica: las columnas de la familia en una grilla que se adapta al ancho
-           (campos-producto.js agrega campos con .col-3: acá ocupan una celda). */
-        #dynamic-inputs {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-            gap: 1rem 1.25rem;
-            margin: 0;
-        }
-
-        #dynamic-inputs > .row {
-            display: contents;
-        }
-
-        #dynamic-inputs > *,
-        #dynamic-inputs > .row > * {
-            width: auto;
-            max-width: none;
-            margin: 0 !important;
-            padding: 0;
-        }
-
-        #dynamic-inputs:empty::before {
-            content: "Elegí la familia para ver sus campos.";
-            color: var(--adm-muted);
-        }
-
         .producto-estados {
             display: flex;
             flex-wrap: wrap;
@@ -173,14 +147,12 @@
         <section class="card" aria-labelledby="producto-ficha">
             <div class="card-header">
                 <div class="adm-card-titulo">
-                    <h2 id="producto-ficha">Ficha técnica</h2>
-                    <p>Los campos dependen de la familia elegida.</p>
+                    <h2 id="producto-ficha">Características</h2>
+                    <p>Los datos técnicos que se muestran en la ficha del producto. Las que dejes vacías no se guardan.</p>
                 </div>
             </div>
             <div class="card-body">
-                <input type="hidden" name="caracteristicas_presente" value="1">
-                <div id="dynamic-inputs" class="row"
-                     data-url-categoria="{{ route('categoria.show', ':id') }}" data-cargar-inicial="true"></div>
+                @include('backend.partials.caracteristicas.producto', ['producto' => null, 'cargadas' => []])
             </div>
         </section>
 
@@ -232,7 +204,6 @@
 
 @section('script')
     @include('backend.partials.achicar-imagenes')
-    <script src="{{ asset('js/campos-producto.js') }}"></script>
 <script>
     $(document).ready(function() {
         // Sólo «Nuevo» y «Reconstruido» se excluyen entre sí (no la oferta ni otras casillas).

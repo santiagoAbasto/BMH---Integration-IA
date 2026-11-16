@@ -95,7 +95,9 @@ class CaracteristicaRequest extends FormRequest
         $unidad = $numerica ? $this->validated('unidad') : null;
 
         return new FormatoCaracteristica(
-            mayusculas: $this->has('mayusculas') ? $this->boolean('mayusculas') : true,
+            // El formulario completo (admin → Características) manda `formato_presente`: ahí una casilla sin
+            // tildar es «no». El alta rápida (categorías, productos) no manda la casilla: queda en mayúsculas.
+            mayusculas: $this->has('mayusculas') ? $this->boolean('mayusculas') : ! $this->boolean('formato_presente'),
             numerica: $numerica,
             unidad: $unidad !== null ? (string) $unidad : null,
         );

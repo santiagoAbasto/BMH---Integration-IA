@@ -833,6 +833,7 @@ public function dash_productos(Request $request)
         $this->sincronizarPartesRelacionadas($request, $nuevo_producto);
 
         $caracteristicas->ejecutar($nuevo_producto, $this->valoresCaracteristicas($request));
+        $this->sumarCaracteristicasACategoria($request, $nuevo_producto);
 
         $this->sincronizarEquivalencias($request, $nuevo_producto);
 
@@ -993,10 +994,27 @@ public function dash_productos(Request $request)
         // Sólo si el formulario trae la sección: así un guardado parcial no borra las características.
         if ($request->boolean('caracteristicas_presente')) {
             $sincronizar->ejecutar($producto, $this->valoresCaracteristicas($request));
+            $this->sumarCaracteristicasACategoria($request, $producto);
         }
 
 
         return redirect()->back()->with('success', 'Producto actualizado');
+    }
+
+    /**
+     * «Sumarla a la categoría» (sección Características del producto): la característica pasa a ser también de la
+     * categoría del producto, así se ve en el sitio y aparece en los demás productos de esa categoría.
+     */
+    private function sumarCaracteristicasACategoria(Request $request, Producto $producto): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $request->input('sumar_a_categoria', [])))));
+        $categoria = $producto->categoria_id ? Categoria::query()->find($producto->categoria_id) : null;
+        if ($ids === [] || $categoria === null) {
+            return;
+        }
+
+        $existentes = \App\Models\Caracteristica::query()->whereIn('id', $ids)->pluck('id')->all();
+        $categoria->caracteristicas()->syncWithoutDetaching($existentes);
     }
 
     /** @return array<int|string, mixed> caracteristica_id => valor, como viene del formulario */
