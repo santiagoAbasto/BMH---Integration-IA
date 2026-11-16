@@ -249,3 +249,181 @@
         }
     }
 }
+
+/* ==========================================================================
+   Menú desplegable en celular y tablet (header-catalog colapsa por debajo de 1366px).
+   - Hoja a pantalla completa debajo de la barra: no se ve la página por debajo y se desplaza adentro.
+   - Scroll en iPhone: html Y body bloqueados mientras está abierto (con sólo html, el body —que tiene overflow-y
+     propio— se queda con el arrastre y el menú no se mueve).
+   - «Productos» se abre como acordeón con las líneas legibles sobre fondo oscuro y «Ver todas» arriba.
+   - Zona Clientes como botón principal; datos de contacto y redes, agrupados al final.
+   ========================================================================== */
+@media (width < 1366px) {
+    html:has(.bmh-header .osole-header-catalog-v1__panel:popover-open),
+    html:has(.bmh-header .osole-header-catalog-v1__panel:popover-open) body {
+        overflow: hidden;
+    }
+
+    /* WhatsApp y el asesor flotan encima del menú: se esconden mientras está abierto. */
+    html:has(.bmh-header .osole-header-catalog-v1__panel:popover-open) :is(.bmh-wa, #bmh-advisor) {
+        visibility: hidden;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel {
+        block-size: calc(100dvh - var(--_menu-top, 4.25rem));
+        gap: 1.75rem;
+        padding-block-start: 0.5rem;
+        border-block-start: 1px solid var(--bmh-ink-700);
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        scrollbar-width: thin;
+        scrollbar-color: var(--bmh-ink-700) transparent;
+    }
+
+    /* Links principales: filas de 56px, texto grande y claro. */
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__link {
+        padding-block: 1rem;
+        color: var(--bmh-white);
+        font-size: 1.0625rem;
+        letter-spacing: 0.01em;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__link[aria-current] {
+        color: var(--bmh-brand);
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__chevron {
+        color: var(--bmh-text-on-dark);
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__item--open .osole-header-catalog-v1__chevron {
+        color: var(--bmh-brand);
+    }
+
+    /* Productos abierto: acordeón con las líneas sobre el fondo oscuro. */
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__dropdown {
+        padding-block: 0.25rem 1.25rem;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-header {
+        display: block;
+        margin-block-end: 0.75rem;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-title {
+        display: none;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-all {
+        display: flex;
+        justify-content: space-between;
+        inline-size: 100%;
+        box-sizing: border-box;
+        padding: 0.875rem 1rem;
+        background: rgb(0 152 218 / 0.14);
+        color: #6cc8f0;
+        font-size: 0.875rem;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-grid {
+        gap: 0.125rem;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-item {
+        gap: 0.875rem;
+        padding: 0.5rem 0.5rem 0.5rem 0.375rem;
+        color: var(--bmh-white);
+
+        &:hover,
+        &:focus-visible,
+        &[aria-current] {
+            background: rgb(255 255 255 / 0.06);
+        }
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-thumb {
+        inline-size: 2.75rem;
+        block-size: 2.75rem;
+        background: var(--bmh-white);
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-label {
+        color: var(--bmh-white);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__mega-meta {
+        color: var(--bmh-text-on-dark-muted);
+        font-size: 0.75rem;
+    }
+
+    /* Zona Clientes: el botón principal del menú. */
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__actions .osole-header-catalog-v1__button {
+        justify-content: center;
+        min-block-size: 3.25rem;
+        border-color: var(--bmh-brand);
+        border-radius: 0.75rem;
+        background: var(--bmh-brand);
+        color: var(--bmh-white);
+        font-size: 1rem;
+    }
+
+    /* Pie: Nosotros y Contacto en una fila, datos de contacto y redes en botones redondos. */
+    .bmh-header .osole-header-catalog-v1__menu-footer {
+        gap: 0.75rem;
+        padding-block-start: 1.25rem;
+        border-block-start: 1px solid var(--bmh-ink-700);
+        color: var(--bmh-text-on-dark);
+
+        & .osole-header-catalog-v1__social {
+            gap: 0.625rem;
+        }
+
+        & .osole-header-catalog-v1__social-link {
+            justify-content: center;
+            min-inline-size: 2.75rem;
+            border: 1px solid var(--bmh-ink-700);
+            border-radius: 50%;
+        }
+    }
+
+    .bmh-header .osole-header-catalog-v1__menu-footer-link {
+        color: var(--bmh-white);
+        font-size: 1rem;
+    }
+}
+
+/* Productos se abre con una transición corta y las líneas entran en cascada (sin movimiento si se pide reducirlo). */
+@media (width < 1366px) and (prefers-reduced-motion: no-preference) {
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__dropdown:not([hidden]) {
+        animation: bmh-acordeon 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .bmh-header .osole-header-catalog-v1__panel .osole-header-catalog-v1__dropdown:not([hidden]) .osole-header-catalog-v1__mega-grid > li {
+        animation: bmh-mega-entra 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+        &:nth-child(2) { animation-delay: 25ms; }
+        &:nth-child(3) { animation-delay: 50ms; }
+        &:nth-child(4) { animation-delay: 75ms; }
+        &:nth-child(5) { animation-delay: 100ms; }
+        &:nth-child(6) { animation-delay: 125ms; }
+        &:nth-child(7) { animation-delay: 150ms; }
+        &:nth-child(n + 8) { animation-delay: 175ms; }
+    }
+
+    @keyframes bmh-acordeon {
+        from {
+            opacity: 0;
+            translate: 0 -0.375rem;
+        }
+    }
+
+    @keyframes bmh-mega-entra {
+        from {
+            opacity: 0;
+            translate: 0 0.375rem;
+        }
+    }
+}

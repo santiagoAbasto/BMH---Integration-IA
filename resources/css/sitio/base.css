@@ -374,6 +374,12 @@ main,
 
 /* El PNG del logo trae aire transparente: como en el Figma, el cuadro mide 268×99 y el PNG (330px) se
    recorta 31px por lado y baja 8px. */
+/* El aire transparente que sobra se recorta en el cuadro: en un celular de 320px asomaba 5px fuera de la pantalla y
+   la página se achicaba para que entrara. */
+.bmh-footer .osole-footer-v1__logo {
+    overflow-x: clip;
+}
+
 .bmh-footer .osole-footer-v1__logo :is(img, svg) {
     max-inline-size: none;
     margin-inline: -1.9375rem; /* 31px */

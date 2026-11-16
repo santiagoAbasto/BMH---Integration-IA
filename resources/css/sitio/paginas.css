@@ -500,6 +500,27 @@ a.bmh-contacto__valor:hover {
     width: 12.5rem; /* «PREDETERMINADO» entero */
 }
 
+/* Celular chico: el orden ocupa lo que deja libre el botón Filtros (con 200px fijos lo tapaba). */
+@media (max-width: 575px) {
+    .catalogo__cabecera .catalogo__acciones {
+        gap: 0.625rem;
+    }
+
+    .catalogo__cabecera .catalogo__orden {
+        flex: 1 1 0;
+        min-inline-size: 0;
+    }
+
+    .catalogo__cabecera .catalogo__orden .desplegable {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .catalogo__cabecera .catalogo__abrir-filtros {
+        flex: none;
+    }
+}
+
 /* En mayúsculas los valores ocupan más: como en el Figma, van un punto más chicos. */
 .catalogo__grilla .desplegable__valor,
 .catalogo__cabecera .desplegable__valor {
@@ -611,4 +632,20 @@ a.bmh-contacto__valor:hover {
     color: #3f8f1a;
     font-size: 0.8125rem;
     font-weight: 600;
+}
+
+/* Celulares de 320–380px: «PREDETERMINADO» entra entero achicando un poco el aire de los dos controles. */
+@media (max-width: 380px) {
+    .catalogo__cabecera .catalogo__orden .desplegable__boton {
+        padding-inline: 0.75rem 0.625rem;
+    }
+
+    .catalogo__cabecera .catalogo__orden .desplegable__valor {
+        font-size: 0.75rem;
+    }
+
+    .catalogo__cabecera .catalogo__abrir-filtros {
+        gap: 0.375rem;
+        padding-inline: 0.75rem;
+    }
 }
