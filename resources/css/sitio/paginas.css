@@ -504,3 +504,42 @@ a.bmh-contacto__valor:hover {
 .catalogo__cabecera .desplegable__valor {
     font-size: 0.8125rem;
 }
+
+/* --- Filas «ETIQUETA: valor» de un producto (tarjeta del catálogo y ficha): frontend/components/ficha-caracteristicas.
+   La etiqueta gris en mayúsculas; el valor oscuro y marcado, tal como se cargó. */
+.pbmh-car {
+    display: flex;
+    gap: 0.4375rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.pbmh-car-label {
+    flex-shrink: 0;
+    color: #9aa0a8;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pbmh-car-valor {
+    min-width: 0;
+    color: var(--bmh-ink-900, #0a0e14);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* En la ficha hay lugar: todas las filas a la vista, sin el scroll de la tarjeta, y un punto más grandes. */
+.pbmh-cars.pbmh-cars--ficha {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-block-start: 1rem;
+}
+
+.pbmh-cars--ficha .pbmh-car {
+    font-size: 0.875rem;
+}

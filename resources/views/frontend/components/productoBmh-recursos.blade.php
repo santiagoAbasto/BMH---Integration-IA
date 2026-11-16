@@ -37,9 +37,7 @@
     .pbmh-cars::-webkit-scrollbar { width:6px; }
     .pbmh-cars::-webkit-scrollbar-thumb { background:#D9DDE3; border-radius:3px; }
     .pbmh-cars::-webkit-scrollbar-track { background:transparent; }
-    .pbmh-car { display:flex; gap:7px; font-size:13px; line-height:1.5; }
-    .pbmh-car-label { color:#9AA0A8; letter-spacing:.03em; white-space:nowrap; }
-    .pbmh-car-valor { color:#3A3F47; font-weight:500; }
+    /* .pbmh-car (filas ETIQUETA: valor): resources/css/sitio/paginas.css, compartido con la ficha. */
     .pbmh-precios { margin-top:14px; display:flex; flex-direction:column; gap:5px; max-width:380px; }
     .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:15px; color:#3A3F47; }
     .pbmh-precio-valor { font-weight:500; color:#1F2430; }

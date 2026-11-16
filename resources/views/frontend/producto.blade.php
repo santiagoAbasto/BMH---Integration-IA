@@ -151,9 +151,7 @@
         .pbmh-cars::-webkit-scrollbar { width:6px; }
         .pbmh-cars::-webkit-scrollbar-thumb { background:#D9DDE3; border-radius:3px; }
         .pbmh-cars::-webkit-scrollbar-track { background:transparent; }
-        .pbmh-car { display:flex; gap:7px; font-size:13px; line-height:1.5; }
-        .pbmh-car-label { color:#9AA0A8; letter-spacing:.03em; white-space:nowrap; }
-        .pbmh-car-valor { color:#3A3F47; font-weight:500; }
+        /* .pbmh-car (filas ETIQUETA: valor): resources/css/sitio/paginas.css, igual que en la tarjeta. */
         .pbmh-precios { margin-top:14px; display:flex; flex-direction:column; gap:5px; max-width:380px; }
         .pbmh-precio-fila { display:flex; justify-content:space-between; font-size:15px; color:#3A3F47; }
         .pbmh-precio-valor { font-weight:500; color:#1F2430; }
@@ -324,33 +322,9 @@
                                     </div>
 
 
-                                    <div class="d-flex flex-column" style="overflow-y: auto; max-height: 200px; ">
-
-                                        {{-- Las características que declara la categoría, en su orden. --}}
-                                        @foreach ($caracteristicas as $caracteristica)
-                                              <div class="d-flex">
-                                                    <span
-                                                        class="infoR">{{ $caracteristica['nombre'] }}:</span>
-                                                    <span class="nR">{{ $caracteristica['valor'] }}</span>
-                                                </div>
-                                        @endforeach
-                                        
-                                    
-
-                                        @if ($producto->marca)
-                                            <div class="d-flex">
-                                                <span class="infoR">Marca:</span>
-                                                <span class="nR">{{ $producto->marca }}</span>
-                                            </div>
-                                        @endif
-                                        
-                                        
-                                              @if ($producto->modelo)
-                                            <div class="d-flex">
-                                                <span class="infoR">Modelo:</span>
-                                                <span class="nR">{{ $producto->modelo }}</span>
-                                            </div>
-                                        @endif
+                                    <div class="pbmh-cars pbmh-cars--ficha">
+                                        {{-- Igual que en la tarjeta del catálogo: Marca, Modelo y las características de la categoría. --}}
+                                        @include('frontend.components.ficha-caracteristicas', ['producto' => $producto, 'caracteristicas' => $caracteristicas])
 
                                         {{-- @if ($producto->equivalencias)
                                     <div class="d-flex">

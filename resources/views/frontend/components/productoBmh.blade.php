@@ -60,26 +60,7 @@
             </div>
 
             <div class="pbmh-cars">
-                @if ($producto->marca)
-                    <div class="pbmh-car">
-                        <span class="pbmh-car-label">Marca:</span>
-                        <span class="pbmh-car-valor">{{ $producto->marca }}</span>
-                    </div>
-                @endif
-                @if ($producto->modelo)
-                    <div class="pbmh-car">
-                        <span class="pbmh-car-label">Modelo:</span>
-                        <span class="pbmh-car-valor">{{ $producto->modelo }}</span>
-                    </div>
-                @endif
-
-                {{-- Las características que declara la categoría, en su orden (admin → Características). --}}
-                @foreach ($producto->fichaCaracteristicas() as $caracteristica)
-                    <div class="pbmh-car">
-                        <span class="pbmh-car-label">{{ mb_strtoupper($caracteristica['nombre']) }}:</span>
-                        <span class="pbmh-car-valor">{{ $caracteristica['valor'] }}</span>
-                    </div>
-                @endforeach
+                @include('frontend.components.ficha-caracteristicas', ['producto' => $producto])
             </div>
 
             @if ($clienteLogueado)
