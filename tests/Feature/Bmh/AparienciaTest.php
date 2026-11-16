@@ -457,14 +457,16 @@ final class AparienciaTest extends TestCase
         $this->assertStringContainsString($favicon, view('layouts.partials.favicon')->render());
     }
 
-    public function test_sin_favicon_propio_se_sigue_usando_el_logo(): void
+    public function test_sin_favicon_propio_va_el_de_bmh(): void
     {
-        // Era el favicon del sitio antes de que existiera el editor, y el
-        // favicon.ico de producción está vacío.
+        // Antes caía al logo entero (ilegible a 16px); ahora va el de BMH: las tres barras del logo.
         $logos = $this->app->make(LogosSitio::class);
 
         $this->assertFalse($logos->tienePropio(LogosSitio::FAVICON));
-        $this->assertSame($logos->url(LogosSitio::HEADER_TRANSPARENTE), $logos->url(LogosSitio::FAVICON));
+        $this->assertSame(asset('favicon.svg'), $logos->url(LogosSitio::FAVICON));
+        $this->assertFileExists(public_path('favicon.svg'));
+        $this->assertFileExists(public_path('favicon.ico'));
+        $this->assertFileExists(public_path('apple-touch-icon.png'));
     }
 
     public function test_rechaza_un_favicon_que_no_es_imagen(): void

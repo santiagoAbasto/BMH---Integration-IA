@@ -44,6 +44,10 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
   Ojo: el admin viejo guardaba el texto de la historia en `info_home`; el nuevo guarda en `info`, que es lo que lee la página.
 - `2026_11_17_000003_nombre_de_usuarios_del_panel` — `admins.name` = `username` donde decía «alberto» (el alta lo
   mandaba fijo en un campo oculto).
+- `2026_11_17_000004_avisos_y_respuestas_por_email` — `contacto.emails_aviso_registro` / `emails_aviso_pedidos` y la tabla
+  `contacto_respuestas` (responder consultas desde el panel).
+- `2026_11_17_000005_favicon_de_bmh` — quita la fila del favicon viejo (el logo achicado) para que se vea el de BMH
+  (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`). No borra el archivo.
 - IA (de main, ya corrida en producción el 2026-11-16): `2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts`
   sólo con `--database=mysql_ai --path=...`. No volver a correrla con `migrate` a secas.
 

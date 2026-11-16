@@ -51,9 +51,8 @@ final class LogosSitio
 
     private const RESPALDO = [
         self::HEADER_BLANCO => self::HEADER_TRANSPARENTE,
-        // Hasta ahora el favicon era el logo: mientras no se suba uno propio se
-        // sigue usando, porque public_html/favicon.ico está vacío en producción.
-        self::FAVICON => self::HEADER_TRANSPARENTE,
+        // El favicon ya no cae al logo (a 16px era ilegible): sin uno propio va el de BMH, las tres barras del
+        // logo (public/favicon.svg, .ico y apple-touch-icon.png; ver layouts/partials/favicon).
     ];
 
     /** @var array<string, string>|null sector => path, cargado una sola vez */
@@ -77,7 +76,7 @@ final class LogosSitio
             return asset('imagenes/'.$path);
         }
 
-        return $clave === self::FAVICON ? asset('favicon.ico') : '';
+        return $clave === self::FAVICON ? asset('favicon.svg') : '';
     }
 
     /**
