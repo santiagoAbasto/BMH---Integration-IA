@@ -196,9 +196,10 @@ class Caracteristica extends Model
     /** El siguiente orden libre después del último (para que una nueva quede al final). */
     public static function siguienteOrden(): string
     {
-        $ultimo = static::query()
-            ->whereRaw("orden REGEXP '^[a-z0-9]{2}$'")
-            ->max('orden');
+        // Se filtra en PHP (no con REGEXP) para que funcione igual en MySQL y en SQLite.
+        $ultimo = static::query()->whereNotNull('orden')->pluck('orden')
+            ->filter(fn ($orden): bool => preg_match('/^[a-z0-9]{2}$/', (string) $orden) === 1)
+            ->max();
 
         if ($ultimo === null) {
             return 'aa';

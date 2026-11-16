@@ -108,30 +108,32 @@ final class CaracteristicaDashboardTest extends TestCase
             $t->string('nombre')->nullable();
         });
 
+        // Mismo esquema que la migración 2026_11_12_000010_normalizar_caracteristicas.
         Schema::create('caracteristicas', function (Blueprint $t) {
             $t->id();
-            $t->string('orden', 55)->nullable();
-            $t->string('nombre')->nullable();
+            $t->string('orden', 2)->nullable()->index();
+            $t->string('nombre')->nullable()->unique();
+            $t->boolean('mayusculas')->default(true);
+            $t->boolean('numerica')->default(false);
+            $t->string('unidad', 10)->nullable();
             $t->dateTime('created_at')->nullable();
             $t->dateTime('deleted_at')->nullable();
             $t->dateTime('updated_at')->nullable();
         });
 
-        Schema::create('producto_caracteristica', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('producto_id')->constrained('productos')->cascadeOnDelete();
+        Schema::create('caracteristica_producto', function (Blueprint $t) {
             $t->foreignId('caracteristica_id')->constrained('caracteristicas')->cascadeOnDelete();
-            $t->string('valor', 50)->nullable();
-            $t->dateTime('created_at')->nullable();
-            $t->dateTime('deleted_at')->nullable();
+            $t->foreignId('producto_id')->constrained('productos')->cascadeOnDelete();
+            $t->string('valor', 255);
+            $t->timestamps();
+            $t->primary(['producto_id', 'caracteristica_id']);
         });
 
-        Schema::create('categoria_caracteristica', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('categoria_id')->constrained('categorias')->cascadeOnDelete();
+        Schema::create('caracteristica_categoria', function (Blueprint $t) {
             $t->foreignId('caracteristica_id')->constrained('caracteristicas')->cascadeOnDelete();
-            $t->dateTime('created_at')->nullable();
-            $t->dateTime('deleted_at')->nullable();
+            $t->foreignId('categoria_id')->constrained('categorias')->cascadeOnDelete();
+            $t->timestamps();
+            $t->primary(['categoria_id', 'caracteristica_id']);
         });
 
         // El layout del backend hace `Imagen::where('sector','logo2')->first()->path`.
@@ -226,12 +228,12 @@ final class CaracteristicaDashboardTest extends TestCase
         $productoId = DB::table('productos')->insertGetId(['nombre' => 'P']);
         $categoriaId = DB::table('categorias')->insertGetId(['nombre' => 'C']);
 
-        DB::table('producto_caracteristica')->insert([
+        DB::table('caracteristica_producto')->insert([
             'producto_id' => $productoId,
             'caracteristica_id' => $car->id,
             'valor' => 'X',
         ]);
-        DB::table('categoria_caracteristica')->insert([
+        DB::table('caracteristica_categoria')->insert([
             'categoria_id' => $categoriaId,
             'caracteristica_id' => $car->id,
         ]);
@@ -241,8 +243,8 @@ final class CaracteristicaDashboardTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('success');
 
-        $this->assertSame(0, DB::table('producto_caracteristica')->where('caracteristica_id', $car->id)->count());
-        $this->assertSame(0, DB::table('categoria_caracteristica')->where('caracteristica_id', $car->id)->count());
+        $this->assertSame(0, DB::table('caracteristica_producto')->where('caracteristica_id', $car->id)->count());
+        $this->assertSame(0, DB::table('caracteristica_categoria')->where('caracteristica_id', $car->id)->count());
     }
 
     public function test_borrar_vuelve_al_listado_conservando_pagina_y_busqueda(): void
@@ -282,14 +284,14 @@ final class CaracteristicaDashboardTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->put('/dashboard/caracteristicas-update?id='.$car->id, [
                 'nombre' => 'NOMBRE NUEVO',
-                'orden' => '7',
+                'orden' => 'ag',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
         $car->refresh();
         $this->assertSame('NOMBRE NUEVO', $car->nombre);
-        $this->assertSame('7', (string) $car->orden);
+        $this->assertSame('ag', (string) $car->orden);
     }
 
     public function test_actualizar_rechaza_un_nombre_vacio(): void
@@ -323,11 +325,11 @@ final class CaracteristicaDashboardTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->put('/dashboard/caracteristicas-update?id='.$car->id, [
                 'nombre' => 'MISMO NOMBRE',
-                'orden' => '3',
+                'orden' => 'ac',
             ])
             ->assertSessionHas('success');
 
-        $this->assertSame('3', (string) $car->refresh()->orden);
+        $this->assertSame('ac', (string) $car->refresh()->orden);
     }
 
     // ------------------------------------------------------------------ alta
@@ -433,24 +435,29 @@ final class CaracteristicaDashboardTest extends TestCase
 
     public function test_el_listado_no_dispara_una_consulta_por_fila(): void
     {
+        // La cantidad de consultas tiene que ser la misma con 2 filas que con una página llena: si crece con las
+        // filas, hay una consulta por fila (N+1). Las fijas son la página (con los usos en la misma consulta), el
+        // total de la paginación, los contadores del encabezado y el próximo orden sugerido.
+        $contar = function (): array {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->actingAs($this->admin, 'admin')->get('/dashboard/caracteristica')->assertOk();
+            $queries = collect(DB::getQueryLog())->pluck('query')
+                ->filter(fn (string $q) => str_contains($q, 'caracteristicas'))->values()->all();
+            DB::disableQueryLog();
+
+            return $queries;
+        };
+
+        $this->nuevaCaracteristica('UNA');
+        $this->nuevaCaracteristica('OTRA');
+        $pocas = $contar();
+
         $this->sembrarCatalogoGrande();
+        $muchas = $contar();
 
-        DB::enableQueryLog();
-
-        $this->actingAs($this->admin, 'admin')->get('/dashboard/caracteristica')->assertOk();
-
-        $queries = collect(DB::getQueryLog())
-            ->filter(fn (array $q) => str_contains($q['query'], 'caracteristicas'));
-
-        DB::disableQueryLog();
-
-        // Una para la página de resultados y otra para el total de la paginación.
-        $this->assertLessThanOrEqual(
-            2,
-            $queries->count(),
-            'El listado no debería consultar caracteristicas más de dos veces, y trajo: '
-                .$queries->pluck('query')->implode(' | ')
-        );
+        $this->assertCount(count($pocas), $muchas, 'El listado consulta más con más filas: '.implode(' | ', $muchas));
+        $this->assertLessThanOrEqual(6, count($muchas), 'Demasiadas consultas: '.implode(' | ', $muchas));
     }
 
     // ------------------------------------------------------------------ orden
