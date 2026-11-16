@@ -304,3 +304,17 @@
         min-block-size: 3.1875rem;
     }
 }
+
+/* Computadora y tablet: en cada fila las tarjetas se igualan a la más alta (antes la de un nombre en dos renglones
+   quedaba más alta que sus vecinas). El nombre y la flecha quedan centrados en el pie, como la tarjeta de dos renglones
+   del Figma; una fila donde todos entran en un renglón sigue midiendo 236px. */
+@media (width >= 768px) {
+    .bmh-grilla-rubros {
+        align-items: stretch;
+    }
+
+    .bmh-grilla-rubros > li,
+    .bmh-grilla-rubros .osole-category-card-v1 {
+        block-size: 100%;
+    }
+}
