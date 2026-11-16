@@ -39,7 +39,8 @@ $secciones = [
     ['title' => 'Contenido del sitio', 'items' => [
         ['label' => 'Home', 'icon' => 'home', 'items' => [
             ['label' => 'Slider', 'href' => route('dashboard.home-slider')],
-            ['label' => 'Contenido', 'href' => route('dashboard.logo')],
+            ['label' => 'Trabajamos con', 'href' => route('dashboard.home.trabajamos-con')],
+            ['label' => 'Sección Nosotros', 'href' => route('dashboard.home.seccion-nosotros')],
         ]],
         ['label' => 'Nosotros', 'href' => route('dashboard.nosotros'), 'icon' => $icono('<path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h3M8 12h3M8 16h3"/>')],
         ['label' => 'Novedades', 'href' => route('dashboard.novedades'), 'icon' => $icono('<path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/>'), 'active' => request()->routeIs('dashboard.novedades', 'novedad.crear', 'novedad.editar') ? 'page' : null],

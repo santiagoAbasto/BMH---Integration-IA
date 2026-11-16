@@ -454,6 +454,17 @@ Route::controller(MetadatosController::class)->middleware('admin')->group(functi
 // Lo que leen Google y Bing para recorrer el sitio (robots.txt es el archivo estático de public).
 Route::get('sitemap.xml', [MetadatosController::class, 'sitemap'])->name('sitemap');
 
+// Home › Trabajamos con (logos de clientes y proveedores) y Home › Sección Nosotros.
+Route::controller(\App\Http\Controllers\HomeSeccionesController::class)->middleware('admin')->prefix('dashboard/home')->name('dashboard.home.')->group(function () {
+    Route::get('trabajamos-con', 'trabajamosCon')->name('trabajamos-con');
+    Route::post('trabajamos-con', 'guardarMarca')->name('trabajamos-con.store');
+    Route::put('trabajamos-con/{marca}', 'actualizarMarca')->name('trabajamos-con.update');
+    Route::patch('trabajamos-con/{marca}/visible', 'visibilidadMarca')->name('trabajamos-con.visible');
+    Route::delete('trabajamos-con/{marca}', 'borrarMarca')->name('trabajamos-con.destroy');
+    Route::get('seccion-nosotros', 'seccionNosotros')->name('seccion-nosotros');
+    Route::put('seccion-nosotros', 'actualizarSeccionNosotros')->name('seccion-nosotros.update');
+});
+
 Route::controller(DashboardController::class)->middleware(['admin'])->group(function () {
     Route::get('/adm', 'index');
     Route::get('/dashboard', 'index')->name('dashboard');

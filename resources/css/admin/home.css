@@ -1,0 +1,483 @@
+/* Admin → Home › Trabajamos con y Home › Sección Nosotros (backend/home/*). */
+
+/* ---------- Vista previa de la franja «Trabajamos con» (como en la Home, en chico) ---------- */
+.hsec-previa .card-header {
+    border-block-end: 0;
+}
+
+.hsec-franja {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin: 0 1.25rem 1.25rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: #fff;
+    overflow-x: auto;
+}
+
+.hsec-franja__titulo {
+    flex: none;
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.hsec-franja__logos {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-around;
+    gap: 2rem;
+
+    & img {
+        inline-size: 7.5rem;
+        block-size: 3.25rem;
+        object-fit: contain;
+    }
+}
+
+.hsec-franja__vacia {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 0.875rem;
+}
+
+/* ---------- Lista de logos ---------- */
+.hsec-logos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 1.25rem;
+    list-style: none;
+}
+
+.hsec-logo {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:hover {
+        border-color: var(--adm-border-strong);
+        box-shadow: var(--adm-shadow);
+    }
+}
+
+.hsec-logo__img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 7.5rem;
+    padding: 1rem 1.5rem;
+    border-block-end: 1px solid var(--adm-border);
+    background: var(--adm-surface-soft);
+
+    & img {
+        max-inline-size: 11.4rem;
+        max-block-size: 100%;
+        object-fit: contain;
+    }
+}
+
+.hsec-logo--oculto .hsec-logo__img img {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+
+.hsec-logo__datos {
+    display: grid;
+    gap: 0.25rem;
+    align-content: start;
+    padding: 0.875rem 1rem 0.5rem;
+    min-inline-size: 0;
+
+    & .adm-estado {
+        justify-self: start;
+        margin-block-start: 0.25rem;
+    }
+}
+
+.hsec-logo__fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.hsec-logo__nombre {
+    overflow: hidden;
+    color: var(--adm-ink);
+    font-size: 0.9375rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hsec-logo__link {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hsec-logo__link--sin {
+    color: var(--adm-faint);
+}
+
+.hsec-logo__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem 1rem;
+
+    & form {
+        margin: 0;
+    }
+
+    & form:last-child {
+        margin-inline-start: auto;
+    }
+}
+
+.hsec-vacio {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+
+    & > i {
+        color: var(--adm-brand);
+        font-size: 2rem;
+    }
+
+    & p {
+        max-inline-size: 46ch;
+        margin: 0;
+        color: var(--adm-muted);
+    }
+}
+
+/* ---------- Modal del logo ---------- */
+.hsec-modal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1.5rem;
+
+    @media (width < 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hsec-campos {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+
+    & .form-text {
+        margin-block-start: 0.25rem;
+    }
+}
+
+.hsec-campos__fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 1rem 1.5rem;
+}
+
+.hsec-orden {
+    inline-size: 5rem;
+    font-family: var(--adm-font-mono);
+    text-transform: lowercase;
+}
+
+.hsec-switch {
+    margin-block-end: 0.5rem;
+}
+
+/* Zona para elegir el archivo: es el label del input, así funciona con teclado. */
+.hsec-drop {
+    position: relative;
+    display: block;
+    margin: 0;
+    border: 2px dashed var(--adm-border-strong);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface-soft);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s, background-color 0.2s;
+
+    &:hover {
+        border-color: var(--adm-brand);
+        background: var(--adm-brand-softer);
+    }
+}
+
+.hsec-archivo:focus-visible + .hsec-drop {
+    outline: 3px solid var(--adm-brand);
+    outline-offset: 3px;
+}
+
+.hsec-drop__mesa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 11rem;
+    padding: 1.25rem;
+
+    & img {
+        max-inline-size: 100%;
+        max-block-size: 100%;
+        object-fit: contain;
+    }
+
+    &:has(img[hidden]) {
+        display: none;
+    }
+}
+
+.hsec-drop__vacio {
+    display: grid;
+    justify-items: center;
+    gap: 0.375rem;
+    padding: 2.5rem 1rem;
+    color: var(--adm-muted);
+    text-align: center;
+
+    & i {
+        color: var(--adm-brand);
+        font-size: 1.75rem;
+    }
+
+    & b {
+        color: var(--adm-ink);
+    }
+
+    & small {
+        font-size: 0.75rem;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.hsec-drop__cambiar {
+    position: absolute;
+    inset-block-end: 0.625rem;
+    inset-inline-end: 0.625rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    background: rgb(10 14 20 / 0.78);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.hsec-drop--foto .hsec-drop__mesa {
+    block-size: auto;
+    aspect-ratio: 560 / 480;
+    padding: 0;
+
+    & img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+}
+
+/* ---------- Sección Nosotros ---------- */
+.hsn-grilla {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 1.25rem;
+    margin-block-end: 6rem;
+
+    & > .card {
+        margin: 0;
+    }
+
+    @media (width < 992px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hsn-grilla__ancho {
+    grid-column: 1 / -1;
+}
+
+/* Número que une cada campo con su parte en la vista previa. */
+.hsn-marca {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    inline-size: 1.375rem;
+    block-size: 1.375rem;
+    border-radius: 50%;
+    background: var(--adm-brand);
+    color: #fff;
+    font-family: var(--adm-font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: 0.15em;
+}
+
+h2 .hsn-marca,
+.form-label .hsn-marca {
+    margin-inline-end: 0.375rem;
+}
+
+/* La previa: fondo oscuro como en la Home. */
+.hsn-previa {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: center;
+    margin: 0 1.25rem 1.25rem;
+    padding: 1.75rem;
+    border-radius: var(--adm-radius);
+    background: #0b1424;
+    color: #c8d0dc;
+
+    @media (width < 768px) {
+        grid-template-columns: 1fr;
+    }
+
+    & .hsn-marca {
+        background: #fff;
+        color: var(--adm-ink);
+        box-shadow: 0 0 0 3px rgb(0 152 218 / 0.6);
+    }
+}
+
+.hsn-previa__img {
+    position: relative;
+    aspect-ratio: 560 / 480;
+    border-radius: 0.625rem;
+    overflow: hidden;
+
+    & img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+
+    & .hsn-marca {
+        position: absolute;
+        inset-block-start: 0.625rem;
+        inset-inline-start: 0.625rem;
+    }
+}
+
+.hsn-previa__texto {
+    display: grid;
+    gap: 1rem;
+    min-inline-size: 0;
+}
+
+.hsn-previa__titulo {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin: 0;
+    color: #fff;
+    font-family: var(--adm-font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.hsn-previa__desc {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    font-size: 0.875rem;
+    line-height: 1.6;
+
+    & p,
+    & ul,
+    & ol {
+        margin: 0 0 0.5rem;
+    }
+
+    & a {
+        color: #7cc8ff;
+    }
+
+    & > div {
+        min-inline-size: 0;
+    }
+}
+
+.hsn-previa__boton-fila {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0;
+}
+
+.hsn-previa__boton {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid #fff;
+    border-radius: 0.5rem;
+    color: #fff;
+    font-family: var(--adm-font-heading);
+    font-size: 0.8125rem;
+    font-weight: 600;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.hsn-previa__sin-boton {
+    color: #8792a2;
+    font-size: 0.8125rem;
+    font-style: italic;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.hsn-atajos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-block-start: 0.5rem;
+    color: var(--adm-muted);
+    font-size: 0.75rem;
+}
+
+.hsn-atajo {
+    border: 0;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--adm-brand-soft);
+        color: var(--adm-brand-stronger);
+    }
+}
+
+#seccion-nosotros > .hsec-previa {
+    margin-block-end: 1.25rem;
+}

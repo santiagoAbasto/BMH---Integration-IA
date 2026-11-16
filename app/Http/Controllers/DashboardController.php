@@ -22,13 +22,8 @@ class DashboardController extends Controller
     }
     
     public function logo(){
-        $logo = Imagen::where('sector', '=', 'logo')->get();
-        $logo = $logo[0];
-        $logo2 = Imagen::where('sector', 'logo2')->get()->first();
-        $nosotros_contenido = Nosotros::find(1);
-        $baner = Imagen::where('sector', 'home-slider')->first();
-        $nosotros_slider = Imagen::where('sector', 'nosotros-slider')->orderBy('orden')->first();
-        return view('backend/dash-logo', compact('logo', 'logo2', 'nosotros_contenido', 'baner', 'nosotros_slider'));
+        // Home › Contenido pasó a Home › Sección Nosotros (los logos están en Extras).
+        return redirect()->route('dashboard.home.seccion-nosotros');
     }
 
     public function home_slider(){

@@ -33,7 +33,9 @@ class HomeController extends Controller
         $categorias = Categoria::where('destacada', true)->orderBy('orden')->get();
         $nosotros = Nosotros::find(1);
         $anuncio = Anuncio::find(1);
-        $nosotros_slider = Imagen::where('sector', 'nosotros-slider')->orderBy('orden')->first();
+        // Home › Trabajamos con y Home › Sección Nosotros (admin).
+        $marcas = \App\Models\MarcaAliada::query()->visibles()->ordenadas()->get();
+        $homeNosotros = \App\Models\HomeNosotros::actual();
         $seccion = 'home';
         $productos = Producto::with([
                 'portadaImagen',
@@ -54,7 +56,7 @@ class HomeController extends Controller
         }
         
         $registro = isset($request->registro);
-        return view('frontend/home', compact('home_slider','categorias', 'nosotros', 'anuncio', 'anuncio_abierto', 'nosotros_slider', 'seccion', 'novedades', 'registro', 'productos'));
+        return view('frontend/home', compact('home_slider','categorias', 'nosotros', 'anuncio', 'anuncio_abierto', 'marcas', 'homeNosotros', 'seccion', 'novedades', 'registro', 'productos'));
     }
 
     public function updateLogo(Request $request){

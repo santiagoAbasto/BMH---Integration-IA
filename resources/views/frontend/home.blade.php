@@ -20,27 +20,16 @@
         ];
     }
 
-    $marcas = [
-        ['src' => asset('img/rediseno/marca-pars.png'), 'alt' => 'Pars', 'width' => 183, 'height' => 98],
-        ['src' => asset('img/rediseno/marca-divaio.png'), 'alt' => 'Divaio', 'width' => 183, 'height' => 98],
-        ['src' => asset('img/rediseno/marca-prestolite.png'), 'alt' => 'Prestolite', 'width' => 183, 'height' => 98],
-        ['src' => asset('img/rediseno/marca-ep.png'), 'alt' => 'EP', 'width' => 183, 'height' => 98],
-    ];
-
-    $nosotrosTitulo = trim((string) $nosotros_slider?->baner_texto);
-    $nosotrosTexto = $conTexto($nosotros_slider?->baner_texto_2);
-    if (mb_strlen($nosotrosTitulo) < 10) {
-        $nosotrosTitulo = 'Más de 55 años fabricando calidad para el automotor';
-    }
-    if ($nosotrosTexto === null || mb_strlen(trim(strip_tags($nosotrosTexto->toHtml()))) < 20) {
-        $nosotrosTexto = 'B.M.H Bobinajes San Francisco S.R.L. se dedica a la elaboración y reparación de rotores y estatores para alternador e inducidos para motores de arranque. En 2017 inauguramos nuestra planta de 800 m², equipada con maquinaria automatizada de última generación.';
-    }
+    // Trabajamos con (admin → Home → Trabajamos con): cada logo con su link, si tiene.
+    $logosMarcas = $marcas->map(fn ($m) => ['src' => $m->logoUrl(), 'alt' => $m->nombre, 'href' => $m->url, 'width' => 183, 'height' => 98])->all();
 @endphp
 
 @section('content')
     <x-osole::hero.v1 class="bmh-home-hero" :slides="$slides" :heading-level="1" />
 
-    <x-osole::logo-strip.v1 class="bmh-home-marcas" title="Trabajamos con" :items="$marcas" :heading-level="2" />
+    @if ($logosMarcas !== [])
+        <x-osole::logo-strip.v1 id="trabajamos-con" class="bmh-home-marcas" title="Trabajamos con" :items="$logosMarcas" :heading-level="2" :marquee="true" />
+    @endif
 
     <section class="bmh-home-rubros" aria-labelledby="bmh-home-rubros-titulo">
         <x-osole::container.v1>
@@ -60,13 +49,14 @@
     </section>
 
     <x-osole::info-split.v1
+        id="seccion-nosotros"
         class="bmh-home-nosotros"
-        :title="$nosotrosTitulo"
-        :description="$nosotrosTexto"
-        :image="['src' => $nosotros_slider?->path ? asset('imagenes/'.$nosotros_slider->path) : asset('img/rediseno/planta-bmh.webp'), 'alt' => 'Planta de BMH']"
+        :title="$homeNosotros->titulo"
+        :description="$homeNosotros->descripcionHtml()"
+        :image="['src' => $homeNosotros->imagenUrl(), 'alt' => 'Planta de BMH']"
         media-position="start"
-        button-label="Conocé más"
-        :button-href="route('nosotros')"
+        :button-label="$homeNosotros->botonHref() ? $homeNosotros->boton_texto : null"
+        :button-href="$homeNosotros->botonHref()"
     />
 
     @if ($novedades->isNotEmpty())
