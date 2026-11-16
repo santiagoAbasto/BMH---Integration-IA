@@ -349,9 +349,12 @@ class Producto extends Model
     public function porcentajeOferta(): ?int
     {
         $oferta = $this->precioOferta();
+        if ($oferta === null) {
+            return null;
+        }
         $lista = $this->precioLista();
 
-        return $oferta !== null && $lista > 0 ? (int) round((1 - $oferta / $lista) * 100) : null;
+        return $lista > 0 ? (int) round((1 - $oferta / $lista) * 100) : null;
     }
 
     /** Lo que pagaría el cliente sin la oferta (lista con el descuento del producto y el suyo): el «antes». */
