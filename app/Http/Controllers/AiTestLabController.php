@@ -344,25 +344,13 @@ final class AiTestLabController extends Controller
                 ]);
             }
 
-            $input = $this->feedbackInput($record);
+            $rule = $this->approvedCorrections->rememberFromFeedback($record, 'feedback', $adminId);
 
-            if ($input === null) {
+            if ($rule === null) {
                 return back()->withErrors([
                     'feedback' => 'No se pudo reconstruir la consulta original para crear una regla segura.',
                 ]);
             }
-
-            AiCorrectionRule::query()->updateOrCreate(
-                ['feedback_id' => $record->id],
-                [
-                    'input_fingerprint' => $input['fingerprint'],
-                    'fingerprint_kind' => $input['kind'],
-                    'expected_product_id' => (int) $record->expected_product_id,
-                    'approved_by_admin_id' => $adminId,
-                    'approved_at' => now(),
-                    'active' => true,
-                ],
-            );
         }
 
         $record->update([
@@ -517,24 +505,6 @@ final class AiTestLabController extends Controller
             ->latest('id')
             ->limit(20)
             ->get();
-    }
-
-    /** @return array{fingerprint:string,kind:string}|null */
-    private function feedbackInput(AiFeedback $feedback): ?array
-    {
-        if ($feedback->message_id === null) {
-            return null;
-        }
-
-        $message = AiMessageRecord::query()
-            ->where('conversation_id', $feedback->conversation_id)
-            ->where('role', 'user')
-            ->where('id', '<', $feedback->message_id)
-            ->with('attachments')
-            ->latest('id')
-            ->first();
-
-        return $message === null ? null : $this->approvedCorrections->fingerprintForMessage($message);
     }
 
     private function conversation(int $id): AiConversation

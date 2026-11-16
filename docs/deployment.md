@@ -190,12 +190,15 @@ php artisan migrate --database=mysql_ai --path=database/migrations/2026_10_21_00
 php artisan migrate --database=mysql_ai --path=database/migrations/2026_10_21_000003_create_ai_cart_operations_table.php --force
 php artisan migrate --database=mysql_ai --path=database/migrations/2026_11_04_000001_add_correction_workflow_to_ai_feedback.php --force
 php artisan migrate --database=mysql_ai --path=database/migrations/2026_11_05_000001_create_ai_correction_rules_table.php --force
+php artisan migrate --database=mysql_ai --path=database/migrations/2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts.php --force
 ```
 
 La última agrega el circuito de correcciones de clientes: motivo, código de
 producto esperado y estado de revisión. La siguiente crea reglas reutilizables
 sólo después de aprobación administrativa y sólo para la misma foto o el mismo
-texto. No modifican tablas, productos ni imágenes de `bmh_legacy`.
+texto. La de 2026-11-16 agrega a las reglas una huella perceptual y su origen, y crea
+`ai_demo_accounts` (cuentas demo que se administran desde *Aprendizaje IA*, sin tocar
+`AI_ALLOWED_CUSTOMER_IDS`). No modifican tablas, productos ni imágenes de `bmh_legacy`.
 
 ### 6.2 Front controller
 
@@ -344,3 +347,15 @@ siempre sin recibir el evento `done`.
 Los endpoints que llaman al modelo lo neutralizan con `set_time_limit(0)`
 —`AssistantController::stream()` y `::message()`—, y el front ahora detecta un
 stream que terminó sin `done` en vez de esperar indefinidamente.
+
+### Índice visual del catálogo (v2)
+
+Tras desplegar, reconstruir el índice: la versión anterior se ignora hasta entonces y
+la búsqueda por foto del catálogo queda inactiva.
+
+```bash
+php -d memory_limit=1G artisan bmh:index-catalog-images
+```
+
+Tarda unos 3 minutos con ~5.600 fotos y lee `public/imagenes` (o `BMH_CATALOG_IMAGES_PATH`).
+Volver a correrlo cuando se suban fotos nuevas al catálogo. (índice visual v2)

@@ -62,6 +62,36 @@ final class ImageAnalysisSchema
           marcá `text_confidence` bajo. Un código a medias sirve: la aplicación
           busca por coincidencia parcial.
 
+        ## 1.b Capturas de pantalla del catálogo de BMH
+
+        A veces la imagen NO es una foto de una pieza sino una CAPTURA de la web
+        de BMH (ficha de producto, listado, buscador, carrito, o una captura
+        reenviada por WhatsApp). Se reconoce por la interfaz: menú, buscador,
+        filtros, botón "Consultar", tarjetas con precio. También cuenta una FOTO
+        HECHA A UNA PANTALLA (inclinada, con reflejos o moiré) y el visor
+        ampliado de la foto de un producto (botones de zoom, miniaturas, cotas
+        dibujadas). En ese caso:
+
+        - `image_kind` = "catalog_screenshot". Para una foto de pieza,
+          "part_photo"; para cualquier otra cosa, "other".
+        - `catalog_code`: el código del producto PRINCIPAL de la captura. En una
+          ficha es el número que figura arriba del título ("1984 / ESTATOR
+          DELCO REMY...") y suele repetirse al final del título en el camino de
+          migas. Con varias tarjetas, el del producto resaltado o centrado. Si
+          no hay uno claramente principal, null.
+        - Los códigos de "Productos relacionados", del carrito o de otras
+          tarjetas NO son lo que el cliente pidió: van a `detected_text`, jamás
+          a `catalog_code`.
+        - `product_text` (en CUALQUIER imagen): el NOMBRE o título del producto si
+          está escrito y se lee, aunque sea una parte ("PASSAT, AMAROK POLEA
+          CRICKET BOSCH"). Sólo palabras del nombre: sin precios, medidas, cotas,
+          voltajes ni rótulos de la interfaz. Sin título legible, null.
+        - Una captura es una consulta válida: `usable` = true si el código se
+          lee. No pidas "una foto de la pieza real".
+        - Es TEXTO IMPRESO: transcribilo exacto. Si un fragmento no se lee con
+          nitidez, omitilo; nunca completes rótulos o medidas que no veas en
+          pantalla.
+
         ## 2. Identificar el tipo de pieza
 
         `part_type` en español y `category_hints` con los rubros de BMH que mejor
@@ -256,6 +286,9 @@ final class ImageAnalysisSchema
                     'description' => 'Los fragmentos que parecen códigos de pieza',
                 ],
                 'text_confidence' => ['type' => 'number', 'description' => 'Qué tan seguro estás de la lectura, 0 a 1'],
+                'image_kind' => ['type' => 'string', 'enum' => ['part_photo', 'catalog_screenshot', 'other']],
+                'catalog_code' => ['type' => ['string', 'null'], 'description' => 'Sólo en captura del catálogo: código del producto principal'],
+                'product_text' => ['type' => ['string', 'null'], 'description' => 'Nombre o título del producto si se lee impreso, aunque esté cortado; sin precios ni medidas'],
                 'brand_guess' => ['type' => ['string', 'null'], 'description' => 'Sólo si ves logo o inscripción'],
                 'description' => ['type' => ['string', 'null'], 'description' => 'Una o dos frases de lo que se ve'],
                 'category_hints' => ['type' => 'array', 'items' => ['type' => 'string']],
@@ -294,6 +327,9 @@ final class ImageAnalysisSchema
                 'detected_text' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
                 'visible_codes' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
                 'text_confidence' => ['type' => 'NUMBER'],
+                'image_kind' => ['type' => 'STRING', 'enum' => ['part_photo', 'catalog_screenshot', 'other']],
+                'catalog_code' => ['type' => 'STRING'],
+                'product_text' => ['type' => 'STRING'],
                 'brand_guess' => ['type' => 'STRING'],
                 'description' => ['type' => 'STRING'],
                 'category_hints' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
@@ -329,6 +365,22 @@ final class ImageAnalysisSchema
     {
         $usable = (bool) ($decoded['usable'] ?? true);
 
+        $kind = in_array($decoded['image_kind'] ?? null, [ImageAnalysis::KIND_CATALOG_SCREENSHOT, ImageAnalysis::KIND_OTHER], true)
+            ? (string) $decoded['image_kind']
+            : ImageAnalysis::KIND_PART_PHOTO;
+        $catalogCode = $kind === ImageAnalysis::KIND_CATALOG_SCREENSHOT
+            ? (self::normalizeCodes([(string) ($decoded['catalog_code'] ?? '')], [])[0] ?? null)
+            : null;
+
+        $productText = self::string($decoded['product_text'] ?? null);
+        $productText = $productText === null ? null : mb_substr($productText, 0, 160);
+
+        // Una captura con el código legible es una consulta válida aunque el
+        // modelo la haya marcado como "foto insuficiente": no hay pieza que ver.
+        if ($catalogCode !== null) {
+            $usable = true;
+        }
+
         // El texto se conserva aunque la foto no sirva para identificar: un
         // código legible en una foto borrosa sigue siendo oro.
         $detectedText = self::stringList($decoded['detected_text'] ?? [], 24, 200);
@@ -348,6 +400,9 @@ final class ImageAnalysisSchema
                     ?? 'La foto no permite identificar la pieza. Probá con más luz o más cerca.',
                 textConfidence: self::floatOrNull($decoded['text_confidence'] ?? null) ?? 0.0,
                 usage: $usage,
+                imageKind: $kind,
+                catalogCode: $catalogCode,
+                productText: $productText,
             );
         }
 
@@ -387,6 +442,9 @@ final class ImageAnalysisSchema
             imageUsable: true,
             textConfidence: self::floatOrNull($decoded['text_confidence'] ?? null) ?? 0.0,
             usage: $usage,
+            imageKind: $kind,
+            catalogCode: $catalogCode,
+            productText: $productText,
         );
     }
 

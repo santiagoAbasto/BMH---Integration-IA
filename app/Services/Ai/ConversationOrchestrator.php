@@ -877,6 +877,21 @@ final class ConversationOrchestrator
             }
         }
 
+        $titulo = null;
+
+        foreach ($utiles as $a) {
+            $titulo ??= $a->productText;
+        }
+
+        $captura = null;
+
+        foreach ($utiles as $a) {
+            if ($a->isCatalogScreenshot() && $a->catalogCode !== null) {
+                $captura = $a;
+                break;
+            }
+        }
+
         $texto = [];
         $codigos = [];
         $atributos = [];
@@ -895,7 +910,7 @@ final class ConversationOrchestrator
              * correctamente un texto distinto.
              */
             if ($a->hasReliableCode()) {
-                foreach ($a->visibleCodes as $c) {
+                foreach ($a->searchCodes() as $c) {
                     $codigos[$c] = true;
                 }
 
@@ -937,6 +952,11 @@ final class ConversationOrchestrator
             // así ninguna lectura recibe más confianza que la que tenía en su
             // imagen de origen.
             textConfidence: $confTexto === [] ? 0.0 : min($confTexto),
+            // Una captura del catálogo con producto principal manda sobre el
+            // resto: su código es texto impreso, no una lectura de bajorrelieve.
+            imageKind: $captura?->imageKind ?? $mejor->imageKind,
+            catalogCode: $captura?->catalogCode,
+            productText: $titulo,
         );
     }
 

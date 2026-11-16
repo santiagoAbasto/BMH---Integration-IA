@@ -96,7 +96,10 @@ final class OpenAiProvider implements AiProviderInterface
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
         }
 
-                [$mimeImagen, $base64] = ImagePayload::encode($imagePath);
+        [$mimeImagen, $base64] = ImagePayload::encode(
+            $imagePath,
+            (int) config('bmh.vision.analysis_image_max_px', 1600),
+        );
 
         $payload = [
             'model'    => $this->config['vision_model'],
@@ -104,7 +107,11 @@ final class OpenAiProvider implements AiProviderInterface
                 ['role' => 'system', 'content' => ImageAnalysisSchema::systemPrompt()],
                 ['role' => 'user', 'content' => [
                     ['type' => 'text', 'text' => ImageAnalysisSchema::userPrompt($context)],
-                    ['type' => 'image_url', 'image_url' => ['url' => "data:{$mimeImagen};base64,{$base64}"]],
+                    ['type' => 'image_url', 'image_url' => [
+                        'url' => "data:{$mimeImagen};base64,{$base64}",
+                        // Leer texto chico exige detalle alto; 'auto' lo baja.
+                        'detail' => 'high',
+                    ]],
                 ]],
             ],
             'response_format' => [

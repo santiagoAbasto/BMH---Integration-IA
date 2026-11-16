@@ -38,7 +38,44 @@ final readonly class ImageAnalysis implements \JsonSerializable
         /** Qué tan segura fue la LECTURA del texto, aparte del reconocimiento. */
         public float $textConfidence = 0.0,
         public ?AiUsage $usage = null,
+        /** part_photo | catalog_screenshot | other. */
+        public string $imageKind = self::KIND_PART_PHOTO,
+        /**
+         * Sólo en una captura del catálogo: el código del producto principal.
+         * Los códigos de "relacionados" o de otras tarjetas no son el pedido.
+         */
+        public ?string $catalogCode = null,
+        /**
+         * El nombre/título del producto si se lee impreso en la imagen (aunque
+         * esté cortado). Sin precios, cotas ni rótulos de interfaz.
+         */
+        public ?string $productText = null,
     ) {
+    }
+
+    public const KIND_PART_PHOTO = 'part_photo';
+    public const KIND_CATALOG_SCREENSHOT = 'catalog_screenshot';
+    public const KIND_OTHER = 'other';
+
+    public function isCatalogScreenshot(): bool
+    {
+        return $this->imageKind === self::KIND_CATALOG_SCREENSHOT;
+    }
+
+    /**
+     * Los códigos con los que buscar. En una captura con producto principal
+     * claro, sólo ese: el resto del texto de la página (relacionados, carrito)
+     * traería productos que el cliente no pidió.
+     *
+     * @return list<string>
+     */
+    public function searchCodes(): array
+    {
+        if ($this->isCatalogScreenshot() && $this->catalogCode !== null) {
+            return [$this->catalogCode];
+        }
+
+        return $this->visibleCodes;
     }
 
     public static function unusable(string $reason): self
@@ -60,7 +97,7 @@ final readonly class ImageAnalysis implements \JsonSerializable
      */
     public function hasReliableCode(): bool
     {
-        return $this->visibleCodes !== [] && $this->textConfidence >= 0.3;
+        return $this->searchCodes() !== [] && $this->textConfidence >= 0.3;
     }
 
     public function provenance(): Provenance
@@ -70,7 +107,7 @@ final readonly class ImageAnalysis implements \JsonSerializable
 
     public function hasCode(): bool
     {
-        return $this->visibleCodes !== [];
+        return $this->searchCodes() !== [];
     }
 
     public function jsonSerialize(): array
@@ -87,6 +124,9 @@ final readonly class ImageAnalysis implements \JsonSerializable
             'description'    => $this->description,
             'usable'         => $this->imageUsable,
             'reason'         => $this->unusableReason,
+            'image_kind'     => $this->imageKind,
+            'catalog_code'   => $this->catalogCode,
+            'product_text'   => $this->productText,
             'provenance'     => $this->provenance(),
         ];
     }
