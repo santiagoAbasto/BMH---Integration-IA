@@ -40,10 +40,8 @@ class DashboardController extends Controller
     public function nosotros(){
         $nosotros_contenido = Nosotros::find(1);
         $nosotros_portada = Imagen::where('sector', 'nosotros-portada')->first();
-        $nosotros_baner = Imagen::where('sector', 'nosotros-baner')->first();
-        $nosotros_procesos = Imagen::where('sector', '=', 'nosotros-procesos')->orderBy('orden')->get();
 
-        return view('backend/dash-nosotros', compact('nosotros_contenido', 'nosotros_portada', 'nosotros_baner', 'nosotros_procesos'));
+        return view('backend/dash-nosotros', compact('nosotros_contenido', 'nosotros_portada'));
     }
 
     public function categorias(){

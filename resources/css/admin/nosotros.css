@@ -1,0 +1,291 @@
+/* Admin → Nosotros (backend/dash-nosotros): los bloques de la página y el mapa que marca dónde va cada campo.
+   La zona de la foto reusa .hsec-drop de admin/home.css. */
+
+.nadm {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: 1.5rem;
+    align-items: start;
+
+    @media (width < 1200px) {
+        grid-template-columns: minmax(0, 1fr);
+
+        & .nadm-mapa {
+            display: none;
+        }
+    }
+}
+
+.nadm__form {
+    display: grid;
+    gap: 1.25rem;
+    padding-block-end: 6rem;
+
+    & > .card {
+        margin: 0;
+    }
+}
+
+/* Número del bloque: igual en el título del bloque y en el mapa. */
+.nadm-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    margin-inline-end: 0.375rem;
+    border-radius: 50%;
+    background: var(--adm-brand);
+    color: #fff;
+    font-family: var(--adm-font-body);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: 0.1em;
+}
+
+/* ---------- 1. Historia ---------- */
+.nadm-historia {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: 1.5rem;
+
+    @media (width < 992px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.nadm-campos {
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+
+    & .form-text {
+        margin-block-start: 0.375rem;
+    }
+}
+
+.nadm-foto__drop .hsec-drop__mesa {
+    block-size: auto;
+    aspect-ratio: 520 / 600;
+    padding: 0;
+
+    & img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+}
+
+/* ---------- 2. Lo que nos mueve ---------- */
+.nadm-titulo-valores {
+    max-inline-size: 28rem;
+    margin-block-end: 1.25rem;
+}
+
+.nadm-tarjetas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+
+    @media (width < 1700px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.nadm-tarjeta {
+    padding: 1rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface-soft);
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus-within {
+        border-color: var(--adm-brand);
+        box-shadow: 0 0 0 3px var(--adm-brand-soft);
+    }
+}
+
+.nadm-tarjeta__cabeza {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-block-end: 0.75rem;
+
+    & p {
+        margin: 0;
+        color: var(--adm-muted);
+        font-size: 0.8125rem;
+    }
+}
+
+.nadm-tarjeta__icono {
+    display: inline-flex;
+    flex: none;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    color: var(--adm-brand);
+
+    & svg {
+        inline-size: 100%;
+        block-size: 100%;
+    }
+}
+
+.nadm-tarjeta__titulo {
+    display: block;
+    margin: 0;
+    color: var(--adm-ink);
+    font-family: var(--adm-font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+/* ---------- Mapa de la página ---------- */
+.nadm-mapa {
+    position: sticky;
+    inset-block-start: 5.5rem;
+    padding: 1rem;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-lg);
+    background: var(--adm-surface);
+    box-shadow: var(--adm-shadow-sm);
+
+    & h2 {
+        margin: 0;
+        color: var(--adm-ink);
+        font-family: var(--adm-font-heading);
+        font-size: 0.9375rem;
+        font-weight: 700;
+    }
+
+    & > p {
+        margin: 0.25rem 0 0.875rem;
+        color: var(--adm-muted);
+        font-size: 0.75rem;
+    }
+}
+
+.nadm-mapa__pagina {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--adm-border-strong);
+    border-radius: var(--adm-radius-sm);
+    font-size: 0.6875rem;
+}
+
+.nadm-mapa__header,
+.nadm-mapa__footer {
+    padding: 0.375rem 0.625rem;
+    background: #0b1424;
+    color: #8792a2;
+    font-weight: 600;
+}
+
+.nadm-mapa__footer {
+    padding-block: 0.625rem;
+}
+
+.nadm-mapa__migas {
+    padding: 0.375rem 0.625rem 0;
+    color: var(--adm-faint);
+}
+
+.nadm-mapa__historia {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem 0.75rem;
+    background: #fff;
+}
+
+.nadm-mapa__col {
+    display: grid;
+    gap: 0.375rem;
+    align-content: start;
+}
+
+.nadm-mapa__valores {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem 0.625rem;
+    background: #f1f3f6;
+}
+
+.nadm-mapa__tarjetas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.375rem;
+}
+
+.nadm-mapa__num {
+    position: absolute;
+    inset-block-start: 0.375rem;
+    inset-inline-end: 0.375rem;
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    margin: 0;
+    font-size: 0.625rem;
+    z-index: 1;
+}
+
+/* Cada parte del mapa es un botón que lleva a su campo. */
+.nadm-zona {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: 1px dashed #c3ccd8;
+    border-radius: 0.3125rem;
+    background: #e9edf2;
+    color: var(--adm-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+
+    &:hover {
+        border-color: var(--adm-brand);
+        color: var(--adm-brand-stronger);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--adm-brand);
+        outline-offset: 1px;
+    }
+
+    &.is-activa {
+        border-style: solid;
+        border-color: var(--adm-brand);
+        background: var(--adm-brand);
+        color: #fff;
+    }
+}
+
+.nadm-zona--titulo {
+    block-size: 2.25rem;
+}
+
+.nadm-zona--texto {
+    block-size: 4.5rem;
+}
+
+.nadm-zona--foto {
+    block-size: 7.125rem;
+}
+
+.nadm-zona--titulo-chico {
+    justify-self: start;
+    inline-size: 70%;
+    block-size: 1.5rem;
+}
+
+.nadm-zona--tarjeta {
+    block-size: 3.5rem;
+    background: #fff;
+}

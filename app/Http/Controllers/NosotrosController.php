@@ -2,69 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Nosotros;
-use Illuminate\Support\Facades\File;
-use App\Models\Metadatos;
 use App\Models\Imagen;
+use App\Models\Nosotros;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 class NosotrosController extends Controller
 {
-    public function index(){
+    public function index()
+    {
         $nosotros_contenido = Nosotros::find(1);
         $ventana = 'nosotros-nav';
         $nosotros_portada = Imagen::where('sector', 'nosotros-portada')->first();
-        $nosotros_baner = Imagen::where('sector', 'nosotros-baner')->first();
-        $nosotros_procesos = Imagen::where('sector', '=', 'nosotros-procesos')->orderBy('orden')->get();
 
-        return view('frontend/nosotros', compact('nosotros_contenido', 'ventana', 'nosotros_portada', 'nosotros_baner', 'nosotros_procesos'));
+        return view('frontend/nosotros', compact('nosotros_contenido', 'ventana', 'nosotros_portada'));
     }
 
-    public function update(Request $request){
-        $nosotros_contenido = Nosotros::find(1);
+    /**
+     * Admin → Nosotros: la historia (título, texto y foto) y «Lo que nos mueve» (título y las tres tarjetas).
+     * Los textos se guardan en las columnas que lee la página (antes el texto de la historia iba a `info_home`, que la
+     * página no usa, y los cambios no se veían).
+     */
+    public function update(Request $request)
+    {
+        $datos = $request->validate([
+            'historia_titulo' => ['nullable', 'string', 'max:160'],
+            'info' => ['nullable', 'string', 'max:30000'],
+            'valores_titulo' => ['nullable', 'string', 'max:120'],
+            'mision' => ['nullable', 'string', 'max:10000'],
+            'vision' => ['nullable', 'string', 'max:10000'],
+            'valores' => ['nullable', 'string', 'max:10000'],
+            'portada' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ], [
+            'portada.mimes' => 'La foto tiene que ser JPG, PNG o WebP.',
+            'portada.max' => 'La foto pesa más de 4 MB: achicala antes de subirla.',
+        ]);
 
-        $imagen = Imagen::where('sector', 'nosotros-portada')->first();
-        if ($request->hasFile('portada')){
+        $contenido = Nosotros::query()->firstOrNew(['id' => 1]);
+        foreach (['historia_titulo', 'valores_titulo'] as $campo) {
+            $contenido->{$campo} = filled($datos[$campo] ?? null) ? trim($datos[$campo]) : null;
+        }
+        foreach (['info', 'mision', 'vision', 'valores'] as $campo) {
+            $contenido->{$campo} = $this->textoOVacio($datos[$campo] ?? null);
+        }
+        $contenido->save();
 
-            $file = $request->file('portada');
-
-            
-            $extension = $file->getClientOriginalExtension();
-
-            if (in_array($extension, ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv'])){
-                $imagen->tipo = 'video';
-            } elseif (in_array($extension, ['jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'jpg'])){
-                $imagen->tipo = 'imagen';
-            } else {
-                return redirect()->back()->with('warning', 'El tipo de archivo para el baner seleccionado no es válido');
+        if ($request->hasFile('portada')) {
+            $foto = Imagen::query()->where('sector', 'nosotros-portada')->first();
+            if ($foto === null) {
+                $foto = new Imagen();
+                $foto->sector = 'nosotros-portada';
+                $foto->orden = 'aa';
             }
-
-            File::delete(public_path('imagenes/'.$imagen->path));
-            $nombreImagen = 'media_' . uniqid() . '.' . $extension;
-            $file->move('imagenes', $nombreImagen);
-            $imagen->path = $nombreImagen;
-            $imagen->save();
+            $anterior = $foto->path;
+            $archivo = $request->file('portada');
+            $nombre = 'nosotros-portada_'.bin2hex(random_bytes(6)).'.'.strtolower($archivo->extension() ?: $archivo->getClientOriginalExtension());
+            $archivo->move(public_path('imagenes'), $nombre);
+            $foto->path = $nombre;
+            $foto->tipo = 'imagen';
+            $foto->save();
+            // Sólo se borra una foto subida desde esta pantalla (las anteriores pueden estar en uso en otro lado).
+            if ($anterior && preg_match('/^nosotros-portada_[a-f0-9]{12}\.[a-z0-9]+$/', $anterior) === 1) {
+                File::delete(public_path('imagenes/'.$anterior));
+            }
         }
 
-        $imagen = Imagen::where('sector', 'nosotros-baner')->first();
-        if ($request->hasFile('baner')){
-            File::delete(public_path('imagenes/'.$imagen->path));
+        return redirect()->route('dashboard.nosotros')->with('success', 'Se guardó la página Nosotros.');
+    }
 
-            $file = $request->file('baner');
-            $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move('imagenes', $nombreImagen);
-            $imagen->path = $nombreImagen;
-            $imagen->save();
-        }
-
-        $nosotros_contenido->info_home = $request->info;
-        $nosotros_contenido->mision = $request->mision;
-        $nosotros_contenido->vision = $request->vision;
-        $nosotros_contenido->valores = $request->valores;
-        // $nosotros_contenido->titulo_baner = $request->titulo_baner;
-        // $nosotros_contenido->texto_baner = $request->texto_baner;
-        $nosotros_contenido->save();
-        return redirect()->back()->with('success', 'Información actualizada');
-
+    /** El editor deja «<p><br></p>» cuando se borra todo: eso cuenta como vacío ('': las columnas no aceptan NULL). */
+    private function textoOVacio(?string $html): string
+    {
+        return trim(strip_tags((string) $html, '<img>')) === '' ? '' : (string) $html;
     }
 }

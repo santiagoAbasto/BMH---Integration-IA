@@ -24,8 +24,9 @@
 /* --- Nosotros: historia (info-split.v1, texto a la izquierda y foto de 520 × 600) --- */
 .bmh-nosotros-historia {
     --osole-info-split-bg: var(--bmh-white);
-    --osole-info-split-padding-block: 0.625rem 2.5rem; /* 10px / 40px */
-    --osole-info-split-padding-block-min: 0.5rem;
+    /* Arriba 10px y abajo 40px, como en el Figma: el token del componente acepta un solo valor (con dos queda
+       inválido y la sección pierde el padding, la imagen tocaba la sección gris), así que va directo. */
+    padding-block: 0.625rem 2.5rem;
     --osole-info-split-gap: 5rem; /* 80px */
     --osole-info-split-media-width: 32.5rem; /* 520px */
     --osole-info-split-media-aspect-ratio: 520 / 600;

@@ -1,300 +1,199 @@
 @extends('layouts.plantilla-back')
 
+{{-- Admin → Nosotros: la página Nosotros tiene dos bloques, la historia (título, texto y foto) y «Lo que nos mueve»
+     (título y tres tarjetas). Cada campo está en el bloque que edita, y el mapa de la derecha marca dónde va lo que
+     se está escribiendo. Guarda NosotrosController@update. --}}
+
 @section('content')
-<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio" title="Nosotros" description="Textos e imágenes de la página Nosotros." />
-  @if(session('success'))
-      <div class="alert alert-success" role="status">
-          {{ session('success') }}
-      </div>
-  @endif
 
-  <div class="card">
-    <div class="card-header">
-      Editar contenido
+@php
+    use App\Models\Nosotros;
+    use App\Support\IconoSitio;
+
+    $contenido = $nosotros_contenido ?? new Nosotros();
+    $foto = $nosotros_portada?->path ? asset('imagenes/'.$nosotros_portada->path) : asset(Nosotros::IMAGEN_DE_FABRICA);
+    $ayudaTarjetas = [
+        'mision' => 'Para qué existe BMH.',
+        'vision' => 'Hacia dónde va la empresa.',
+        'valores' => 'Qué ofrece a sus clientes. Una línea por servicio.',
+    ];
+@endphp
+
+<x-osole::admin-page-header.v1 eyebrow="Contenido del sitio" title="Nosotros" description="La página Nosotros tiene dos bloques: la historia de BMH con una foto, y «Lo que nos mueve» con tres tarjetas.">
+    <x-slot:actions>
+        <a class="btn btn-outline-secondary" href="{{ route('nosotros') }}" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Ver la página
+        </a>
+    </x-slot:actions>
+</x-osole::admin-page-header.v1>
+
+@if (session('success'))
+    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+@endif
+@if ($errors->any())
+    <div class="alert alert-danger" role="alert">
+        <strong>Revisá los datos marcados.</strong>
+        @foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach
     </div>
-    <div class="card-body">
+@endif
 
-      <form id='formulario' action="{{route('nosotros.update')}}" method="POST" enctype="multipart/form-data">
+<div class="nadm">
+    <form id="nosotros-form" class="nadm__form" action="{{ route('nosotros.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        @method('put')
+        @method('PUT')
 
-        <div class="mb-3">
-          <label for="portada" class="form-label">Imagen o video<span class='recomendada'>(recomendada 600x600 px)</span></label>
-          <input class="form-control preview" data-form-id="{{'imagen'.$nosotros_contenido->id}}" type="file" id="imagen" name='portada' accept="file/*">
-        </div>
-        {{-- PREVIEW --}}
-        <div class='d-flex justify-content-center' style='max-height:50vh;'>
-
-          @if ($nosotros_portada->tipo == 'imagen')
-          <img  id="{{'imagen'.$nosotros_portada->id}}" src="{{asset('imagenes/'.$nosotros_portada->path)}}" alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
-          @else
-          <video id="{{'video'.$nosotros_portada->id}}" src="{{asset('imagenes/'.$nosotros_portada->path)}}" controls style="max-width: 100%;" ></video>
-            
-          @endif
-          
-        </div>        
-
-        <label class='mt-3' for="info">Descripción</label><br>
-        <textarea class='summernote-text' id="summernote1" name="info">{!!$nosotros_contenido->info!!}</textarea>
-
-        {{-- <label class='mt-3' for="info">Procesos</label><br>
-
-        <div class="card" style="margin-left: 0px !important; margin-right: 0px !important">
-          <div class="card-header">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#crear-slider"><i class="fa-solid fa-plus"></i>  CREAR</button>
-          </div>
-          <div class="card-body">
-      
-      
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Orden</th>
-                  <th>Imagen</th>
-                  <th>Titulo</th>
-                  <th>Descripcion</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-      
-                @foreach ($nosotros_procesos as $imagen)
-                  <tr>
-                    <td>{{$imagen->orden}}</td>
-                    <td><img src="{{asset('imagenes/'.($imagen->tipo == 'video' ? 'video-placeholder.png' : $imagen->path))}}" class="img-thumbnail" style="max-width: 100px;"></td>
-                    <td>{!!$imagen->baner_texto !!}</td>
-                    <td>{!!$imagen->baner_texto_2!!}</td>
-
-                    
-                    <td>
-                      <div class='d-flex'>
-                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{'editar'.$imagen->id}}" aria-label="Editar">
-                          <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm delete-slider" data-id='{{$imagen->id}}' aria-label="Eliminar"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-
-                      </div>
-                      
-                    </td>
-                  </tr>
-                @endforeach
-      
-              </tbody>
-            </table>
-          </div>
-        </div> --}}
-
-        <label class='mt-3' for="mision">Misión</label><br>
-        <textarea class='summernote-text'  id="summernote2" name="mision">{!!$nosotros_contenido->mision!!}</textarea>
-
-        <label class='mt-3' for="vision">Objetivos</label><br>
-        <textarea class='summernote-text'  id="summernote3" name="vision">{!!$nosotros_contenido->vision!!}</textarea>
-
-        <label class='mt-3' for="valores">servicios</label><br>
-        <textarea class='summernote-text'  id="summernote4" name="valores">{!!$nosotros_contenido->valores!!}</textarea>
-
-        {{-- <div class="my-3">
-          <label for="baner" class="form-label">Baner <span class='recomendada'>(recomendada 1366x650 px)</span></label>
-          <input class="form-control preview" data-form-id="{{'imagen'.$nosotros_baner->id}}" type="file" id="imagen" name='baner' accept="image/*">
-        </div>
-        <div class='d-flex justify-content-center' style='max-height:50vh;'>
-          <img id="{{'imagen'.$nosotros_baner->id}}" src="{{asset('imagenes/'.$nosotros_baner->path)}}" alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
-        </div>
-
-        <label class='mt-3' for="titulo_baner" class="form-label">Título en baner</label>
-        <input type="text" name='titulo_baner' class='form-control' value='{{$nosotros_contenido->titulo_baner}}'>
-
-        <label class='mt-3' for="texto_baner">Texto en baner</label><br>
-        <textarea class='summernote-text'  id="summernote5" name="texto_baner">{!!$nosotros_contenido->texto_baner!!}</textarea>
-         --}}
-
-        <button type="submit" data-form-id='formulario' class="btn btn-primary submit mt-3" style='float:right;'>Actualizar</button>
-      </form>
-    </div>
-  </div>
-
-    {{-- MODAL CREAR --}}
-    <div class="modal fade" id="crear-slider" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title">Crear proceso</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <form id='agregar' class='mb-4 loading' action="{{route('imagen.store')}}" method="POST" enctype="multipart/form-data">
-              @csrf
-              <input type="hidden" name="sector" value="nosotros-procesos">
-          
-              
-              <div class="row g-3 align-items-center">
-                <div class="col-2 ">
-                  <label for="orden" class="form-label">Orden</label>
-                  <input type="text" class="form-control" name='orden' value='aa' required>
+        {{-- 1. Historia --}}
+        <section class="card" id="bloque-historia" aria-labelledby="nadm-historia-titulo">
+            <div class="card-header">
+                <div class="adm-card-titulo">
+                    <h2 id="nadm-historia-titulo"><span class="nadm-num">1</span> Historia</h2>
+                    <p>El primer bloque de la página: título y texto a la izquierda, foto a la derecha.</p>
                 </div>
-                
-                <div class="col-10">
-                  <label for="imagenes" class="form-label">Agregar imagen o video <span class='recomendada'>(recomendada 790x650 px)</span></label>
-                    <input class="form-control" type="file" id="imagenes" name="imagenes[]" multiple required>
-          
+            </div>
+            <div class="card-body nadm-historia">
+                <div class="nadm-campos">
+                    <div>
+                        <label class="form-label" for="historia_titulo">Título</label>
+                        <input class="form-control @error('historia_titulo') is-invalid @enderror" id="historia_titulo" name="historia_titulo" maxlength="160"
+                            value="{{ old('historia_titulo', $contenido->historiaTitulo()) }}" placeholder="{{ Nosotros::HISTORIA_TITULO }}" data-zona-campo="historia-titulo">
+                        <p class="form-text">Es el título principal de la página (el que lee Google). Si lo dejás vacío, vuelve a «{{ Nosotros::HISTORIA_TITULO }}».</p>
+                    </div>
+                    <div data-zona-campo="historia-texto">
+                        <label class="form-label" for="info">Texto</label>
+                        <textarea id="info" name="info" class="nadm-editor" data-zona="historia-texto">{{ old('info', $contenido->info) }}</textarea>
+                        <p class="form-text">Separá las ideas en párrafos: se leen mejor que un bloque largo.</p>
+                    </div>
                 </div>
-                <div class="col-12 mt-3">
-                  <label for="baner_texto" class="form-label">Titulo</label>
-                  <textarea class='summernote-text' id="summernote1" name="baner_texto"></textarea>
-    
+                <div class="nadm-foto" data-zona-campo="historia-foto">
+                    <span class="form-label d-block">Foto</span>
+                    <input type="file" class="visually-hidden hsec-archivo" id="portada" name="portada" accept="image/png,image/jpeg,image/webp" data-foto-input>
+                    <label class="hsec-drop nadm-foto__drop" for="portada">
+                        <span class="hsec-drop__mesa"><img src="{{ $foto }}" alt="Foto actual de la historia" data-foto-previa></span>
+                        <span class="hsec-drop__cambiar"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Cambiar foto</span>
+                    </label>
+                    <p class="form-text" data-foto-nombre>Vertical, de unos 1040 × 1200 px (JPG, PNG o WebP, hasta 4 MB). Se recorta para llenar el recuadro.</p>
                 </div>
-    
-                <div class="col-12 mt-3">
-                  <label for="baner_texto" class="form-label">Descripcion</label>
-                  <textarea class='summernote-text' id="summernote1" name="baner_texto_2"></textarea>
-    
+            </div>
+        </section>
+
+        {{-- 2. Lo que nos mueve --}}
+        <section class="card" id="bloque-valores" aria-labelledby="nadm-valores-titulo">
+            <div class="card-header">
+                <div class="adm-card-titulo">
+                    <h2 id="nadm-valores-titulo"><span class="nadm-num">2</span> Lo que nos mueve</h2>
+                    <p>El bloque gris de abajo: un título y tres tarjetas. Si dejás una tarjeta vacía, no se muestra.</p>
                 </div>
-                
-                
-              </div>
-          
-          
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button  data-form-id="agregar" type="submit" class="btn btn-primary submit" >Agregar</button>
-          </div>
+            </div>
+            <div class="card-body">
+                <div class="nadm-titulo-valores">
+                    <label class="form-label" for="valores_titulo">Título del bloque</label>
+                    <input class="form-control @error('valores_titulo') is-invalid @enderror" id="valores_titulo" name="valores_titulo" maxlength="120"
+                        value="{{ old('valores_titulo', $contenido->valoresTitulo()) }}" placeholder="{{ Nosotros::VALORES_TITULO }}" data-zona-campo="valores-titulo">
+                </div>
+                <div class="nadm-tarjetas">
+                    @foreach (Nosotros::TARJETAS as $campo => [$titulo, $icono])
+                        <div class="nadm-tarjeta" data-zona-campo="{{ $campo }}">
+                            <div class="nadm-tarjeta__cabeza">
+                                <span class="nadm-tarjeta__icono" aria-hidden="true">{!! IconoSitio::svg($icono) !!}</span>
+                                <div>
+                                    <label class="nadm-tarjeta__titulo" for="{{ $campo }}">{{ $titulo }}</label>
+                                    <p>{{ $ayudaTarjetas[$campo] }}</p>
+                                </div>
+                            </div>
+                            <textarea id="{{ $campo }}" name="{{ $campo }}" class="nadm-editor nadm-editor--chico" data-zona="{{ $campo }}">{{ old($campo, $contenido->{$campo}) }}</textarea>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <div class="adm-barra-guardar">
+            <p>Los cambios se ven en la página Nosotros apenas guardás.</p>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
         </div>
-      </div>
-    </div>
+    </form>
 
-      <!-- Modales para ver las imágenes -->
-  @foreach ($nosotros_procesos as $imagen)
-      
-  {{-- MODALES --}}
-  <div class="modal fade" id="{{'editar'.$imagen->id}}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">Editar slider</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    {{-- Mapa de la página: dónde va cada campo. Se marca la parte que se está editando; tocar una parte lleva al campo. --}}
+    <aside class="nadm-mapa" aria-labelledby="nadm-mapa-titulo">
+        <h2 id="nadm-mapa-titulo">Mapa de la página</h2>
+        <p>Marca dónde se ve lo que estás editando. Tocá una parte para ir a su campo.</p>
+        <div class="nadm-mapa__pagina">
+            <div class="nadm-mapa__header">Header</div>
+            <div class="nadm-mapa__migas">Inicio › Nosotros</div>
+            <div class="nadm-mapa__historia">
+                <span class="nadm-num nadm-mapa__num">1</span>
+                <div class="nadm-mapa__col">
+                    <button type="button" class="nadm-zona nadm-zona--titulo" data-zona="historia-titulo" data-ir="historia_titulo">Título</button>
+                    <button type="button" class="nadm-zona nadm-zona--texto" data-zona="historia-texto" data-ir="info">Texto</button>
+                </div>
+                <button type="button" class="nadm-zona nadm-zona--foto" data-zona="historia-foto" data-ir="portada">Foto</button>
+            </div>
+            <div class="nadm-mapa__valores">
+                <span class="nadm-num nadm-mapa__num">2</span>
+                <button type="button" class="nadm-zona nadm-zona--titulo-chico" data-zona="valores-titulo" data-ir="valores_titulo">Título del bloque</button>
+                <div class="nadm-mapa__tarjetas">
+                    @foreach (Nosotros::TARJETAS as $campo => [$titulo])
+                        <button type="button" class="nadm-zona nadm-zona--tarjeta" data-zona="{{ $campo }}" data-ir="{{ $campo }}">{{ $titulo }}</button>
+                    @endforeach
+                </div>
+            </div>
+            <div class="nadm-mapa__footer">Footer</div>
         </div>
-        <div class="modal-body">
-          <form id='{{'form'.$imagen->id}}'  action="{{route('slider.update',['id'=>$imagen->id])}}" method="post" enctype="multipart/form-data">
-            @csrf
-            @method('put')
-
-
-            <div class="mb-3">
-              <label for="orden" class="form-label">Orden</label>
-              <input type="text" class="form-control" name='orden' value='{{$imagen->orden}}' required>
-            </div>
-
-            
-
-            <div class="mb-3">
-              <label for="imagen" class="form-label">Imagen <span class='recomendada'>(recomendada 790x650 px)</span></label>
-              <input class="form-control preview" data-form-id="{{$imagen->tipo.$imagen->id}}" type="file" id="imagen" name='imagen'>
-            </div>
-
-            <div class="col-12 mt-3">
-              <label for="baner_texto" class="form-label">Titulo</label>
-              <textarea class='summernote-text' id="summernote1" name="baner_texto">{!! $imagen->baner_texto !!}</textarea>
-
-            </div>
-
-            <div class="col-12 mt-3">
-              <label for="baner_texto" class="form-label">Descripcion</label>
-              <textarea class='summernote-text' id="summernote1" name="baner_texto_2">{!! $imagen->baner_texto_2 !!}</textarea>
-
-            </div>
-
-       
-
-            {{-- PREVIEW --}}
-            <div class='d-flex justify-content-center' style='max-height:50vh;'>
-
-              @if ($imagen->tipo=='imagen')
-
-              <img  id="{{'imagen'.$imagen->id}}" src="{{asset('imagenes/'.$imagen->path)}}" alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
-              @else
-              <video  id="{{'video'.$imagen->id}}" src="{{asset('imagenes/'.$imagen->path)}}" controls style="max-width: 100%;" ></video>
-                
-              @endif
-
-              
-            </div>
-            
-
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button  data-form-id="{{'form'.$imagen->id}}" type="submit" class="btn btn-primary submit">Actualizar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-@endforeach
-
-
-  
-  
+    </aside>
+</div>
 @endsection
 
 @section('script')
 <script>
-  // Check validity summernote
-  document.getElementById('formulario').addEventListener('submit', function(event) {
-        var summernoteFields = document.querySelectorAll('.summernote-text');
-
-        for (var i = 0; i < summernoteFields.length; i++) {
-            var content = $(summernoteFields[i]).summernote('code').trim(); // Obtener el contenido y eliminar espacios en blanco al inicio y al final
-            if (!content) {
-                alert('Por favor, complete todos los campos');
-                event.preventDefault(); // Detener el envío del formulario
-                return;
-            }
+    (function () {
+        var zonas = document.querySelectorAll('.nadm-mapa [data-zona]');
+        function marcar(nombre) {
+            zonas.forEach(function (z) { z.classList.toggle('is-activa', z.dataset.zona === nombre); });
         }
-    });
 
-  // Summernote
-  $(document).ready(function() {
-    $('.summernote-text').each(function() {
-      
-      // Inicializar Summernote para este editor
-      $(this).summernote({
-          placeholder: '',
-          tabsize: 2,
-          height: 120,
-          toolbar: [
-            ['style', ['style']],
-            ['font', ['bold', 'underline', 'clear']],
-            // ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            // ['table', ['table']],
-            // ['insert', ['link', 'picture', 'video']],
-            ['view', ['fullscreen', 'codeview', 'help']]
-          ]
-      });
-    });
-  });
+        // Editores de texto: el de la historia más alto; las tarjetas, compactos.
+        $('.nadm-editor').each(function () {
+            var zona = this.dataset.zona;
+            $(this).summernote({
+                height: this.classList.contains('nadm-editor--chico') ? 150 : 260,
+                toolbar: [['font', ['bold', 'italic', 'underline', 'clear']], ['para', ['ul', 'ol']], ['insert', ['link']], ['view', ['codeview']]],
+                callbacks: { onFocus: function () { marcar(zona); } }
+            });
+        });
 
-  // Preview de imagenes
-  function mostrarImagenSeleccionada(input) {
-      var imagenId = $(input).data('form-id');
-      if (input.files && input.files[0]) {
-          var lector = new FileReader();
-          lector.onload = function (e) {
-              // Muestra la imagen previa
-              document.getElementById(imagenId).src = e.target.result;
-              document.getElementById(imagenId).style.display = 'block';
-          };
-          // Lee el archivo de imagen como una URL de datos
-          lector.readAsDataURL(input.files[0]);
-      }
-  }
+        // Al entrar en un campo se marca su parte en el mapa.
+        document.querySelectorAll('[data-zona-campo]').forEach(function (campo) {
+            campo.addEventListener('focusin', function (e) {
+                var dueño = e.target.closest('[data-zona-campo]');
+                if (dueño) marcar(dueño.dataset.zonaCampo);
+            });
+            campo.addEventListener('mouseenter', function () { campo.dataset.zonaCampo && marcar(campo.dataset.zonaCampo); });
+        });
 
-  $(document).ready(function() {
-    $('.preview').change(function() {
-      mostrarImagenSeleccionada(this);
-    });
-  });
+        // Tocar una parte del mapa lleva a su campo.
+        zonas.forEach(function (z) {
+            z.addEventListener('click', function () {
+                var destino = document.getElementById(z.dataset.ir);
+                if (!destino) return;
+                var bloque = destino.closest('[data-zona-campo]') || destino;
+                bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                marcar(z.dataset.zona);
+                if ($(destino).hasClass('nadm-editor')) {
+                    setTimeout(function () { $(destino).summernote('focus'); }, 350);
+                } else if (destino.type !== 'file') {
+                    destino.focus({ preventScroll: true });
+                }
+            });
+        });
+
+        // Foto: vista previa de la nueva antes de guardar.
+        var input = document.querySelector('[data-foto-input]');
+        input.addEventListener('change', function () {
+            var archivo = input.files[0];
+            if (!archivo) return;
+            document.querySelector('[data-foto-previa]').src = URL.createObjectURL(archivo);
+            document.querySelector('[data-foto-nombre]').textContent = 'Foto nueva: ' + archivo.name + '. Se guarda al tocar «Guardar cambios».';
+        });
+    })();
 </script>
 @endsection

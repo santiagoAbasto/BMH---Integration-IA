@@ -36,6 +36,12 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
   ofertas que ya había quedan «para todos».
 - `2026_11_16_000005_descuento_de_la_oferta` — `productos.oferta_tipo` (`porcentaje` | `precio`) y `oferta_valor`: el
   precio de oferta que ven los clientes con sesión (la zona pública nunca muestra precios ni el porcentaje).
+- `2026_11_17_000001_trabajamos_con_y_seccion_nosotros_de_la_home` — tablas `marcas_aliadas` (logos de «Trabajamos con»,
+  arranca con los 4 del Figma) y `home_nosotros` (bloque Nosotros de la Home, cargado desde `imagenes` sector
+  `nosotros-slider`). Los logos y fotos que se suben desde el admin van a `public_path('imagenes')`: en producción
+  tiene que apuntar a `public_html/imagenes`.
+- `2026_11_17_000002_titulos_editables_de_nosotros` — `nosotros_contenido.historia_titulo` y `valores_titulo`.
+  Ojo: el admin viejo guardaba el texto de la historia en `info_home`; el nuevo guarda en `info`, que es lo que lee la página.
 
 **En producción el orden importa:** correr todas juntas con `php artisan migrate` (primero la 000010 migra los datos,
 después la 000002 del 16/11 borra lo viejo). Hacer el respaldo de la base de producción antes.
