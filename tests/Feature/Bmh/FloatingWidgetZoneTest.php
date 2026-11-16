@@ -49,10 +49,9 @@ final class FloatingWidgetZoneTest extends TestCase
     private function assertWhatsapp($response): void
     {
         $response->assertOk();
-        // El botón nuevo usa clases propias `bmh-wa-*`: las viejas
-        // (.whatsapp-container / .whatsapp-btn) tenían CSS roto que lo dejaba
-        // cortado contra el borde del viewport.
-        $response->assertSee('class="bmh-wa"', false);
+        // El botón es osole::whatsapp-button.v1 (como Conelec), con la clase bmh-wa para los colores y el latido.
+        $response->assertSee('class="osole-whatsapp-button-v1 bmh-wa"', false);
+        $response->assertSee('Escribinos ahora');
         $response->assertDontSee('id="bmh-advisor"', false);
     }
 
@@ -60,7 +59,7 @@ final class FloatingWidgetZoneTest extends TestCase
     {
         $response->assertOk();
         $response->assertSee('id="bmh-advisor"', false);
-        $response->assertDontSee('class="bmh-wa"', false);
+        $response->assertDontSee('osole-whatsapp-button-v1', false);
     }
 
     public function test_visitante_sin_sesion_ve_whatsapp(): void

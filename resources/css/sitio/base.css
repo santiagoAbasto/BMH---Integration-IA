@@ -354,9 +354,53 @@ body {
     text-transform: uppercase;
 }
 
-/* WhatsApp flotante (Figma: 60px, sombra 0 8 12 25%) */
+/* WhatsApp flotante (osole::whatsapp-button.v1, como Conelec). Figma: 60px, sombra 0 8 12 al 25%, a 24px del borde
+   (16px en celular). Hover del componente: sube, el ícono se sacude y se abre el globo. */
 .bmh-wa {
-    background: var(--bmh-whatsapp) !important;
+    --osole-whatsapp-button-bg: var(--bmh-whatsapp);
+    --osole-whatsapp-button-hover-bg: #1fae55;
+    --osole-whatsapp-button-size: 3.75rem; /* 60px */
+    --osole-whatsapp-button-size-min: 3.5rem; /* 56px */
+    --osole-whatsapp-button-offset: 1.5rem; /* 24px */
+    --osole-whatsapp-button-offset-min: 1rem; /* 16px */
+    --osole-whatsapp-button-z-index: 9990;
+    --osole-whatsapp-button-shadow: 0 0.5rem 0.75rem rgb(0 0 0 / 0.25);
+    --osole-whatsapp-button-hover-shadow: 0 0.75rem 1.75rem rgb(18 140 76 / 0.38);
+    --osole-whatsapp-button-focus-color: var(--bmh-brand);
+    --osole-whatsapp-button-callout-color: var(--bmh-text-secondary);
+    --osole-whatsapp-button-callout-text-color: #128c4c;
+}
+
+/* En reposo, el latido de antes: un anillo que sale cada 2,6 s. Al pasar el mouse lo reemplaza la onda del componente. */
+@media (prefers-reduced-motion: no-preference) {
+    .bmh-wa::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
+        background: var(--bmh-whatsapp);
+        opacity: 0;
+        pointer-events: none;
+        animation: bmh-wa-latido 2.6s cubic-bezier(0.24, 0.6, 0.35, 1) infinite;
+    }
+
+    .bmh-wa:is(:hover, :focus-visible)::after {
+        animation: none;
+    }
+
+    @keyframes bmh-wa-latido {
+        0% {
+            opacity: 0.55;
+            scale: 1;
+        }
+
+        70%,
+        100% {
+            opacity: 0;
+            scale: 1.75;
+        }
+    }
 }
 
 /* Sin pantalla de carga: styles2.css escondía el contenido y el footer hasta el evento load, que no
