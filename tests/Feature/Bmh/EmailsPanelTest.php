@@ -104,6 +104,8 @@ final class EmailsPanelTest extends BaseTestCase
         $this->assertStringContainsString('Hola Pedro,', $html);
         $this->assertStringContainsString('Te paso el precio.', $html);
         $this->assertStringContainsString('¿Tienen el inducido 11830?', $html);
+        // Y un link al sitio.
+        $this->assertStringContainsString('href="'.route('home').'"', $html);
 
         // Y en la bandeja se ve la conversación.
         $this->actingAs($this->admin(), 'admin')

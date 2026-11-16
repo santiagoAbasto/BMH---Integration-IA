@@ -4,6 +4,7 @@ Hola {{ $mensaje->nombreDePila() }},
 
 {{ filled($respuesta->autor) ? $respuesta->autor : 'Equipo de BMH' }}
 {{ \App\Support\MailMarca::NOMBRE }}
+{{ route('home') }}
 
 —
 Tu consulta del {{ $mensaje->created_at?->format('d/m/Y') }}:

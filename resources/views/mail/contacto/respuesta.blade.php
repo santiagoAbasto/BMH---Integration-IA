@@ -6,7 +6,12 @@
     <div style="margin:0 0 26px;color:#1c2430;font-size:15px;line-height:25px;white-space:pre-line;">{{ $respuesta->cuerpo }}</div>
 
     <p style="margin:0 0 4px;color:#0a0e14;font-size:15px;line-height:22px;font-weight:600;">{{ filled($respuesta->autor) ? $respuesta->autor : 'Equipo de BMH' }}</p>
-    <p style="margin:0 0 28px;color:#5b6575;font-size:14px;line-height:20px;">{{ \App\Support\MailMarca::NOMBRE }}</p>
+    <p style="margin:0 0 18px;color:#5b6575;font-size:14px;line-height:20px;">{{ \App\Support\MailMarca::NOMBRE }}</p>
+
+    {{-- Link al sitio: el dominio a la vista y el botón para entrar. --}}
+    <div style="margin:0 0 30px;">
+        <x-mail.boton :href="route('home')">Visitar {{ preg_replace('/^www\./', '', (string) parse_url(url('/'), PHP_URL_HOST)) }}</x-mail.boton>
+    </div>
 
     <p style="margin:0 0 8px;color:#5b6575;font-size:12px;line-height:16px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Tu consulta del {{ $mensaje->created_at?->format('d/m/Y') }}</p>
     <div style="margin:0 0 6px;padding:14px 18px;border-left:3px solid #c4ccd7;border-radius:0 8px 8px 0;background:#f8fafc;color:#5b6575;font-size:14px;line-height:22px;white-space:pre-line;">@if ($mensaje->motivo)<strong style="color:#1c2430;">{{ $mensaje->motivo }}</strong>
