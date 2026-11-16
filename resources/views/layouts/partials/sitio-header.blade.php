@@ -21,6 +21,14 @@
     $conAsesor = app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender();
     $icono = fn (string $nombre) => \App\Support\IconoSitio::svg($nombre);
 
+    // Links sobre la portada (header transparente de la Home): color y color al pasar el mouse, de admin → Extras → Header
+    // → «Al cargar la página». Sólo se aceptan colores hex: el valor va dentro de un atributo style.
+    $colorAdmin = fn (string $campo) => preg_match('/^#[0-9a-f]{3,8}$/i', $c = \App\Models\Apariencia::actual()->valor($campo)) ? $c : null;
+    $estiloHeader = $enHome ? collect([
+        '--bmh-portada-links' => $colorAdmin('header_transparente_reposo_links'),
+        '--bmh-portada-links-hover' => $colorAdmin('header_transparente_reposo_links_hover'),
+    ])->filter()->map(fn ($v, $k) => $k.': '.$v)->implode('; ') : '';
+
     $datosBarra = [];
     if ($telHref = $contacto->telHref()) {
         $datosBarra[] = ['text' => $contacto->tel, 'href' => $telHref, 'icon' => $icono('telefono')];
@@ -55,6 +63,7 @@
 
 <x-osole::header-catalog.v1
     id="site-header"
+    :style="$estiloHeader ?: null"
     :class="\Illuminate\Support\Arr::toCssClasses(['bmh-header', 'bmh-header--home' => $enHome, 'bmh-header--privada' => $zonaPrivada, 'bmh-header--con-asesor' => $conAsesor])"
     :home-href="$zonaPrivada ? route('productos.clientes') : route('home')"
     home-label="BMH Distribuidora, ir al inicio"

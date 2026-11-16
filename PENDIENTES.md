@@ -32,6 +32,10 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
   (decisión del usuario; el respaldo es la base de producción). No corre si `caracteristica_producto` está vacía.
 - `2026_11_16_000003_categorias_nombre_sin_distinguir_mayusculas` — `categorias.nombre` de `utf8mb3_bin` a
   `utf8mb4_unicode_ci` (las búsquedas por nombre de categoría distinguían mayúsculas).
+- `2026_11_16_000004_oferta_con_alcance` — `productos.oferta` pasa de sí/no a alcance (`publica` | `clientes` | null): las
+  ofertas que ya había quedan «para todos».
+- `2026_11_16_000005_descuento_de_la_oferta` — `productos.oferta_tipo` (`porcentaje` | `precio`) y `oferta_valor`: el
+  precio de oferta que ven los clientes con sesión (la zona pública nunca muestra precios ni el porcentaje).
 
 **En producción el orden importa:** correr todas juntas con `php artisan migrate` (primero la 000010 migra los datos,
 después la 000002 del 16/11 borra lo viejo). Hacer el respaldo de la base de producción antes.
@@ -72,7 +76,8 @@ Antes vivían en 78 columnas sueltas (`categorias.columna_N` = nombre, `producto
 - **Páginas del Figma que faltan**: Carrito (nodo 3147:2500), Mis datos (3147:3439, con «Margen de reventa» general y por
   categoría; hoy el form de reventa está en productos-zona-privada), listado de productos de la zona privada (3173:6308),
   detalle de novedad; header/migas del listado y la ficha públicos.
-- **Ofertas en la Zona de Clientes**: en discusión (las ofertas públicas ya están: `/ofertas`, campo `productos.oferta`).
+- **Ofertas**: listas. El admin elige alcance (para todos / sólo Zona de Clientes) y un descuento opcional (% o precio de
+  oferta); en la Zona de Clientes la tarjeta muestra precio de antes tachado, el de ahora y el −%.
 - Turbo: sumar `@section('turbo', true)` en las páginas cuyo JS ya sea compatible.
 - osole/ui: ícono opcional en «Leer más» de post-card; evaluar `whatsapp-button.v1` y `contact-form`/`contact-list` para Contacto.
 - Rutas del vendedor (`vendedor.*`) están comentadas en `routes/web.php`: definir si se usan.

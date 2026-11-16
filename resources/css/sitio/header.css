@@ -160,3 +160,92 @@
         display: inline;
     }
 }
+
+/* El buscador ya marca el foco con el anillo de su barra (:focus-within): el input no suma el contorno negro del
+   header (`:focus-visible` de header-catalog con currentColor). */
+.bmh-header .buscador-header__input:is(:focus, :focus-visible) {
+    outline: none;
+}
+
+/* Home, header transparente sobre la portada: los links toman los colores de admin → Extras → Header → «Al cargar
+   la página» (las variables las pone sitio-header). Al pasar el mouse cambia el color y aparece la misma rayita del
+   link activo, en el color de hover. Al hacer scroll vuelven los colores del header oscuro. */
+.bmh-header--home:not([data-scrolled]) {
+    --osole-header-catalog-link-color: var(--bmh-portada-links, var(--bmh-white));
+    --osole-header-catalog-link-active-color: var(--bmh-portada-links, var(--bmh-white));
+    --osole-header-catalog-link-hover-color: var(--bmh-portada-links-hover, var(--bmh-brand));
+
+    & .osole-header-catalog-v1__link::after {
+        transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
+    }
+
+    & .osole-header-catalog-v1__link:not([aria-current]):hover::after {
+        opacity: 1;
+        background-color: var(--_link-hover-color);
+    }
+
+    & .osole-header-catalog-v1__chevron {
+        transition: color 0.2s ease-out;
+    }
+
+    & .osole-header-catalog-v1__trigger:hover .osole-header-catalog-v1__chevron {
+        color: var(--_link-hover-color);
+    }
+}
+
+/* Menú desplegable de Productos (computadora): en vez de aparecer de golpe, el panel baja apenas y se funde
+   (260 ms) y las categorías entran una tras otra; al cerrarse se desvanece más rápido. Sin movimiento si el sistema
+   pide reducirlo. El cierre animado usa `display` discreto: en navegadores sin soporte cierra al instante, como antes. */
+@media (width >= 1366px) and (prefers-reduced-motion: no-preference) {
+    .bmh-header .osole-header-catalog-v1__dropdown {
+        transition:
+            opacity 0.16s ease-in,
+            translate 0.16s ease-in,
+            display 0.16s allow-discrete;
+
+        &:not([hidden]) {
+            transition-duration: 0.26s;
+            transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        &[hidden] {
+            opacity: 0;
+            translate: 0 -0.5rem;
+        }
+
+        @starting-style {
+            &:not([hidden]) {
+                opacity: 0;
+                translate: 0 -0.625rem;
+            }
+        }
+    }
+
+    .bmh-header .osole-header-catalog-v1__dropdown:not([hidden]) .osole-header-catalog-v1__mega-grid > li {
+        animation: bmh-mega-entra 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+        &:nth-child(2) { animation-delay: 18ms; }
+        &:nth-child(3) { animation-delay: 36ms; }
+        &:nth-child(4) { animation-delay: 54ms; }
+        &:nth-child(5) { animation-delay: 72ms; }
+        &:nth-child(6) { animation-delay: 90ms; }
+        &:nth-child(7) { animation-delay: 108ms; }
+        &:nth-child(8) { animation-delay: 126ms; }
+        &:nth-child(9) { animation-delay: 144ms; }
+        &:nth-child(10) { animation-delay: 162ms; }
+        &:nth-child(11) { animation-delay: 180ms; }
+        &:nth-child(12) { animation-delay: 198ms; }
+        &:nth-child(13) { animation-delay: 216ms; }
+        &:nth-child(14) { animation-delay: 234ms; }
+        &:nth-child(15) { animation-delay: 252ms; }
+        &:nth-child(16) { animation-delay: 270ms; }
+        &:nth-child(n + 17) { animation-delay: 288ms; }
+    }
+
+    @keyframes bmh-mega-entra {
+        from {
+            opacity: 0;
+            translate: 0 0.375rem;
+        }
+    }
+}
