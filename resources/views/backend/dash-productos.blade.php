@@ -27,6 +27,76 @@
         {{ session('warning') }}
     </div>
   @endif
+
+  {{-- Reporte de «Actualizar desde Excel → Precios» (ActualizacionPreciosController). --}}
+  @if (! empty($reportePrecios))
+    @php
+      $rp = $reportePrecios;
+      $rpFaltan = $rp['no_actualizados'];
+      $rpN = $rp['actualizados'];
+      $rpFmt = fn (int $n) => number_format($n, 0, ',', '.');
+    @endphp
+    <section class="precios-reporte {{ $rpFaltan ? 'precios-reporte--faltan' : '' }}" role="status" aria-labelledby="precios-reporte-titulo" data-precios-reporte>
+      <div class="precios-reporte-cabecera">
+        <i class="fa-solid {{ $rpN > 0 ? 'fa-circle-check' : 'fa-circle-info' }} precios-reporte-icono" aria-hidden="true"></i>
+        <div class="precios-reporte-texto">
+          <h2 id="precios-reporte-titulo">
+            @if ($rpN > 0)
+              Se {{ $rpN === 1 ? 'actualizó 1 producto' : 'actualizaron '.$rpFmt($rpN).' productos' }}
+            @else
+              No se actualizó ningún producto
+            @endif
+          </h2>
+          <p>
+            <i class="fa-solid fa-file-excel" aria-hidden="true"></i> {{ $rp['archivo'] }} · {{ $rpFmt($rp['filas']) }} {{ $rp['filas'] === 1 ? 'fila' : 'filas' }} con datos
+            @if ($rp['sin_cambios'] > 0)
+              · {{ $rpFmt($rp['sin_cambios']) }} ya {{ $rp['sin_cambios'] === 1 ? 'tenía' : 'tenían' }} ese precio
+            @endif
+          </p>
+        </div>
+        <button type="button" class="btn-close" aria-label="Cerrar el reporte" data-cerrar-reporte></button>
+      </div>
+
+      @if ($rpFaltan)
+        <div class="precios-reporte-faltan">
+          <div class="precios-reporte-faltan-cabecera">
+            <strong>
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              {{ count($rpFaltan) === 1 ? '1 fila no se pudo actualizar' : $rpFmt(count($rpFaltan)).' filas no se pudieron actualizar' }}
+            </strong>
+            <a class="btn btn-sm btn-outline-danger" href="{{ route('actualizar.precios.no-actualizados', $tokenPrecios) }}">
+              <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Descargar Excel con los no actualizados
+            </a>
+          </div>
+          <div class="precios-reporte-tabla">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr><th scope="col">Fila</th><th scope="col">Código en el Excel</th><th scope="col">Precio</th><th scope="col">Motivo</th><th scope="col">Código parecido en la web</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($rpFaltan as $f)
+                  <tr>
+                    <td>{{ $f['fila'] }}</td>
+                    <td class="precios-reporte-codigo">{{ $f['codigo'] !== '' ? $f['codigo'] : '—' }}</td>
+                    <td>{{ $f['precio'] !== '' ? $f['precio'] : '—' }}</td>
+                    <td>{{ $f['motivo'] }}</td>
+                    <td>
+                      @if ($f['sugerencia'])
+                        ¿Será <a class="precios-reporte-codigo" href="{{ route('dashboard.productos', ['q' => $f['sugerencia']]) }}" title="Ver el producto {{ $f['sugerencia'] }}">{{ $f['sugerencia'] }}</a>?
+                      @else
+                        —
+                      @endif
+                    </td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+          <p class="precios-reporte-ayuda">Corregí el código en el Excel (o en el producto) y volvé a subirlo: los que ya se actualizaron no cambian.</p>
+        </div>
+      @endif
+    </section>
+  @endif
   
   @php
       if (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') {
@@ -35,19 +105,28 @@
       } else {
           $catLabel = ' de todos los productos';
       }
+      $hayFiltros = (isset($categoria_id) && $categoria_id && $categoria_id != 'todos') || ($busqueda ?? '') !== '';
   @endphp
 
   <div class="productos-tools">
     <form method="GET" action="{{ route('dashboard.productos') }}" class="productos-filtro">
+      {{-- Cambiar de categoría conserva lo escrito en el buscador. --}}
+      <input type="hidden" name="q" id="filtro-q" value="{{ $busqueda ?? '' }}">
       <label for="categoria_id" class="form-label">Filtrar por categoría</label>
-      <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
-          <option value="todos">Todas</option>
-          @foreach($categorias as $categoria)
-              <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
-                  {{ $categoria->nombre }}
-              </option>
-          @endforeach
-      </select>
+      <div class="productos-filtro-fila">
+        <select name="categoria_id" id="categoria_id" class="form-select" onchange="this.form.submit()">
+            <option value="todos">Todas</option>
+            @foreach($categorias as $categoria)
+                <option value="{{ $categoria->id }}" {{ (isset($categoria_id) && $categoria_id == $categoria->id) ? 'selected' : '' }}>
+                    {{ $categoria->nombre }}
+                </option>
+            @endforeach
+        </select>
+        {{-- Su lugar queda reservado aunque no se vea: al aparecer no mueve nada. --}}
+        <a href="{{ route('dashboard.productos') }}" class="productos-borrar-filtros" data-borrar-filtros @unless($hayFiltros) hidden @endunless title="Quitar la categoría y la búsqueda">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i> Borrar filtros
+        </a>
+      </div>
     </form>
 
     <div class="productos-descargas">
@@ -66,7 +145,9 @@
       <span>Imágenes</span>
     </a>
 
-    {{-- Sólo con una categoría elegida: un ZIP con las imágenes nombradas por código. --}}
+    {{-- Un ZIP con las imágenes nombradas por código: las de la categoría elegida o,
+         sin categoría, las de todo el catálogo. El botón está siempre, así el bloque
+         no cambia de alto al filtrar. --}}
     @if (isset($imagenesCategoria))
       @if ($imagenesCategoria > 0)
         <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
@@ -80,6 +161,13 @@
           <i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Esta categoría no tiene imágenes
         </span>
       @endif
+    @else
+      <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
+         class="btn btn-outline-primary"
+         title="Todas las imágenes del catálogo, cada una con el código del producto. Es un archivo grande: puede tardar en descargar">
+        <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+        <span>Descargar todas las imágenes</span>
+      </a>
     @endif
     </div>
   </div>
@@ -90,7 +178,7 @@
       <form class="productos-buscador" role="search" id="productos-buscar-form">
         <label for="productos-busqueda" class="form-label">Buscar productos</label>
         <div class="productos-search-control">
-          <input type="search" id="productos-busqueda" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
+          <input type="search" id="productos-busqueda" value="{{ $busqueda ?? '' }}" placeholder="Código, nombre o descripción" class="search-input" autocomplete="off" aria-controls="productos-contenedor" aria-describedby="productos-busqueda-ayuda">
           <button type="submit" id="buscador-productos" class="productos-search-btn" aria-label="Buscar productos">
             <i class="fa fa-search" aria-hidden="true"></i>
           </button>
@@ -112,7 +200,8 @@
     </div>
 
     <p id="productos-estado" class="productos-estado" role="status" aria-live="polite"></p>
-    <div id="productos-feedback" class="productos-feedback" role="status" aria-live="polite" hidden></div>
+    <div id="productos-feedback" class="productos-feedback" role="status" aria-live="polite" hidden
+         data-sin-resultados-categoria="{{ !empty($sinResultadosCategoria) ? '1' : '0' }}" data-hay-alternativas="{{ !empty($hayAlternativas) ? '1' : '0' }}"></div>
     <div id="productos-alternativas-titulo" class="productos-alternativas-titulo" role="heading" aria-level="2" hidden></div>
 
     <div class="card-body productos-listado">
@@ -173,6 +262,7 @@
       </div>
       <div class="modal-body">
         <p>Los productos de la web deben tener el mismo código que en el Excel. Podés modificarlo en cada producto. El orden de las columnas debe coincidir con el modelo.</p>
+        <p class="mb-0">Al terminar vas a ver cuántos productos se actualizaron y cuáles códigos no, con un Excel para descargarlos.</p>
         <form id='actualizar-precios-form' action="{{ route('actualizar.precios') }}" method="POST" enctype="multipart/form-data">
           @csrf
           <label for="lista-precios" class="form-label">Listado de precios (Excel)</label>
@@ -242,7 +332,18 @@
 @endsection
 
 @section('styles')
-<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}">
+@unless (request()->getQueryString() || session()->has('success') || session()->has('warning') || session()->has('precios_reporte'))
+<script>
+  // Al entrar al listado sin filtros (el sidebar, «volver», una redirección),
+  // retomarlo como se lo dejó en esta pestaña. Va en el <head>, antes de que
+  // se dibuje la página. Los filtros los guarda guardarFiltros() más abajo.
+  try {
+    var filtrosGuardados = sessionStorage.getItem('bmh.admin.productos.filtros');
+    if (filtrosGuardados) location.replace(location.pathname + '?' + filtrosGuardados);
+  } catch (e) { /* sin sessionStorage: se abre sin filtros */ }
+</script>
+@endunless
+<link rel="stylesheet" href="{{ asset('css/dashboard-productos.css') }}?v=4">
 @endsection
 
 @section('script')
@@ -338,6 +439,42 @@
             : boton.dataset.titulo;
     }
 
+    /*
+     * Filtros del listado (categoría, búsqueda y página). La URL los refleja,
+     * así recargar o volver «atrás» los conserva, y una copia queda en
+     * sessionStorage para retomarlos al volver desde el sidebar o después de
+     * editar (ver el script del <head>). sessionStorage es de la pestaña: al
+     * cerrarla, los filtros se olvidan.
+     */
+    var CLAVE_FILTROS = 'bmh.admin.productos.filtros';
+
+    function guardarFiltros(pagina) {
+        var params = new URLSearchParams();
+        var categoria = $('#categoria_id').val();
+        var texto = ($('#productos-busqueda').val() || '').trim();
+        if (categoria && categoria !== 'todos') params.set('categoria_id', categoria);
+        if (texto) params.set('q', texto);
+        if (Number(pagina) > 1) params.set('page', pagina);
+
+        var query = params.toString();
+        history.replaceState(history.state, '', location.pathname + (query ? '?' + query : ''));
+        try {
+            if (query) sessionStorage.setItem(CLAVE_FILTROS, query);
+            else sessionStorage.removeItem(CLAVE_FILTROS);
+        } catch (e) { /* sin sessionStorage: quedan sólo en la URL */ }
+
+        $('#filtro-q').val(texto);
+        $('[data-borrar-filtros]').prop('hidden', !(params.has('categoria_id') || params.has('q')));
+    }
+
+    $('[data-cerrar-reporte]').on('click', function() {
+      $(this).closest('[data-precios-reporte]').remove();
+    });
+
+    $('[data-borrar-filtros]').on('click', function() {
+        try { sessionStorage.removeItem(CLAVE_FILTROS); } catch (e) {}
+    });
+
     function buscarProductos(valor, pagina) {
         actualizarExcel(valor);
         clearTimeout(esperaBusqueda);
@@ -359,6 +496,7 @@
                 page: pagina || 1,
             },
             success: function(response) {
+                guardarFiltros(pagina || 1);
                 $('#productos-contenedor').html(response.html);
                 $('#productos-paginacion').html(response.pagination);
                 $('#productos-paginacion').closest('.card-footer').prop('hidden', response.pagination.trim().length === 0);
@@ -374,6 +512,15 @@
                 }
             }
         });
+    }
+
+    // Al cargar: la URL queda prolija, el Excel y el aviso de «sin resultados
+    // en esta categoría» reflejan lo que vino filtrado desde el servidor.
+    guardarFiltros({{ (int) $productos->currentPage() }});
+    actualizarExcel($('#productos-busqueda').val());
+    var avisoInicial = $('#productos-feedback');
+    if (avisoInicial.data('sin-resultados-categoria') == 1) {
+        actualizarFeedback({ sinResultadosCategoria: true, hayAlternativas: avisoInicial.data('hay-alternativas') == 1 });
     }
 
     // BUSCADOR

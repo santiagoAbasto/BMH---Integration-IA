@@ -101,8 +101,9 @@ class CarritoController extends Controller
             'qty' => ['required', 'integer', 'min:1', 'max:99'],
         ]);
 
+        // Publicados: como en el catálogo, todo salvo los ocultos (estado 0; NULL también se muestra).
         $producto = Producto::query()
-            ->whereIn('estado', [1, 2])
+            ->where(fn ($q) => $q->whereNull('estado')->orWhere('estado', '!=', 0))
             ->findOrFail((int) $validated['producto_id']);
 
         // El precio del navegador se ignora. Siempre se recalcula con la misma

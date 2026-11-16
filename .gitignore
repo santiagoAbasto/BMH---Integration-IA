@@ -15,6 +15,7 @@ auth.json
 /storage/app/backups/
 /storage/app/ai/
 /output/
+/storage/app/actualizacion-precios/
 /storage/logs/*.log
 /storage/*.key
 /public/imagenes/*

@@ -9,7 +9,8 @@ use App\Models\Producto;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Qué archivos van en el ZIP de imágenes de una categoría y con qué nombre.
+ * Qué archivos van en el ZIP de imágenes de una categoría (o de todo el
+ * catálogo) y con qué nombre.
  *
  * Cada imagen se llama como su código de la biblioteca (NFSO42.webp,
  * NFSO42-2.webp): el mismo que se escribe en la columna Imágenes del Excel.
@@ -27,7 +28,7 @@ final class ImagenesDeCategoria
      * @return array{archivos: list<array{string, string}>, sinImagenes: list<string>}
      *               archivos: [nombre dentro del ZIP, ruta en disco]
      */
-    public function armar(int $categoriaId): array
+    public function armar(?int $categoriaId): array
     {
         $directorio = rtrim($this->directorio ?? (string) config('imagenes.directorio'), '/\\');
         $archivos = [];
@@ -39,7 +40,8 @@ final class ImagenesDeCategoria
             : [];
 
         $productos = Producto::query()
-            ->where('categoria_id', $categoriaId)
+            // Sin categoría: todos los productos.
+            ->when($categoriaId !== null, fn ($q) => $q->where('categoria_id', $categoriaId))
             ->with('imagenesGaleria')
             ->orderBy('codigo')
             ->orderBy('id')
@@ -69,7 +71,7 @@ final class ImagenesDeCategoria
                 $nombre = $codigo !== null
                     ? "{$codigo}.{$extension}"
                     : ($rutas->count() === 1 ? "{$base}.{$extension}" : $base.'-'.($i + 1).".{$extension}");
-                // Una foto que comparten dos productos de la categoría va una sola vez.
+                // Una foto que comparten dos productos va una sola vez.
                 if (isset($enZip[$nombre])) {
                     continue;
                 }

@@ -85,7 +85,7 @@ final class DescargaImagenesCategoriaTest extends TestCase
     }
 
     /** @return array<string, string> nombre dentro del ZIP => contenido */
-    private function descargar(int $categoriaId): array
+    private function descargar(int|string $categoriaId): array
     {
         $respuesta = $this->actingAs($this->admin, 'admin')->get(self::URL.'?categoria_id='.$categoriaId);
         $respuesta->assertOk();
@@ -130,6 +130,24 @@ final class DescargaImagenesCategoriaTest extends TestCase
         $this->assertSame('contenido de portada.png', $zip['ARR-100-1.png']);
         $this->assertStringContainsString('ARR-300 — Sin fotos', $zip['sin-imagenes.txt']);
         $this->assertArrayNotHasKey('ALT-900.webp', $zip);
+    }
+
+    public function test_sin_categoria_descarga_las_imagenes_de_todo_el_catalogo(): void
+    {
+        DB::table('categorias')->insert([['id' => 1, 'nombre' => 'Arranques'], ['id' => 2, 'nombre' => 'Alternadores']]);
+        DB::table('productos')->insert([
+            ['id' => 11, 'codigo' => 'ARR-200', 'nombre' => 'Con una', 'categoria_id' => 1],
+            ['id' => 12, 'codigo' => 'ARR-300', 'nombre' => 'Sin fotos', 'categoria_id' => 1],
+            ['id' => 20, 'codigo' => 'ALT-900', 'nombre' => 'Otra categoría', 'categoria_id' => 2],
+        ]);
+        $this->imagen(11, 'unica.webp', tipo: 'portada');
+        $this->imagen(20, 'otra.webp', tipo: 'portada');
+
+        $zip = $this->descargar('todos');
+
+        $this->assertSame(['ALT-900.webp', 'ARR-200.webp', 'sin-imagenes.txt'], array_keys($zip));
+        $this->assertStringContainsString('Productos sin imágenes cargadas', $zip['sin-imagenes.txt']);
+        $this->assertStringContainsString('ARR-300 — Sin fotos', $zip['sin-imagenes.txt']);
     }
 
     public function test_codigos_repetidos_o_con_caracteres_invalidos_no_se_pisan(): void

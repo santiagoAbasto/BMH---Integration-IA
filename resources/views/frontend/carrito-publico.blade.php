@@ -42,7 +42,10 @@
                     <div id='carrito-desplegado' style='margin-bottom:29px;'>
                         @include('frontend.components.carrito-desplegado')
                     </div>
-                    <a href='{{$_SERVER['HTTP_REFERER']}}'>
+                    {{-- Volver a la página anterior del sitio; si se entró directo (sin página de origen), al catálogo. --}}
+                    @php($origen = (string) request()->headers->get('referer'))
+                    @php($seguirComprando = str_starts_with($origen, url('/')) && $origen !== url()->current() ? $origen : route('productos'))
+                    <a href='{{ $seguirComprando }}'>
                         < Seguir comprando
                     </a>
                 </div>

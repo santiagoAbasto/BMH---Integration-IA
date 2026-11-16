@@ -30,8 +30,8 @@
                 <tbody>
                     @foreach ($equivColumna as $equivalencia)
                         <tr>
-                            <td>{{ $equivalencia->nombre ?: '—' }}</td>
-                            <td class="pbmh-celda-cod">{{ $equivalencia->valor }}</td>
+                            <td>{{ $equivalencia->nombre ? mb_strtoupper($equivalencia->nombre) : '—' }}</td>
+                            <td class="pbmh-celda-cod">{{ mb_strtoupper((string) $equivalencia->valor) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

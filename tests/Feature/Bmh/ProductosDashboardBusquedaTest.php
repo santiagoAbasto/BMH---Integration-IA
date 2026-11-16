@@ -192,6 +192,48 @@ final class ProductosDashboardBusquedaTest extends TestCase
         $this->assertSame([], $this->codigos($respuesta));
     }
 
+    /** @return list<string> */
+    private function codigosDePagina(TestResponse $respuesta): array
+    {
+        preg_match_all('/data-producto-codigo="([^"]*)"/', $respuesta->getContent(), $matches);
+
+        return $matches[1];
+    }
+
+    public function test_la_pagina_se_abre_ya_filtrada_con_la_busqueda_de_la_url(): void
+    {
+        $this->producto('NOMBRE', 'a', ['nombre' => 'Repuesto 0011']);
+        $this->producto('0011', 'z');
+        $this->producto('SIN-MATCH', '0');
+
+        // Igual que la búsqueda AJAX: al volver al listado se ve lo mismo que se había filtrado.
+        $pagina = $this->get('/dashboard/productos?q=0011')->assertOk();
+        $this->assertSame(['0011', 'NOMBRE'], $this->codigosDePagina($pagina));
+        $pagina->assertSee('id="productos-busqueda" value="0011"', false)
+            ->assertSee('name="q" id="filtro-q" value="0011"', false);
+        // Con filtros en la URL no se restaura nada guardado, y aparece «Borrar filtros».
+        $pagina->assertDontSee("sessionStorage.getItem('bmh.admin.productos.filtros')", false);
+        $this->assertMatchesRegularExpression('/data-borrar-filtros\s+(?!hidden)/', $pagina->getContent());
+    }
+
+    public function test_sin_filtros_retoma_los_de_la_pestana_y_oculta_borrar_filtros(): void
+    {
+        $this->producto('0011', 'z');
+
+        $pagina = $this->get('/dashboard/productos')->assertOk();
+        $pagina->assertSee("sessionStorage.getItem('bmh.admin.productos.filtros')", false);
+        $this->assertMatchesRegularExpression('/data-borrar-filtros\s+hidden/', $pagina->getContent());
+    }
+
+    public function test_sin_resultados_en_la_categoria_la_pagina_avisa_y_muestra_alternativas(): void
+    {
+        $this->producto('0011', 'z');
+
+        $pagina = $this->get('/dashboard/productos?categoria_id=3&q=0011')->assertOk();
+        $this->assertSame(['0011'], $this->codigosDePagina($pagina));
+        $pagina->assertSee('data-sin-resultados-categoria="1" data-hay-alternativas="1"', false);
+    }
+
     public function test_el_listado_no_hace_consultas_por_cada_producto(): void
     {
         for ($i = 0; $i < 20; $i++) {

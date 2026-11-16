@@ -127,7 +127,10 @@ class ProductoController extends Controller
         'aplicaciones',
         'partesRelacionadas.portadaImagen',
         'partesRelacionadas.imagenesGaleria',
-    ])->find($request->id);
+    ])->find($request->integer('id'));
+
+    // Un producto borrado (o un link viejo de buscadores) es un 404, no un 500.
+    abort_if($producto === null, 404);
 
     // Productos relacionados (mismo formato horizontal que el listado principal)
     if ($producto->categoria != null) {
@@ -863,15 +866,14 @@ SVG;
 public function dash_productos(Request $request)
 {
     $categoria_id = $request->input('categoria_id');
+    // El texto del buscador también viaja en la URL (?q=): así el listado se
+    // abre ya filtrado al volver desde otra pantalla o al recargar.
+    $busqueda = mb_substr(trim((string) $request->query('q', '')), 0, 100);
 
-    $hayCategoria = !empty($categoria_id) && $categoria_id != 'todos';
-    $query = Producto::with(['categoria', 'portadaImagen'])->ordenado();
-
-    if ($hayCategoria) {
-        $query->where('categoria_id', $categoria_id);
-    }
-
-    $productos = $query->paginate(20)->appends($request->all());
+    ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoria_id);
+    $productos->withPath(route('dashboard.productos'))
+        ->appends(array_filter(['categoria_id' => $categoria_id, 'q' => $busqueda], fn ($v) => $v !== null && $v !== ''));
+    $hayAlternativas = $sinResultadosCategoria && $productos->isNotEmpty();
 
     $categorias = Categoria::orderBy('nombre')->get();
 
@@ -880,7 +882,11 @@ public function dash_productos(Request $request)
         ? app(ImagenesDeCategoria::class)->contar((int) $categoria_id)
         : null;
 
-    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria'));
+    // Reporte de la última «Actualizar desde Excel → Precios», si se acaba de subir.
+    $reportePrecios = app(ActualizacionPreciosController::class)->reporte(session('precios_reporte'));
+    $tokenPrecios = session('precios_reporte');
+
+    return view('backend/dash-productos', compact('productos', 'categorias', 'categoria_id', 'imagenesCategoria', 'busqueda', 'sinResultadosCategoria', 'hayAlternativas', 'reportePrecios', 'tokenPrecios'));
 }
 
     public function exportarExcel(Request $request)
@@ -1292,85 +1298,12 @@ public function dash_productos(Request $request)
         return redirect()->back()->with('success', 'Imagen principal eliminada. El producto mostrará la imagen predeterminada de BMH.');
     }
 
-    public function actualizarPreciosExcel(Request $request)
-    {
-        // 1) Validar que venga el Excel y sea correcto
-        $request->validate([
-            'lista' => 'required|file|mimes:xlsx,xls'
-        ]);
-
-        // 2) Leer el Excel
-        $filePath    = $request->file('lista')->getRealPath();
-        $reader      = IOFactory::createReaderForFile($filePath);
-        $reader->setReadEmptyCells(false);
-        $spreadsheet = $reader->load($filePath);
-        $rows        = $spreadsheet->getActiveSheet()->toArray();
-
-        // 3) Iterar y actualizar
-        $actualizados = 0;
-        foreach ($rows as $i => $row) {
-            if ($i === 0) {
-                // salto encabezados
-                continue;
-            }
-
-            $codigo    = trim($row[0] ?? '');
-            $precioRaw = trim($row[1] ?? '');
-            $precio    = str_replace(',', '.', $precioRaw);
-
-            if ($codigo === '' || ! is_numeric($precio)) {
-                continue;
-            }
-
-            $updated = Producto::where('codigo', $codigo)
-                ->update(['precio' => $precio]);
-
-            if ($updated) {
-                $actualizados++;
-            }
-        }
-
-        // 4) Devolver con mensaje de Ã©xito
-        return redirect()->back()
-            ->with('success', "ActualizaciÃ³n exitosa: {$actualizados} productos actualizados.");
-    }
     public function dash_buscar_producto(Request $request)
     {
         $busqueda = (string) $request->input('valor', '');
         $categoriaId = $request->input('categoria_id');
 
-        // El código tiene prioridad sobre nombre, descripción y categoría,
-        // incluso antes de paginar y al buscar alternativas de otra categoría.
-        // Es la misma búsqueda que usa el Excel (ExcelProductos::exportar).
-        $crearConsulta = fn () => Producto::with(['categoria', 'portadaImagen'])->busquedaAdmin($busqueda);
-
-        $query = $crearConsulta();
-        $sinResultadosCategoria = false;
-
-        // La categoría seleccionada debe restringir también las búsquedas AJAX.
-        if ($categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos') {
-            $query->where('categoria_id', $categoriaId);
-        }
-
-        $productos = $query
-            ->orderBy('orden')
-            ->paginate(20);
-
-        // Si no hay coincidencias dentro de la categoría, mostrar alternativas
-        // fuera de ella sin mezclar esos resultados con el filtro seleccionado.
-        if (
-            $productos->isEmpty()
-            && trim($busqueda) !== ''
-            && $categoriaId !== null
-            && $categoriaId !== ''
-            && $categoriaId !== 'todos'
-        ) {
-            $sinResultadosCategoria = true;
-            $productos = $crearConsulta()
-                ->where('categoria_id', '!=', $categoriaId)
-                ->orderBy('orden')
-                ->paginate(20);
-        }
+        ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria] = $this->listadoAdmin($busqueda, $categoriaId);
 
         return response()->json([
             'html' => view('backend/dash-productos-listado', compact('productos'))->render(),
@@ -1378,6 +1311,36 @@ public function dash_productos(Request $request)
             'sinResultadosCategoria' => $sinResultadosCategoria,
             'hayAlternativas' => $sinResultadosCategoria && $productos->isNotEmpty(),
         ]);
+    }
+
+    /**
+     * El listado de productos del admin, igual al cargar la página (con ?q= y
+     * ?categoria_id= en la URL) que al buscar por AJAX.
+     *
+     * El código tiene prioridad sobre nombre, descripción y categoría, incluso
+     * antes de paginar (Producto::busquedaAdmin, la misma búsqueda del Excel).
+     * Si no hay coincidencias dentro de la categoría, se muestran las de otras
+     * categorías, avisando, en vez de una lista vacía.
+     *
+     * @return array{productos: \Illuminate\Pagination\LengthAwarePaginator, sinResultadosCategoria: bool}
+     */
+    private function listadoAdmin(string $busqueda, $categoriaId): array
+    {
+        $hayBusqueda = trim($busqueda) !== '';
+        $hayCategoria = $categoriaId !== null && $categoriaId !== '' && $categoriaId !== 'todos';
+        $consulta = fn () => Producto::with(['categoria', 'portadaImagen'])
+            ->busquedaAdmin($busqueda)
+            ->when($hayBusqueda, fn ($q) => $q->orderBy('orden'), fn ($q) => $q->ordenado());
+
+        $productos = $consulta()->when($hayCategoria, fn ($q) => $q->where('categoria_id', $categoriaId))->paginate(20);
+        $sinResultadosCategoria = false;
+
+        if ($productos->isEmpty() && $hayBusqueda && $hayCategoria) {
+            $sinResultadosCategoria = true;
+            $productos = $consulta()->where('categoria_id', '!=', $categoriaId)->paginate(20);
+        }
+
+        return ['productos' => $productos, 'sinResultadosCategoria' => $sinResultadosCategoria];
     }
 
     public function actualizar_clientes(Request $request)
@@ -1918,8 +1881,9 @@ public function dash_productos(Request $request)
         }
 
         // El Excel trae códigos sueltos separados por coma, sin etiqueta.
+        // Van siempre en mayúsculas, como en el formulario.
         $valores = collect(explode(',', $equivalencias))
-            ->map(fn ($valor): string => trim((string) $valor))
+            ->map(fn ($valor): string => mb_strtoupper(trim((string) $valor)))
             ->filter(fn (string $valor): bool => $valor !== '')
             ->unique()
             ->values();
@@ -2200,8 +2164,9 @@ public function dash_productos(Request $request)
             ->map(function ($valor, $i) use ($nombres, $ordenes): array {
                 $rawOrden = $ordenes[$i] ?? null;
                 return [
-                    'nombre' => trim((string) ($nombres[$i] ?? '')),
-                    'valor' => trim((string) $valor),
+                    // Origen y código van siempre en mayúsculas.
+                    'nombre' => mb_strtoupper(trim((string) ($nombres[$i] ?? ''))),
+                    'valor' => mb_strtoupper(trim((string) $valor)),
                     'orden' => self::normalizarOrden($rawOrden, $i),
                 ];
             })
