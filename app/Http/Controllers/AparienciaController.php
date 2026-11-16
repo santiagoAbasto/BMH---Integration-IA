@@ -11,6 +11,7 @@ use App\Models\Contacto;
 use App\Models\Imagen;
 use App\Services\LogosSitio;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -49,6 +50,29 @@ class AparienciaController extends Controller
         }
 
         return redirect()->route('dashboard.extras.header')->with('success', 'Header actualizado');
+    }
+
+    /** Estados del header que se pueden ver en la vista previa (?estado=…). */
+    public const ESTADOS_HEADER = ['inicio', 'inicio-scroll', 'pagina', 'pagina-scroll', 'movil', 'movil-menu'];
+
+    /**
+     * Vista previa de los editores: el header o el footer reales del sitio (los mismos partials y el mismo CSS), para
+     * mostrar en un iframe. El editor le pasa los colores y los logos que se están eligiendo antes de guardar.
+     */
+    public function vistaPrevia(Request $request, LogosSitio $logos, string $pieza): View
+    {
+        $estado = $pieza === 'header' && in_array($request->query('estado'), self::ESTADOS_HEADER, true)
+            ? $request->query('estado')
+            : 'inicio';
+        $hero = Imagen::query()->where('sector', 'home-slider')->orderBy('orden')->first();
+
+        return view('backend.extras.vista-previa', [
+            'pieza' => $pieza,
+            'estado' => $estado,
+            'logosSitio' => $logos,
+            'contacto' => Contacto::actual(),
+            'heroUrl' => $hero && $hero->tipo === 'imagen' ? asset('imagenes/'.$hero->path) : null,
+        ]);
     }
 
     public function footer(LogosSitio $logos): View

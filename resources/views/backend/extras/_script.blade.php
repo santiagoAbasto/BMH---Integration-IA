@@ -7,6 +7,19 @@
   if (!raiz) return;
   var form = document.getElementById('ext-form');
   var vistas = raiz.querySelectorAll('.ext-vista');
+  var marcos = raiz.querySelectorAll('iframe[data-vista-previa]');
+
+  // Los documentos de las vistas previas que ya cargaron (backend/extras/vista-previa pone html.ext-vp).
+  function docsVista() {
+    var docs = [];
+    marcos.forEach(function (marco) {
+      try {
+        var doc = marco.contentDocument;
+        if (doc && doc.documentElement && doc.documentElement.classList.contains('ext-vp')) docs.push(doc);
+      } catch (e) { /* otro origen: no debería pasar */ }
+    });
+    return docs;
+  }
 
   // Qué variable CSS pinta cada campo. Sale de App\Models\Apariencia para que
   // el editor y el front no puedan quedar con mapeos distintos.
@@ -30,7 +43,7 @@
       swatch: el.querySelector('.ext-color__swatch'),
       reset: el.querySelector('.ext-color__reset'),
       aviso: el.querySelector('.ext-color__aviso'),
-      etiqueta: el.querySelector('label').textContent.trim()
+      etiqueta: el.querySelector('label').firstChild.textContent.trim()
     };
 
     c.swatch.addEventListener('input', function () {
@@ -60,7 +73,10 @@
   function pintar(nombre) {
     var c = campos[nombre], v = valor(nombre);
     c.el.classList.toggle('is-invalido', v === null);
-    if (v !== null && VARS[nombre]) raiz.style.setProperty(VARS[nombre], v);
+    if (v !== null && VARS[nombre]) {
+      raiz.style.setProperty(VARS[nombre], v);
+      docsVista().forEach(function (doc) { doc.documentElement.style.setProperty(VARS[nombre], v); });
+    }
     c.reset.hidden = (v || '') === c.el.dataset.original;
   }
 
@@ -106,7 +122,11 @@
     return radio ? radio.value : null;
   }
   function pintarLogos() {
-    raiz.querySelectorAll('img[data-logo-estado]').forEach(function (img) {
+    var imagenes = Array.prototype.slice.call(raiz.querySelectorAll('img[data-logo-estado]'));
+    docsVista().forEach(function (doc) {
+      imagenes = imagenes.concat(Array.prototype.slice.call(doc.querySelectorAll('img[data-logo-estado]')));
+    });
+    imagenes.forEach(function (img) {
       var cual = logoDe(img.dataset.logoEstado);
       if (!cual) return;
       img.dataset.logoActual = cual;
@@ -188,18 +208,40 @@
     r.addEventListener('change', function () { if (r.checked) mostrarModo(r.value); });
   });
 
-  // La maqueta mide 1280px de verdad y se escala al ancho disponible.
+  // Cada vista previa se dibuja a su ancho de verdad (1366px la computadora, 375px el celular) y se achica al lugar
+  // que hay: la escala la toma el CSS (--vp-escala), que también da el alto del recuadro.
   function ajustarZoom() {
-    raiz.querySelectorAll('.ext-marco__ventana').forEach(function (v) {
-      var lienzo = v.querySelector('.ext-lienzo');
-      if (lienzo && v.clientWidth) lienzo.style.setProperty('--ext-zoom', (v.clientWidth / 1280).toFixed(4));
+    raiz.querySelectorAll('.ext-iframe').forEach(function (caja) {
+      var ancho = parseFloat(getComputedStyle(caja).getPropertyValue('--vp-ancho')) || 1366;
+      if (caja.clientWidth) caja.style.setProperty('--vp-escala', (caja.clientWidth / ancho).toFixed(4));
     });
   }
   if ('ResizeObserver' in window) {
     var ro = new ResizeObserver(ajustarZoom);
-    raiz.querySelectorAll('.ext-marco__ventana').forEach(function (v) { ro.observe(v); });
+    raiz.querySelectorAll('.ext-iframe').forEach(function (caja) { ro.observe(caja); });
   }
   window.addEventListener('resize', ajustarZoom);
+
+  // Cuando carga una vista previa: le llegan los colores y los logos sin guardar, y el footer toma su alto.
+  function sincronizar(marco) {
+    var doc;
+    try { doc = marco.contentDocument; } catch (e) { return; }
+    if (!doc || !doc.documentElement || !doc.documentElement.classList.contains('ext-vp')) return;
+    Object.keys(campos).forEach(function (nombre) {
+      var v = valor(nombre);
+      if (v !== null && VARS[nombre]) doc.documentElement.style.setProperty(VARS[nombre], v);
+    });
+    pintarLogos();
+    if (marco.hasAttribute('data-alto-auto')) {
+      var alto = Math.ceil(doc.body.getBoundingClientRect().height);
+      marco.height = alto;
+      marco.parentNode.style.setProperty('--vp-alto', alto);
+    }
+    ajustarZoom();
+  }
+  marcos.forEach(function (marco) {
+    marco.addEventListener('load', function () { sincronizar(marco); });
+  });
 
   // ------------------------------------------------ resaltar lo que cambia
   function objetivos(parte) {
@@ -210,6 +252,9 @@
     var encontrados = [];
     vistas.forEach(function (vista) {
       vista.querySelectorAll(selector).forEach(function (n) { encontrados.push(n); });
+    });
+    docsVista().forEach(function (doc) {
+      doc.querySelectorAll(selector).forEach(function (n) { encontrados.push(n); });
     });
     return encontrados;
   }
@@ -289,6 +334,9 @@
   revisarContrastes();
   pintarLogos();
   ajustarZoom();
+  marcos.forEach(function (marco) {
+    try { if (marco.contentDocument && marco.contentDocument.readyState === 'complete') sincronizar(marco); } catch (e) { /* nada */ }
+  });
   // Si volvió con errores de validación, lo que se ve todavía no está guardado.
   inicial = raiz.dataset.errores === '1' ? '' : foto();
   marcarCambios();

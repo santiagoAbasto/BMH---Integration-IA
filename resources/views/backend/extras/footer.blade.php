@@ -11,7 +11,7 @@
 
 <div class="ext" data-ext data-logos='@json(['footer' => $logoFooter])' data-errores="{{ $errors->any() ? 1 : 0 }}" style="{{ $vars }}">
 
-  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Footer" description="El pie del sitio es igual en todas las páginas: se puede cambiar el logo, el fondo y el color de los textos, links e íconos. Nada cambia en el sitio hasta que guardás." />
+  <x-osole::admin-page-header.v1 eyebrow="Extras · Apariencia del sitio" title="Footer" description="El pie del sitio es igual en todas las páginas. En el diseño actual se cambia el logo; los colores tienen los del diseño, así que sus campos quedan marcados como «sin uso». A la derecha ves el footer real con lo que elegís; nada cambia en el sitio hasta que guardás." />
 
   @if (session('success'))
     <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>
@@ -31,7 +31,7 @@
           <p class="ext-ayuda">Se ve sobre el fondo del footer. Arrastrá un archivo sobre la tarjeta o tocá «Cambiar logo».</p>
           <div class="ext-logos ext-logos--uno">
             <div class="ext-logo" data-parte="f-logo">
-              <div class="ext-logo__escenario" style="background:var(--ap-f-fondo)">
+              <div class="ext-logo__escenario" style="background:#0a0e14">
                 <img src="{{ $logoFooter }}" alt="Logo actual del footer" data-logo-estado="footer">
               </div>
               <div class="ext-logo__cuerpo">
@@ -49,9 +49,10 @@
           </div>
         </section>
 
-        <section class="ext-card">
-          <h2>Colores</h2>
+        <section class="ext-card ext-card--sin-uso">
+          <h2>Colores <span class="ext-chip ext-chip--sin-uso">Sin uso</span></h2>
           <p class="ext-ayuda">El bloque principal, con el logo, las secciones y los datos de contacto.</p>
+          <p class="ext-aviso-sin-uso"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> El footer del diseño actual tiene sus colores fijos (fondo oscuro, textos claros e íconos azules): estos campos se guardan, pero no cambian el sitio.</p>
           <div class="ext-campos">
             @include('backend.extras._campo-color', ['campo' => 'footer_fondo', 'etiqueta' => 'Fondo', 'parte' => 'f-fondo', 'contraste' => null, 'hover' => false])
             @include('backend.extras._campo-color', ['campo' => 'footer_texto', 'etiqueta' => 'Textos, links e íconos', 'parte' => 'f-texto', 'contraste' => 'footer_fondo', 'hover' => false])
@@ -59,9 +60,10 @@
           </div>
         </section>
 
-        <section class="ext-card">
-          <h2>Franja del copyright</h2>
+        <section class="ext-card ext-card--sin-uso">
+          <h2>Franja del copyright <span class="ext-chip ext-chip--sin-uso">Sin uso</span></h2>
           <p class="ext-ayuda">La franja de abajo del todo, con «© Copyright BMH» y «By Osole».</p>
+          <p class="ext-aviso-sin-uso"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> El footer del diseño actual tiene sus colores fijos (fondo oscuro, textos claros e íconos azules): estos campos se guardan, pero no cambian el sitio.</p>
           <div class="ext-campos">
             @include('backend.extras._campo-color', ['campo' => 'footer_derechos_fondo', 'etiqueta' => 'Fondo', 'parte' => 'f-derechos', 'contraste' => null, 'hover' => false])
             @include('backend.extras._campo-color', ['campo' => 'footer_derechos_texto', 'etiqueta' => 'Texto', 'parte' => 'f-derechos', 'contraste' => 'footer_derechos_fondo', 'hover' => false])
@@ -74,44 +76,15 @@
           <div class="ext-preview__barra">
             <p class="ext-preview__titulo">Vista previa</p>
           </div>
+          <p class="ext-preview__ayuda">Es el footer de verdad del sitio, con el logo que estás eligiendo y todavía sin guardar.</p>
           <div id="ext-vista" class="ext-vista">
-            <p class="ext-estado">Igual en todas las páginas</p>
+            <p class="ext-estado">Igual en todas las páginas <span class="ext-chip ext-chip--edita">Cambia el logo</span></p>
             <div class="ext-marco">
-              <div class="ext-marco__chrome"><i></i><i></i><i></i><span class="ext-marco__url">bmh.com.ar</span></div>
-              <div class="ext-marco__ventana"><div class="ext-lienzo">
-                <div class="mkf" data-parte="f-fondo">
-                  <div class="mkf-fila">
-                    <div class="mkf-logo"><img alt="" data-logo-estado="footer" data-parte="f-logo"></div>
-                    <div>
-                      <h4 data-parte="f-texto">Secciones</h4>
-                      <ul class="mkf-secciones">
-                        @foreach (['Nosotros', 'Productos', 'Novedades', 'Contacto'] as $i => $seccion)
-                          <li><a href="#" tabindex="-1" data-parte="f-texto {{ $i === 0 ? 'f-hover' : '' }}">{{ $seccion }}</a></li>
-                        @endforeach
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 data-parte="f-texto">Contacto</h4>
-                      <ul>
-                        @foreach ([
-                          ['fa-solid fa-location-dot', $contacto->direccion ?? null],
-                          ['fa-solid fa-phone', $contacto->tel ?? null],
-                          ['fa-solid fa-envelope', $contacto->mail ?? null],
-                          ['fa-brands fa-whatsapp', $contacto->whatsapp ?? null],
-                        ] as [$icono, $dato])
-                          @if ($dato)
-                            <li><a href="#" tabindex="-1" data-parte="f-texto"><i class="{{ $icono }}" aria-hidden="true" style="width:22px;text-align:center"></i>{{ $dato }}</a></li>
-                          @endif
-                        @endforeach
-                      </ul>
-                    </div>
-                  </div>
-                  <div class="mkf-derechos" data-parte="f-derechos"><span>© Copyright 2024 <b>BMH</b> Todos los derechos reservados</span><span>By <b>Osole</b></span></div>
-                </div>
-              </div></div>
+              <div class="ext-marco__chrome"><i></i><i></i><i></i><span class="ext-marco__url">bmhbobinajes.com.ar</span></div>
+              @include('backend.extras._iframe', ['pieza' => 'footer', 'estado' => null, 'ancho' => 1366, 'alto' => 400, 'titulo' => 'Footer del sitio'])
             </div>
           </div>
-          <p class="ext-pie"><i class="fa-regular fa-hand-pointer" aria-hidden="true"></i> Pasá el mouse por los links para ver el color al pasar el mouse. Al tocar un campo, se marca en naranja la parte que cambia.</p>
+          <p class="ext-pie"><i class="fa-regular fa-hand-pointer" aria-hidden="true"></i> Pasá el mouse por los links para ver cómo reaccionan. Al tocar el logo, se marca en naranja dónde va.</p>
         </div>
       </aside>
     </div>

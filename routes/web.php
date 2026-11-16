@@ -257,6 +257,8 @@ Route::controller(AparienciaController::class)->middleware('admin')->group(funct
     Route::put('dashboard/extras/header', 'updateHeader')->name('extras.header.update');
     Route::get('dashboard/extras/footer', 'footer')->name('dashboard.extras.footer');
     Route::put('dashboard/extras/footer', 'updateFooter')->name('extras.footer.update');
+    // Lo que muestran los editores de Header y Footer: el header y el footer reales del sitio, en un iframe.
+    Route::get('dashboard/extras/vista-previa/{pieza}', 'vistaPrevia')->whereIn('pieza', ['header', 'footer'])->name('extras.vista-previa');
 });
 
 // Extras: imagen que muestran los productos sin portada.

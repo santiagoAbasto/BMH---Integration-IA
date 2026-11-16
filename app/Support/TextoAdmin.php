@@ -35,7 +35,8 @@ final class TextoAdmin
 
             // <div>, <p> y los saltos de línea separan párrafos; un <br> suelto es un salto dentro del párrafo.
             $parte = preg_replace('#</?(?:div|p)\b[^>]*>#i', "\n", $parte);
-            foreach (preg_split('/\R+/', (string) $parte) ?: [] as $linea) {
+            // Sólo \r y \n: \R sin /u también corta en el byte 0x85, que va dentro de emojis como ✅ (E2 9C 85).
+            foreach (preg_split('/[\r\n]+/', (string) $parte) ?: [] as $linea) {
                 $linea = trim(preg_replace('#^(?:<br\s*/?>\s*)+|(?:\s*<br\s*/?>)+$#i', '', trim($linea)) ?? '');
                 if (trim(strip_tags($linea)) !== '') {
                     $salida .= '<p>'.$linea.'</p>';

@@ -1,0 +1,363 @@
+/* --- Detalle de una novedad (frontend/novedad) ---
+   Cabecera con etiqueta, fecha y lectura; foto grande; texto a ~68 caracteres por línea con compartir y la consulta
+   al costado (fijos al bajar en computadora); más novedades al pie, en la banda gris. */
+
+.bmh-novedad {
+    padding-block: 1rem 4rem;
+    background: var(--bmh-white);
+}
+
+/* Es un <header> del artículo: styles2.css le pone a todo <header> alto fijo (117px en algunos anchos), max-height,
+   z-index 1000 y fondo blanco. */
+.bmh-novedad__cabecera {
+    position: static;
+    z-index: auto;
+    max-inline-size: 52rem;
+    block-size: auto;
+    max-block-size: none;
+    background: none;
+    color: inherit;
+    transition: none;
+}
+
+.bmh-novedad__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    margin: 0 0 1rem;
+    color: var(--bmh-text-secondary);
+    font-size: 0.875rem;
+}
+
+.bmh-novedad__etiqueta {
+    padding: 0.3125rem 0.625rem;
+    border-radius: 0.375rem;
+    background: var(--bmh-brand-soft);
+    color: var(--bmh-brand);
+    font-family: var(--osole-font-heading);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.055rem;
+    text-transform: uppercase;
+}
+
+.bmh-novedad__lectura {
+    display: inline-flex;
+    gap: 0.375rem;
+    align-items: center;
+
+    & svg {
+        inline-size: 1rem;
+        block-size: 1rem;
+    }
+}
+
+.bmh-novedad__titulo {
+    max-inline-size: 30ch;
+    margin: 0;
+    color: var(--bmh-text-primary);
+    font-family: var(--osole-font-heading);
+    font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+.bmh-novedad__bajada {
+    max-inline-size: 40rem;
+    margin: 1rem 0 0;
+    color: var(--bmh-text-secondary);
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1875rem);
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+.bmh-novedad__portada {
+    margin: 2rem 0 0;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: var(--bmh-surface-alt);
+    aspect-ratio: 16 / 9;
+
+    & img {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+}
+
+.bmh-novedad__grilla {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    margin-block-start: 2.5rem;
+}
+
+@media (width >= 1024px) {
+    /* En computadora la foto no tapa el texto: más panorámica (recorta arriba y abajo, centrada). */
+    .bmh-novedad__portada {
+        aspect-ratio: 2 / 1;
+    }
+
+    .bmh-novedad__grilla {
+        grid-template-columns: minmax(0, 1fr) 18.5rem;
+        gap: 4rem;
+        align-items: start;
+    }
+
+    .bmh-novedad__lado {
+        position: sticky;
+        inset-block-start: 8.5rem; /* debajo del header fijo */
+    }
+}
+
+/* Texto del admin: párrafos, negritas, listas y links, con una medida cómoda de lectura. */
+.bmh-novedad__texto {
+    max-inline-size: 68ch;
+    color: #2b3340;
+    font-family: var(--osole-font-body);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+
+    & > :first-child {
+        margin-block-start: 0;
+    }
+
+    & p {
+        margin: 0 0 1.25rem;
+        text-wrap: pretty;
+    }
+
+    & strong {
+        color: var(--bmh-text-primary);
+        font-weight: 700;
+    }
+
+    & ul,
+    & ol {
+        margin: 0 0 1.25rem;
+        padding-inline-start: 1.25rem;
+    }
+
+    & li {
+        margin-block-end: 0.375rem;
+    }
+
+    & li::marker {
+        color: var(--bmh-brand);
+    }
+
+    & a {
+        color: var(--bmh-brand);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+    }
+
+    & h2,
+    & h3 {
+        margin: 2rem 0 0.75rem;
+        color: var(--bmh-text-primary);
+        font-family: var(--osole-font-heading);
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+}
+
+.bmh-novedad__volver {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-block-start: 1rem;
+    color: var(--bmh-text-primary);
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+
+    & svg {
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+        color: var(--bmh-brand);
+        rotate: 180deg;
+        transition: translate 0.2s ease;
+    }
+
+    &:hover svg {
+        translate: -0.25rem 0;
+    }
+}
+
+/* Al costado: compartir y la consulta. */
+.bmh-novedad__lado {
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+}
+
+.bmh-novedad__lado-titulo {
+    margin: 0 0 0.75rem;
+    color: var(--bmh-text-secondary);
+    font-family: var(--osole-font-heading);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.bmh-novedad__compartir {
+    & ul {
+        display: flex;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    & a,
+    & button {
+        display: grid;
+        place-items: center;
+        inline-size: 2.75rem;
+        block-size: 2.75rem;
+        padding: 0;
+        border: 1px solid var(--bmh-border);
+        border-radius: 50%;
+        background: var(--bmh-white);
+        color: var(--bmh-text-primary);
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+
+        &:hover {
+            border-color: var(--bmh-brand);
+            background: var(--bmh-brand-soft);
+            color: var(--bmh-brand);
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--bmh-brand);
+            outline-offset: 2px;
+        }
+    }
+
+    & svg {
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+    }
+
+    /* Los íconos del sitio vienen en blanco (footer): acá siguen el color del botón. */
+    & svg [fill="white"],
+    & svg [fill="#fff"],
+    & svg [fill="#FFF"] {
+        fill: currentColor;
+    }
+
+    & svg [stroke="white"],
+    & svg [stroke="#fff"] {
+        stroke: currentColor;
+    }
+}
+
+.bmh-novedad__copiado {
+    min-block-size: 1.25rem;
+    margin: 0.5rem 0 0;
+    color: #12805c;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.bmh-novedad__consulta {
+    display: grid;
+    gap: 0.625rem;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background:
+        radial-gradient(120% 120% at 100% 0%, rgb(0 152 218 / 0.32), transparent 60%),
+        var(--bmh-ink-900);
+    color: var(--bmh-text-on-dark);
+
+    & p {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    }
+}
+
+.bmh-novedad__consulta-titulo {
+    color: var(--bmh-white);
+    font-family: var(--osole-font-heading);
+    font-size: 1.125rem !important;
+    font-weight: 800;
+}
+
+.bmh-novedad__boton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 2.875rem;
+    margin-block-start: 0.25rem;
+    border: 1px solid var(--bmh-brand);
+    border-radius: 0.625rem;
+    background: var(--bmh-brand);
+    color: var(--bmh-white);
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background-color 0.2s, border-color 0.2s;
+
+    &:hover {
+        border-color: var(--bmh-brand-hover);
+        background: var(--bmh-brand-hover);
+        color: var(--bmh-white);
+    }
+}
+
+.bmh-novedad__boton--fantasma {
+    border-color: rgb(255 255 255 / 0.35);
+    background: transparent;
+
+    &:hover {
+        border-color: var(--bmh-white);
+        background: rgb(255 255 255 / 0.08);
+    }
+}
+
+/* Más novedades: banda gris como las secciones del sitio. */
+.bmh-novedad-mas {
+    padding-block: 3rem 3.5rem;
+    background: var(--bmh-surface-alt);
+
+    & .bmh-grilla-novedades {
+        margin-block-start: 2rem;
+    }
+}
+
+.bmh-novedad-mas__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.bmh-novedad-mas__todas {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    color: var(--bmh-brand);
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+
+    & svg {
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+    }
+}

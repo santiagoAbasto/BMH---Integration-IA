@@ -218,8 +218,13 @@ final class AparienciaTest extends TestCase
             ->assertSee('name="header_transparente_reposo_links_hover"', false)
             ->assertSee('name="header_blanco_reposo_fondo"', false)
             ->assertSee('name="header_blanco_scroll_boton_relleno"', false)
-            ->assertSee('name="header_celular_logo"', false)
-            ->assertSee('(011) 4482-2609');
+            ->assertSee('name="header_celular_logo"', false);
+
+        // La vista previa es el header real del sitio, en iframes; lo que el diseño actual no usa queda marcado.
+        foreach (\App\Http\Controllers\AparienciaController::ESTADOS_HEADER as $estado) {
+            $respuesta->assertSee(e(route('extras.vista-previa', ['pieza' => 'header', 'estado' => $estado])), false);
+        }
+        $respuesta->assertSee('Sin uso')->assertSee('Colores fijos del diseño');
 
         // La Home en reposo no ofrece color de fondo: ahí se ve la portada.
         $respuesta->assertDontSee('name="header_transparente_reposo_fondo"', false);
@@ -233,7 +238,8 @@ final class AparienciaTest extends TestCase
             ->assertSee('name="footer_texto_hover"', false)
             ->assertSee('name="footer_derechos_fondo"', false)
             ->assertSee('name="footer_derechos_texto"', false)
-            ->assertSee('bmh@example.com');
+            ->assertSee(e(route('extras.vista-previa', ['pieza' => 'footer'])), false)
+            ->assertSee('Sin uso');
     }
 
     public function test_el_editor_del_favicon_se_muestra(): void

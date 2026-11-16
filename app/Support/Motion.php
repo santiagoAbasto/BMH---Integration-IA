@@ -25,20 +25,22 @@ final class Motion
         '.bmh-zona__vacio',
         '.catalogo__cabecera',
         '.catalogo__vacio',
-        '.novedad .texto',
+        '.bmh-novedad__cabecera',
+        '.bmh-novedad__cuerpo',
     ];
 
     /** Fotos y mapas: se abren desde un recorte apenas más chico mientras se asientan. */
     public const MEDIA = [
         '.osole-info-split-v1__media',
         '.bmh-contacto-mapa__marco',
-        '.novedadIN',
+        '.bmh-novedad__portada',
     ];
 
     /** Grillas de tarjetas: cada hijo sube cuando llega a la pantalla, en cascada con los que entran junto a él. */
     public const GRIDS = [
         '.bmh-grilla-rubros',
         '.bmh-grilla-novedades',
+        '.bmh-novedad__lado',
         '.bmh-grilla-valores',
         '.osole-footer-v1__columns',
     ];

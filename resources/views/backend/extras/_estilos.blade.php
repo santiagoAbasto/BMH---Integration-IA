@@ -18,8 +18,6 @@
   .ext-card{background:#fff;border:1px solid var(--ext-borde);border-radius:10px;padding:20px 22px;margin-bottom:20px}
   /* El layout del admin pisa h2 y h3 con !important; acá se acota a Extras. */
   .ext .ext-card h2{font-size:1.05rem!important;font-weight:600!important;margin:0 0 4px}
-  .ext .mk-hero h3{font-size:46px!important;font-weight:600!important}
-  .ext .mkm-hero h3{font-size:34px!important;font-weight:600!important}
   .ext-ayuda{font-size:.84rem;color:var(--ext-suave);margin:0 0 16px;max-width:66ch}
   .ext-subtitulo{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ext-suave);font-weight:600;margin:20px 0 10px}
   .ext-fila{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -87,87 +85,38 @@
   .ext-marco__chrome i{width:8px;height:8px;border-radius:50%;background:#CBD2DB;display:block}
   .ext-marco__url{margin-left:10px;font-size:.68rem;color:var(--ext-suave);background:#fff;border-radius:5px;padding:1px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .ext-marco__ventana{overflow:hidden}
-  /* La maqueta se arma a tamaño real (1280px) y se escala con zoom desde JS. */
-  .ext-lienzo{width:1280px;zoom:var(--ext-zoom,.5)}
   .ext-pie{font-size:.78rem;color:var(--ext-suave);margin:14px 0 0}
 
   /* Resaltado: el campo enfocado marca qué parte del sitio cambia. */
   .is-resaltado{outline:3px solid var(--ext-resalte)!important;outline-offset:3px;border-radius:6px;animation:ext-pulso 1.3s ease-in-out infinite}
-  .is-resaltado.mk-header,.is-resaltado.mkm-header,.is-resaltado.mkm-menu,.is-resaltado.mkf{outline-offset:-3px;border-radius:0}
   @keyframes ext-pulso{50%{outline-color:rgba(247,144,9,.3)}}
 
   /* ----------------------------------------------------------------------
-     Maqueta del sitio.
-
-     Los colores no se escriben acá: cada maqueta recibe por `style` las
-     variables --mk-* apuntando al estado que se está editando, así una sola
-     hoja sirve para los cinco estados del header.
+     Vista previa: el header y el footer reales del sitio en iframes
+     (backend/extras/vista-previa). Cada uno se dibuja a su ancho de verdad
+     (--vp-ancho) y el JS le da la escala (--vp-escala) para el lugar que hay.
      ---------------------------------------------------------------------- */
-  .mk{font-family:Montserrat,system-ui,sans-serif;position:relative;overflow:hidden;background:#fff}
-  .mk-info{height:31px;background:#0098DA;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 72px;font-size:14px;font-weight:500}
-  .mk-info span{display:inline-flex;gap:56px}
-  .mk-header{height:117px;display:flex;align-items:center;justify-content:space-between;padding:0 72px;position:relative;z-index:2;background:var(--mk-fondo);color:var(--mk-links)}
-  .mk-header img{height:68px;max-width:260px;object-fit:contain}
-  .mk-nav{display:flex;align-items:center;gap:45px}
-  .mk-nav a{font-size:16px;font-weight:500;color:inherit;text-decoration:none;padding:4px 0}
-  .mk-nav a:hover,.mk-nav a.is-hover{color:var(--mk-links-hover)}
-  .mk-nav .is-activo{font-weight:600;box-shadow:0 2px 0 var(--mk-links)}
-  .mk-btn{height:40px;padding:0 31px;border-radius:10px;border:1px solid;font:600 16px Montserrat,sans-serif;display:inline-flex;align-items:center;background-color:transparent;background-repeat:no-repeat;background-size:0 100%;transition:background-size .45s ease,color .3s,border-color .3s;cursor:pointer;
-    color:var(--mk-btn);border-color:var(--mk-btn);background-image:linear-gradient(var(--mk-btn-relleno),var(--mk-btn-relleno))}
-  .mk-btn:hover,.mk-btn.is-hover{background-size:100% 100%;color:var(--mk-btn-hover-texto);border-color:var(--mk-btn-relleno)}
+  .ext-preview__ayuda{font-size:.8rem;color:var(--ext-suave);margin:2px 0 0}
+  .ext-iframe{position:relative;overflow:hidden;background:#0a0e14;block-size:calc(var(--vp-alto) * var(--vp-escala, .5) * 1px)}
+  .ext-iframe iframe{position:absolute;inset:0 auto auto 0;display:block;border:0;transform-origin:0 0;transform:scale(var(--vp-escala, .5))}
 
-  /* Dónde se apoya el header en cada estado. */
-  .mk--flotante .mk-header{position:absolute;top:31px;left:0;right:0}
-  .mk--fijo .mk-header{position:absolute;top:0;left:0;right:0;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-
-  .mk-hero{height:380px;background:#1d3b52 center/cover no-repeat;position:relative}
-  .mk-hero h3{position:absolute;left:72px;bottom:64px;margin:0;color:#fff;font-size:46px;font-weight:600;line-height:1.2;max-width:660px}
-  .mk--fijo .mk-hero{height:250px;background-position:center 70%}
-  .mk-pagina{display:grid;grid-template-columns:1fr 1fr;height:250px;margin:44px 72px 0}
-  .mk-pagina__foto{background:#3d4652 linear-gradient(135deg,#59616c,#2c333c)}
-  .mk-pagina__texto{background:#0098DA;color:#fff;padding:36px 28px}
-  .mk-pagina__texto b{display:block;font-size:24px;margin-bottom:22px}
-  .mk-pagina__texto i{display:block;height:11px;border-radius:6px;background:rgba(255,255,255,.55);margin-bottom:12px}
-  .mk--fijo .mk-pagina{margin-top:140px;height:230px}
-
-  /* ---------- Maqueta del sitio: celular ---------- */
+  /* ---------- Celular ---------- */
   .ext-telefonos{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
   .ext-telefono{display:flex;flex-direction:column;align-items:center;gap:8px}
-  .ext-telefono__cuerpo{width:236px;height:452px;border:9px solid #1F2A37;border-radius:30px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(16,24,40,.14)}
-  .ext-telefono__cuerpo .ext-lienzo{width:375px;zoom:calc(218 / 375)}
+  .ext-telefono__cuerpo{width:236px;height:452px;border:9px solid #1F2A37;border-radius:30px;overflow:hidden;background:#0a0e14;box-shadow:0 8px 24px rgba(16,24,40,.14)}
+  .ext-telefono__cuerpo .ext-iframe{block-size:100%}
   .ext-telefono__rotulo{font-size:.74rem;color:var(--ext-suave)}
-  .mkm{font-family:Montserrat,system-ui,sans-serif;height:780px;position:relative;overflow:hidden;background:#fff}
-  .mkm-header{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:var(--mk-fondo)}
-  .mkm-header img{max-width:184px;max-height:62px;object-fit:contain}
-  .mkm-toggler{width:30px;height:30px;background-color:var(--mk-links);
-    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zM2 7a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 7zm0 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E") center/contain no-repeat;
-            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zM2 7a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 7zm0 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E") center/contain no-repeat}
-  .mkm-menu{background:var(--mk-fondo);padding:4px 14px 20px;border-top:1px solid rgba(127,127,127,.15)}
-  .mkm-menu a{display:block;color:var(--mk-links);font-size:16px;font-weight:500;padding:11px 0;text-decoration:none}
-  .mkm-menu a:hover,.mkm-menu a.is-hover{color:var(--mk-links-hover)}
-  .mkm-menu .mk-btn{margin-top:10px}
-  .mkm-hero{height:708px;background:#1d3b52 center/cover no-repeat;position:relative}
-  .mkm-hero h3{position:absolute;left:14px;right:14px;bottom:90px;margin:0;color:#fff;font-size:34px;font-weight:600;line-height:1.25}
-  .ext-muestra{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:12px;border-radius:8px;background:var(--mk-fondo);border:1px solid var(--ext-borde)}
-  .ext-muestra small{color:var(--ext-suave);font-size:.74rem;background:#fff;border-radius:4px;padding:2px 6px}
-  .ext-muestra .mk-btn{zoom:.85}
 
-  /* ---------- Maqueta del sitio: footer ---------- */
-  .mkf{font-family:Montserrat,system-ui,sans-serif;background:var(--ap-f-fondo);color:var(--ap-f-texto);padding:60px 0 0}
-  .mkf-fila{display:grid;grid-template-columns:3fr 4fr 5fr;gap:24px;padding:0 72px 36px}
-  .mkf-logo img{max-width:100%;max-height:120px;object-fit:contain}
-  .mkf h4{font-size:16px;font-weight:600;text-transform:uppercase;margin:20px 0 24px;color:var(--ap-f-texto)}
-  .mkf ul{list-style:none;padding:0;margin:0}
-  .mkf li{font-size:16px;font-weight:500;margin-bottom:20px}
-  .mkf-secciones{display:grid;grid-template-columns:1fr 1fr}
-  .mkf a{color:var(--ap-f-texto);text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:color .2s}
-  .mkf a:hover,.mkf a.is-hover{color:var(--ap-f-texto-hover)}
-  .mkf svg{flex:0 0 auto}
-  .mkf svg [fill="white"],.mkf svg [fill="#fff"]{fill:var(--ap-f-texto)}
-  .mkf svg [stroke="white"]{stroke:var(--ap-f-texto)}
-  .mkf svg [stroke="#0098DA"]{stroke:var(--ap-f-fondo)}
-  .mkf-derechos{height:81px;background:var(--ap-f-derechos-fondo);color:var(--ap-f-derechos-texto);display:flex;align-items:center;justify-content:space-between;padding:0 72px;font-size:14px;font-weight:300}
-  .is-resaltado.mkf-derechos{outline-offset:-3px;border-radius:0}
+  /* ---------- Lo que el diseño actual no usa ---------- */
+  .ext-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:var(--ext-fondo);color:var(--ext-suave);font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:none;white-space:nowrap;vertical-align:middle}
+  .ext-chip--edita{background:#E5F5FC;color:#0369A1}
+  .ext-chip--sin-uso{background:#F2F4F7;color:#475467;border:1px dashed #98A2B3}
+  .ext-aviso-sin-uso{display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:#344054;background:#F2F4F7;border-radius:6px;padding:8px 10px;margin:0 0 14px}
+  .ext-aviso-sin-uso i{margin-top:2px;color:#667085}
+  .ext-card--sin-uso .ext-campos,.ext-card--sin-uso .ext-fila,.ext-sin-uso:not(.ext-logo){opacity:.6;transition:opacity .15s}
+  .ext-card--sin-uso .ext-campos:is(:hover,:focus-within),.ext-card--sin-uso .ext-fila:is(:hover,:focus-within),.ext-sin-uso:not(.ext-logo):is(:hover,:focus-within){opacity:1}
+  .ext-logo.ext-sin-uso .ext-logo__escenario{opacity:.6}
+  .ext-card--sin-uso .ext-sin-uso{opacity:1}
 
   /* ---------- Barra de guardado ---------- */
   .ext-guardar{position:sticky;bottom:0;z-index:30;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;margin:4px -16px 0;background:rgba(255,255,255,.96);border-top:1px solid var(--ext-borde);backdrop-filter:blur(4px)}
@@ -178,6 +127,5 @@
 
   @media (prefers-reduced-motion:reduce){
     .is-resaltado{animation:none}
-    .mk-btn,.mkf a{transition:none}
   }
 </style>

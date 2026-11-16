@@ -22,7 +22,15 @@ class NovedadController extends Controller
         app(\App\Support\Seo\SeoContext::class)->set(\App\Support\Seo\DynamicSeo::novedad($novedad));
         $ventana = 'novedades-nav';
         $metadatos = Metadatos::where('seccion', 'novedades')->get();
-        return view('frontend/novedad', compact('metadatos', 'novedad', 'ventana'));
+        // «Más novedades» al pie: las otras, primero las de la misma etiqueta y después por el orden del admin.
+        $otras = Novedad::query()
+            ->whereKeyNot($novedad->id)
+            ->orderByRaw('etiqueta = ? DESC', [(string) $novedad->etiqueta])
+            ->orderBy('orden')
+            ->limit(3)
+            ->get();
+
+        return view('frontend/novedad', compact('metadatos', 'novedad', 'ventana', 'otras'));
     }
 
     public function dash_novedades(){
