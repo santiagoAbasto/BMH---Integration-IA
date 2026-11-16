@@ -42,6 +42,10 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
   tiene que apuntar a `public_html/imagenes`.
 - `2026_11_17_000002_titulos_editables_de_nosotros` — `nosotros_contenido.historia_titulo` y `valores_titulo`.
   Ojo: el admin viejo guardaba el texto de la historia en `info_home`; el nuevo guarda en `info`, que es lo que lee la página.
+- `2026_11_17_000003_nombre_de_usuarios_del_panel` — `admins.name` = `username` donde decía «alberto» (el alta lo
+  mandaba fijo en un campo oculto).
+- IA (de main, ya corrida en producción el 2026-11-16): `2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts`
+  sólo con `--database=mysql_ai --path=...`. No volver a correrla con `migrate` a secas.
 
 **En producción el orden importa:** correr todas juntas con `php artisan migrate` (primero la 000010 migra los datos,
 después la 000002 del 16/11 borra lo viejo). Hacer el respaldo de la base de producción antes.

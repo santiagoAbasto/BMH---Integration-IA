@@ -26,11 +26,6 @@
 
         <form method="POST" id='formulario' action="{{ route('crear.usuario') }}">
             @csrf
-            <!-- Name -->
-            <div>
-                <x-text-input hidden id="name" class="form-control" type="text" name="name" value="alberto"  autofocus autocomplete="name" />
-            </div>
-
             <div class='row'>
                 <!-- username -->
                 <div class="col-8">
@@ -51,8 +46,13 @@
             </div>
             
 
-            <!-- Email Address -->
-       
+            <!-- Email (usuarios del panel; un cliente no lo necesita) -->
+            <div class="mt-4 col-12" id="email-container">
+                <x-input-label class='form-label' for="email" :value="__('Email')" />
+                <x-text-input id="email" class="form-control" type="email" name="email" :value="old('email')" autocomplete="email" />
+                <p class="form-text">Uno por usuario: no se puede repetir.</p>
+                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            </div>
 
             <div class="mt-4 col-12" id="descuento-container" style="display: none;">
                 <x-input-label class='form-label' for="descuento" :value="__('Descuento')" />
@@ -113,15 +113,21 @@
     document.addEventListener('DOMContentLoaded', function () {
         const rolSelect = document.getElementById('rol-select');
         const descuentoContainer = document.getElementById('descuento-container');
+        const emailContainer = document.getElementById('email-container');
+        const email = document.getElementById('email');
 
         // Función para mostrar/ocultar el campo email y agregar el campo descuento
         function toggleFields() {
             if (rolSelect.value === 'clienteadm') {
                 // Si selecciona "clienteadm", ocultar email y mostrar descuento
                 descuentoContainer.style.display = 'block';
+                emailContainer.style.display = 'none';
+                email.required = false;
             } else {
                 // Para otros roles, mostrar email y ocultar descuento
                 descuentoContainer.style.display = 'none';
+                emailContainer.style.display = 'block';
+                email.required = true;
             }
         }
 

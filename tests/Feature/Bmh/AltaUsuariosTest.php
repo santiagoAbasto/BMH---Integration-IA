@@ -48,7 +48,7 @@ final class AltaUsuariosTest extends TestCase
 
     private function datosAdmin(string $rol): array
     {
-        return ['rol' => $rol, 'name' => 'Nuevo', 'username' => 'nuevo'.$rol, 'password' => 'Clave-Segura-123', 'password_confirmation' => 'Clave-Segura-123'];
+        return ['rol' => $rol, 'name' => 'Nuevo', 'username' => 'nuevo'.$rol, 'email' => 'nuevo'.$rol.'@example.invalid', 'password' => 'Clave-Segura-123', 'password_confirmation' => 'Clave-Segura-123'];
     }
 
     /** Los campos del anti-bots (sin sesión del panel, la ruta exige <x-anti-bots />): formulario abierto hace segundos. */
