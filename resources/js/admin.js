@@ -4,6 +4,7 @@ import '../../vendor/osole/ui/resources/components/admin-sidebar/v1/admin-sideba
 import '../../vendor/osole/ui/resources/components/admin-login/v1/admin-login.js';
 import '../../vendor/osole/ui/resources/components/admin-inbox/v1/admin-inbox.js';
 import { iniciarCaracteristicas } from './admin/caracteristicas.js';
+import { iniciarSelectoresBuscables } from './admin/selector-buscable.js';
 
 /*
  * Modales de Bootstrap: se mudan al final del <body>. Muchas pantallas los dejan dentro de una
@@ -63,6 +64,7 @@ function iniciar() {
     contarMensajesSinLeer();
     // Características: pantalla del ABM, selector de las categorías y sección de los productos.
     iniciarCaracteristicas();
+    iniciarSelectoresBuscables();
 }
 
 if (document.readyState === 'loading') {

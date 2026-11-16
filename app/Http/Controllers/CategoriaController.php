@@ -38,6 +38,7 @@ class CategoriaController extends Controller
 {
     $categorias = Categoria::query()
         ->with('caracteristicas:id,nombre')
+        ->withCount('productos')
         ->orderBy('orden')
         ->get();
     $caracteristicas = Caracteristica::query()
@@ -45,20 +46,9 @@ class CategoriaController extends Controller
         ->ordenadas()
         ->get();
 
-    // Filtro de productos
-    // La vista solo necesita estos tres campos para el selector. Evita cargar
-    // las columnas de texto largo de miles de productos en cada request.
-    $query = Producto::query()
-        ->select(['id', 'codigo', 'nombre'])
-        ->orderBy('orden');
-
-    if ($request->filled('categoria_id') && $request->categoria_id != 'todos') {
-        $query->where('categoria_id', $request->categoria_id);
-    }
-
-    $productos = $query->get();
-
-    return view('backend/dash-categorias', compact('categorias', 'productos', 'caracteristicas'));
+    // «Ajustar precios por porcentaje»: el producto se busca mientras se escribe (producto.buscar.partes), así que
+    // ya no se mandan los ~6.000 productos a la página. Las categorías llevan cuántos productos tienen.
+    return view('backend/dash-categorias', compact('categorias', 'caracteristicas'));
 }
 
 

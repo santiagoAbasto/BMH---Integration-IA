@@ -757,3 +757,211 @@ td > .adm-acciones {
         color: var(--adm-danger);
     }
 }
+
+/* ---------- Selector con búsqueda (backend/partials/selector-buscable + js/admin/selector-buscable.js) ---------- */
+.adm-selector {
+    position: relative;
+}
+
+.adm-selector__caja {
+    position: relative;
+}
+
+.adm-selector__lupa {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 0.875rem;
+    inline-size: 1rem;
+    block-size: 1rem;
+    color: var(--adm-muted);
+    translate: 0 -50%;
+    pointer-events: none;
+}
+
+.adm-selector__input.form-control {
+    padding-inline: 2.5rem 2.5rem;
+}
+
+.adm-selector.is-invalido .adm-selector__input {
+    border-color: var(--adm-danger);
+    box-shadow: 0 0 0 3px var(--adm-danger-soft);
+}
+
+/* Girito mientras busca en el servidor. */
+.adm-selector__cargando {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: 0.875rem;
+    inline-size: 1rem;
+    block-size: 1rem;
+    margin-block-start: -0.5rem;
+    border: 2px solid var(--adm-border-strong);
+    border-block-start-color: var(--adm-brand);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.adm-selector.is-buscando .adm-selector__cargando {
+    opacity: 1;
+    animation: adm-selector-gira 0.7s linear infinite;
+}
+
+@keyframes adm-selector-gira {
+    to {
+        rotate: 1turn;
+    }
+}
+
+.adm-selector__lista {
+    position: absolute;
+    inset-inline: 0;
+    z-index: 30;
+    max-block-size: 20rem;
+    margin: 0.375rem 0 0;
+    padding: 0.375rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface);
+    box-shadow: 0 12px 32px rgb(10 14 20 / 0.14);
+    list-style: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.adm-selector__opcion {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--adm-radius-sm);
+    cursor: pointer;
+
+    &[aria-selected="true"] {
+        background: var(--adm-brand-soft);
+    }
+}
+
+.adm-selector__foto {
+    display: grid;
+    place-items: center;
+    flex: none;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    overflow: hidden;
+    border: 1px solid var(--adm-border);
+    border-radius: 0.375rem;
+    background: #fff;
+
+    & img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: contain;
+    }
+}
+
+.adm-selector__foto--grande {
+    inline-size: 3rem;
+    block-size: 3rem;
+}
+
+.adm-selector__textos {
+    display: grid;
+    gap: 0.125rem;
+    flex: 1;
+    min-inline-size: 0;
+}
+
+.adm-selector__titulo {
+    overflow: hidden;
+    color: var(--adm-ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    & mark {
+        padding: 0;
+        border-radius: 2px;
+        background: #fff1b8;
+        color: inherit;
+    }
+}
+
+.adm-selector__codigo {
+    display: inline-block;
+    margin-inline-end: 0.5rem;
+    padding: 0 0.375rem;
+    border-radius: 0.3125rem;
+    background: var(--adm-brand-soft);
+    color: var(--adm-brand-stronger);
+    font-family: var(--adm-font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.adm-selector__detalle {
+    overflow: hidden;
+    color: var(--adm-muted);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.adm-selector__meta {
+    flex: none;
+    color: var(--adm-ink);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.adm-selector__estado {
+    min-block-size: 1.125rem;
+    margin: 0.375rem 0 0;
+    color: var(--adm-muted);
+    font-size: 0.75rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.adm-selector.is-invalido .adm-selector__estado {
+    color: var(--adm-danger);
+    font-weight: 600;
+}
+
+/* Elegido: la ficha reemplaza al buscador; «Cambiar» vuelve a buscar. */
+.adm-selector__elegido {
+    display: none;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--adm-brand);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-brand-softer);
+}
+
+.adm-selector__ficha {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1;
+    min-inline-size: 0;
+}
+
+.adm-selector.is-elegido {
+    & .adm-selector__elegido {
+        display: flex;
+    }
+
+    & .adm-selector__caja,
+    & .adm-selector__lista {
+        display: none;
+    }
+}

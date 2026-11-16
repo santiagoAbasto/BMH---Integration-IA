@@ -35,13 +35,21 @@
                         <h3 class="adm-subtitulo">Por categoría</h3>
                         <div class="row g-3">
                             <div class="col-12">
-                                <label for="categoria_select" class="form-label">Categoría</label>
-                                <select name="categoria_id" id="categoria_select" class="form-select" required>
-                                    <option value="todos">Todas</option>
-                                    @foreach ($categorias as $categoria)
-                                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                                    @endforeach
-                                </select>
+                                @php
+                                    $ajusteDe = fn ($c) => (float) $c->aumento > 0 ? 'Ajuste actual: +'.((float) $c->aumento).'%' : ((float) $c->descuento > 0 ? 'Ajuste actual: −'.((float) $c->descuento).'%' : 'Sin ajuste');
+                                    $opcionesCategoria = collect([['valor' => 'todos', 'titulo' => 'Todas las categorías', 'meta' => number_format($categorias->sum('productos_count'), 0, ',', '.').' productos', 'extra' => 'Se aplica a cada categoría']])
+                                        ->concat($categorias->map(fn ($c) => [
+                                            'valor' => $c->id,
+                                            'titulo' => mb_convert_case($c->nombre, MB_CASE_TITLE, 'UTF-8'),
+                                            'meta' => number_format($c->productos_count, 0, ',', '.').($c->productos_count === 1 ? ' producto' : ' productos'),
+                                            'extra' => $ajusteDe($c),
+                                        ]))->values()->all();
+                                @endphp
+                                @include('backend.partials.selector-buscable', [
+                                    'id' => 'categoria_select', 'name' => 'categoria_id', 'label' => 'Categoría',
+                                    'placeholder' => 'Buscá la categoría…', 'opciones' => $opcionesCategoria, 'valor' => old('categoria_id', ''),
+                                    'mensajeRequerido' => 'Elegí la categoría (o «Todas las categorías»).',
+                                ])
                             </div>
                             <div class="col-sm-4">
                                 <label for="tipo" class="form-label">Ajuste</label>
@@ -76,14 +84,12 @@
                         <h3 class="adm-subtitulo">Por producto</h3>
                         <div class="row g-3">
                             <div class="col-12">
-                                <label for="producto_select" class="form-label">Producto</label>
-                                <select name="producto_id" id="producto_select" class="form-select" required>
-                                    <option value="">Escribí el código del producto…</option>
-                                    @foreach ($productos as $producto)
-                                        <option value="{{ $producto->id }}">{{ $producto->codigo }} - {{ $producto->nombre }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                @include('backend.partials.selector-buscable', [
+                                    'id' => 'producto_select', 'name' => 'producto_id', 'label' => 'Producto',
+                                    'placeholder' => 'Buscá por código o nombre…', 'url' => route('producto.buscar.partes'),
+                                    'ayuda' => 'Escribí al menos 2 letras del código, del nombre, de la marca o del modelo.',
+                                    'mensajeRequerido' => 'Elegí el producto de la lista.',
+                                ])
                             </div>
                             <div class="col-sm-6">
                                 <label for="tipo-producto" class="form-label">Ajuste</label>
@@ -329,13 +335,4 @@
         });
     </script>
 @endsection
-@push('scripts')
-    <script>
-        $(document).ready(function() {
-            $('#producto_select').select2({
-                placeholder: "Escribe el código del producto...",
-                allowClear: true
-            });
-        });
-    </script>
-@endpush
+

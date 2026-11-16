@@ -1520,7 +1520,7 @@ public function dash_productos(Request $request)
 
         $productos = Producto::query()
             ->with('portadaImagen')
-            ->select(['id', 'codigo', 'nombre', 'marca', 'modelo'])
+            ->select(['id', 'codigo', 'nombre', 'marca', 'modelo', 'precio', 'aumento', 'descuento'])
             ->where(function ($query) use ($like): void {
                 $query->where('codigo', 'LIKE', $like)
                     ->orWhere('nombre', 'LIKE', $like)
@@ -1542,6 +1542,10 @@ public function dash_productos(Request $request)
                 'marca' => $producto->marca,
                 'modelo' => $producto->modelo,
                 'portada_url' => $producto->portadaUrl(),
+                // Para el ajuste de precios (Categorías): el precio de lista y el ajuste que ya tiene.
+                'precio' => (float) $producto->precio,
+                'aumento' => (float) $producto->aumento,
+                'descuento' => (float) $producto->descuento,
             ]),
         ]);
     }
