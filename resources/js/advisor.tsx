@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import { AdvisorWidget } from '@/features/assistant/components/AdvisorWidget';
 import type { AssistantPageProps } from '@/features/assistant/types';
 // `?inline` devuelve el CSS compilado como string en vez de inyectarlo en el
@@ -37,6 +37,11 @@ function readConfig(host: HTMLElement): Bootstrapped | null {
     }
 }
 
+// Con Turbo (el sitio navega sin recargar) este módulo corre una sola vez: el widget se monta en cada visita que
+// traiga #bmh-advisor y se desmonta al pasar a una página sin él (la zona pública). Entre páginas de la Zona de
+// Clientes el contenedor es permanente (data-turbo-permanent): el asesor y su conversación siguen abiertos.
+let root: Root | null = null;
+
 function mount(): void {
     const host = document.getElementById('bmh-advisor');
 
@@ -71,7 +76,8 @@ function mount(): void {
     const container = document.createElement('div');
     shadow.appendChild(container);
 
-    createRoot(container).render(
+    root = createRoot(container);
+    root.render(
         <AdvisorWidget
             customer={config.customer}
             recentPurchases={config.recentPurchases}
@@ -85,3 +91,12 @@ if (document.readyState === 'loading') {
 } else {
     mount();
 }
+
+document.addEventListener('turbo:load', mount);
+document.addEventListener('turbo:before-render', (event) => {
+    const nuevo = (event as CustomEvent<{ newBody?: HTMLElement }>).detail?.newBody;
+    if (root !== null && nuevo && !nuevo.querySelector('#bmh-advisor')) {
+        root.unmount();
+        root = null;
+    }
+});

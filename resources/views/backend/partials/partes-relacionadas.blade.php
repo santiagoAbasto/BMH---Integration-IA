@@ -370,7 +370,7 @@
 
     document.addEventListener('click', function (ev) {
         if (!root.contains(ev.target)) cerrarResultados();
-    });
+    }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
 
     // Delegación para quitar.
     lista.addEventListener('click', function (ev) {

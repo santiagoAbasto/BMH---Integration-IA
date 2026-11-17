@@ -392,7 +392,7 @@
 @section('script')
     @include('backend.partials.achicar-imagenes')
 <script>
-  let idProducto = "{{ $producto->id }}"; 
+  var idProducto = "{{ $producto->id }}"; // var: con Turbo el script se vuelve a correr en cada visita
 </script>
 
     <script>

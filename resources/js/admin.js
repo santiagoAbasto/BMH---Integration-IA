@@ -1,5 +1,7 @@
 // Panel de administración (rediseño 2026), con los componentes de administración de osole/ui.
-// Sin Turbo: el JS viejo del panel (jQuery, Bootstrap, Summernote) espera recargas completas.
+// Navega sin recargar (Turbo), como Conelec: el layout (plantilla-back) reemplaza el body en cada visita y vuelve a
+// correr los scripts de cada pantalla; acá se inicia lo común en cada página nueva.
+import './lib/turbo';
 import '../../vendor/osole/ui/resources/components/admin-sidebar/v1/admin-sidebar.js';
 import '../../vendor/osole/ui/resources/components/admin-login/v1/admin-login.js';
 import '../../vendor/osole/ui/resources/components/admin-inbox/v1/admin-inbox.js';
@@ -61,6 +63,10 @@ function contarMensajesSinLeer() {
 }
 
 function iniciar() {
+    // Una vez por página: el body es nuevo en cada visita de Turbo.
+    if (document.body.hasAttribute('data-adm-listo')) return;
+    document.body.setAttribute('data-adm-listo', '');
+
     mudarModales();
     marcarScrollDelMenu();
     contarMensajesSinLeer();
@@ -71,8 +77,12 @@ function iniciar() {
     iniciarPanel();
 }
 
+// En la carga completa, apenas está el DOM (turbo:load recién llega cuando terminaron de bajar todas las imágenes);
+// en cada visita de Turbo, después de mostrar la página nueva.
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', iniciar);
 } else {
     iniciar();
 }
+document.addEventListener('turbo:render', iniciar);
+document.addEventListener('turbo:load', iniciar);

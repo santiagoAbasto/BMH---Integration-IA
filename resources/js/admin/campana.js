@@ -42,7 +42,10 @@ export function iniciarCampana() {
         }
     }
 
-    setInterval(actualizar, INTERVALO);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') actualizar(); });
+    // Con Turbo cada página trae su campana: el intervalo y el listener se sueltan al pasar a la siguiente.
+    const senal = window.bmhSenalPagina?.();
+    const intervalo = setInterval(actualizar, INTERVALO);
+    senal?.addEventListener('abort', () => clearInterval(intervalo));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') actualizar(); }, { signal: senal });
     raiz.addEventListener('animationend', () => raiz.removeAttribute('data-sonando'));
 }

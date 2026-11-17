@@ -6,6 +6,7 @@ use App\Services\LogosSitio;
 use App\View\Composers\MenuProductosComposer;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +28,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Sitio y panel navegan sin recargar (Turbo). Sus estilos y scripts de Vite van marcados: si cambian (otro
+        // deploy, o pasar del sitio al panel, que usan otros archivos), Turbo hace una carga completa en vez de
+        // mezclar los dos <head>.
+        Vite::useScriptTagAttributes(["data-turbo-track" => "reload"]);
+        Vite::useStyleTagAttributes(["data-turbo-track" => "reload"]);
+
          if (app()->environment('production')) {
             URL::forceScheme('https');
         }

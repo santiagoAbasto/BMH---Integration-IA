@@ -91,8 +91,11 @@ foreach ($secciones as $seccion) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  {{-- El admin no navega con Turbo: si una visita del sitio llega acá (p. ej. por una redirección), carga completa. --}}
-  <meta name="turbo-visit-control" content="reload">
+  {{-- El panel navega sin recargar (Turbo), como Conelec. Sin precarga al pasar el mouse (abrir un pedido o una
+       consulta los marca como vistos) y sin caché: las pantallas se arman con jQuery al cargar, así que «atrás» las
+       trae de nuevo del servidor. Los formularios se envían como siempre. --}}
+  <meta name="turbo-prefetch" content="false">
+  <meta name="turbo-cache-control" content="no-cache">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="robots" content="noindex, nofollow">
   <title>{{ $miga ? $miga['pagina'].' · ' : '' }}Administrador BMH</title>
@@ -120,11 +123,46 @@ foreach ($secciones as $seccion) {
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/izitoast@1.4.0/dist/js/iziToast.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  {{-- Bootstrap en el head (antes iba después del </body>): con Turbo el body se reemplaza en cada visita y un script
+       ahí se vuelve a ejecutar, duplicando sus manejadores (los desplegables abrían y cerraban a la vez). --}}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+  <script>
+    // Corre fn cuando el DOM está listo: en la carga completa y en cada visita de Turbo.
+    window.bmhAlListo = function (fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+      else fn();
+    };
+
+    // Señal de la página actual: lo que una pantalla engancha a document o window la usa ({ signal: bmhSenalPagina() })
+    // y se suelta solo antes de mostrar la siguiente. Los manejadores de jQuery en document con el espacio
+    // «.bmhPagina» (p. ej. $(document).on('click.bmhPagina', …)) se sacan en el mismo momento.
+    (function () {
+      var actual = new AbortController();
+      window.bmhSenalPagina = function () { return actual.signal; };
+      document.addEventListener('turbo:before-render', function () {
+        actual.abort();
+        actual = new AbortController();
+        if (window.jQuery) { jQuery(document).off('.bmhPagina'); jQuery(window).off('.bmhPagina'); }
+      });
+    })();
+
+    // Aviso de cambios sin guardar: al cerrar la pestaña (beforeunload) y al ir a otra pantalla del panel (Turbo).
+    window.bmhAvisarSinGuardar = function (hayCambios) {
+      var senal = window.bmhSenalPagina();
+      window.addEventListener('beforeunload', function (e) {
+        if (hayCambios()) { e.preventDefault(); e.returnValue = ''; }
+      }, { signal: senal });
+      document.addEventListener('turbo:before-visit', function (e) {
+        if (hayCambios() && !window.confirm('Tenés cambios sin guardar. ¿Salir igual?')) e.preventDefault();
+      }, { signal: senal });
+    };
+  </script>
 
   @vite(['resources/css/admin.css', 'resources/js/admin.js'])
 
-  {{-- Estilos propios de cada pantalla: después del tema, así le ganan en un empate. --}}
-  @yield('styles')
+  {{-- Estilos propios de cada pantalla: después del tema, así le ganan en un empate. Turbo los saca al pasar a otra
+       pantalla (data-turbo-track="dynamic"). --}}
+  {!! preg_replace('/<(style|link)\b(?![^>]*data-turbo-track)/i', '<$1 data-turbo-track="dynamic"', $__env->yieldContent('styles')) !!}
 </head>
 <body class="@yield('body-class')" data-contacto-sin-leer="{{ $contactoSinLeer }}" data-contacto-mensajes="{{ route('dashboard.contacto.mensajes') }}">
   <a class="adm-skip" href="#adm-contenido">Saltar al contenido</a>
@@ -206,7 +244,6 @@ foreach ($secciones as $seccion) {
     .btn-toggle-password.showing .eye-off { display: block; }
 </style>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
 
 <script>
 

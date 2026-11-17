@@ -70,7 +70,8 @@ class SelectorBuscable {
         this.input.addEventListener('keydown', (e) => this.teclado(e));
         this.input.addEventListener('focus', () => this.alEnfocar());
         this.limpiar?.addEventListener('click', () => this.reiniciar(true));
-        document.addEventListener('pointerdown', (e) => { if (!raiz.contains(e.target)) this.cerrar(); });
+        // Se suelta al pasar a otra página (Turbo).
+        document.addEventListener('pointerdown', (e) => { if (!raiz.contains(e.target)) this.cerrar(); }, { signal: window.bmhSenalPagina?.() });
 
         // Sin elegir nada, el formulario no se manda: se avisa en el campo.
         raiz.closest('form')?.addEventListener('submit', (e) => {

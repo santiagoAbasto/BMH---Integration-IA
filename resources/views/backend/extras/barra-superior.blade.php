@@ -85,8 +85,8 @@
         <span class="tb-chip"><i class="fa-solid fa-desktop" aria-hidden="true"></i> Sólo en computadora</span>
         <span class="tb-chip"><i class="fa-regular fa-clone" aria-hidden="true"></i> Igual en todas las páginas</span>
         <span class="tb-chip"><i class="fa-solid fa-arrows-up-to-line" aria-hidden="true"></i> Se oculta al hacer scroll</span>
+    </div>
   </x-osole::admin-page-header.v1>
-  </div>
 
   @if (session('success'))
     <div class="alert alert-success" role="status">{{ session('success') }}. Ya se ve así en el sitio.</div>

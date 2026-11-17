@@ -14,7 +14,7 @@
 @php($bmhAdvisor = app(\App\Services\Ai\AdvisorBootstrap::class))
 
 @if ($bmhAdvisor->shouldRender() && ($bmhAdvisorPayload = $bmhAdvisor->payload()) !== null)
-    <div id="bmh-advisor" data-advisor="{{ json_encode($bmhAdvisorPayload, JSON_UNESCAPED_UNICODE) }}"></div>
+    <div id="bmh-advisor" data-turbo-permanent data-advisor="{{ json_encode($bmhAdvisorPayload, JSON_UNESCAPED_UNICODE) }}"></div>
 
     @vite('resources/js/advisor.tsx')
 @endif

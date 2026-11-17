@@ -75,6 +75,25 @@ final class SpaSitioTest extends TestCase
         $home->assertSee('<div id="pbmh-zoom" data-turbo-permanent', false);
     }
 
+    public function test_el_panel_tambien_navega_sin_recargar(): void
+    {
+        $admin = new \App\Models\Admin(['name' => 'Tester', 'rol' => 'administrador']);
+        $admin->id = 1;
+
+        $html = $this->actingAs($admin, 'admin')->get(route('dashboard'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('name="turbo-visit-control"', $html);
+        // Sin precarga al pasar el mouse (abrir un pedido lo marca como visto) y sin caché (pantallas armadas con jQuery).
+        $this->assertStringContainsString('<meta name="turbo-prefetch" content="false">', $html);
+        $this->assertStringContainsString('<meta name="turbo-cache-control" content="no-cache">', $html);
+        // Bootstrap en el head: en el body se volvía a ejecutar en cada visita.
+        $head = strstr($html, '</head>', true);
+        $this->assertStringContainsString('bootstrap@5.2.3/dist/js/bootstrap.min.js', $head);
+        $this->assertSame(1, substr_count($html, 'bootstrap@5.2.3/dist/js/bootstrap.min.js'));
+        // Pasar del sitio al panel (otros archivos de Vite) es una carga completa, no una mezcla de los dos <head>.
+        $this->assertMatchesRegularExpression('#<script type="module" src="[^"]+admin-[^"]+\.js" data-turbo-track="reload"#', $html);
+    }
+
     public function test_la_zona_de_clientes_tambien_navega_sin_recargar(): void
     {
         $id = DB::connection('mysql_legacy')->table('users')->where('username', 'demo')->value('id');

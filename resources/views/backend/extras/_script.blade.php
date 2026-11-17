@@ -220,7 +220,7 @@
     var ro = new ResizeObserver(ajustarZoom);
     raiz.querySelectorAll('.ext-iframe').forEach(function (caja) { ro.observe(caja); });
   }
-  window.addEventListener('resize', ajustarZoom);
+  window.addEventListener('resize', ajustarZoom, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
 
   // Cuando carga una vista previa: le llegan los colores y los logos sin guardar, y el footer toma su alto.
   function sincronizar(marco) {
@@ -295,9 +295,8 @@
     rotuloEstado.textContent = sucio ? 'Tenés cambios sin guardar' : 'Sin cambios';
   }
 
-  window.addEventListener('beforeunload', function (e) {
-    if (sucio && !enviando) { e.preventDefault(); e.returnValue = ''; }
-  });
+  // Al cerrar la pestaña o al ir a otra pantalla del panel (Turbo).
+  window.bmhAvisarSinGuardar(function () { return sucio && !enviando; });
 
   form.addEventListener('submit', function (e) {
     var invalido = Object.keys(campos).filter(function (k) { return valor(k) === null; })[0];

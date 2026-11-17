@@ -500,9 +500,8 @@
     });
   }
 
-  window.addEventListener('beforeunload', function (e) {
-    if (nueva && !enviando) { e.preventDefault(); e.returnValue = ''; }
-  });
+  // Al cerrar la pestaña o al ir a otra pantalla del panel (Turbo).
+  window.bmhAvisarSinGuardar(function () { return nueva && !enviando; });
 
   // --------------------------------------------------------------- inicio
   medir(actual.url, function (ancho, alto) {

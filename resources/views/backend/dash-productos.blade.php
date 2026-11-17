@@ -82,7 +82,7 @@
               <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
               {{ count($rpFaltan) === 1 ? '1 fila no se pudo actualizar' : $rpFmt(count($rpFaltan)).' filas no se pudieron actualizar' }}
             </strong>
-            <a class="btn btn-sm btn-outline-danger" href="{{ route('actualizar.precios.no-actualizados', $tokenPrecios) }}">
+            <a class="btn btn-sm btn-outline-danger" data-turbo="false" href="{{ route('actualizar.precios.no-actualizados', $tokenPrecios) }}">
               <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Descargar Excel con los no actualizados
             </a>
           </div>
@@ -180,7 +180,7 @@
                no cambia de alto al filtrar. --}}
           @if (isset($imagenesCategoria))
             @if ($imagenesCategoria > 0)
-              <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
+              <a data-turbo="false" href="{{ route('dashboard.productos.imagenes', ['categoria_id' => $categoria_id]) }}"
                  class="btn btn-sm btn-light"
                  title="Cada imagen lleva el código del producto (CODIGO-1, CODIGO-2 si tiene varias)">
                 <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
@@ -192,7 +192,7 @@
               </span>
             @endif
           @else
-            <a href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
+            <a data-turbo="false" href="{{ route('dashboard.productos.imagenes', ['categoria_id' => 'todos']) }}"
                class="btn btn-sm btn-light"
                title="Todas las imágenes del catálogo, cada una con el código del producto. Es un archivo grande: puede tardar en descargar">
               <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
@@ -376,7 +376,7 @@
       nombreEl.textContent = codigo ? nombre + ' (' + codigo + ')' : nombre;
       btnAceptar.disabled = false;
       modal.show();
-    });
+    }, { signal: window.bmhSenalPagina ? window.bmhSenalPagina() : undefined });
 
     modalEl.addEventListener('shown.bs.modal', function() {
       document.getElementById('confirmar-eliminar-cancelar').focus();
@@ -542,7 +542,7 @@
     });
 
     // El paginado del resultado AJAX conserva texto y categoría.
-    $(document).on('click', '#productos-paginacion a', function(e) {
+    $(document).on('click.bmhPagina', '#productos-paginacion a', function(e) {
         e.preventDefault();
         var pagina = new URL(this.href, window.location.origin).searchParams.get('page') || 1;
         buscarProductos($('.search-input').val(), pagina);
@@ -573,7 +573,7 @@
         $(select).closest('.producto-row').toggleClass('producto-row--oferta', valor !== '');
     }
 
-    $(document).on('change', '.js-producto-oferta', function() {
+    $(document).on('change.bmhPagina', '.js-producto-oferta', function() {
         var select = this;
         var nuevo = select.value;
         var anterior = select.dataset.anterior || '';
@@ -603,7 +603,7 @@
     });
 
     // Delegación de eventos para los checkboxes
-    $(document).on('click', '.categoriaCheckbox', function() {
+    $(document).on('click.bmhPagina', '.categoriaCheckbox', function() {
         var productoID = $(this).data('id');
         var estadoDestacada = $(this).is(':checked');
         this.setAttribute('aria-checked', estadoDestacada ? 'true' : 'false');

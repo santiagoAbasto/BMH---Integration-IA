@@ -24,7 +24,7 @@
         </div>
         <div class="bi-actions">
             <span class="bi-actions-texto">¿Preferís el Excel?</span>
-            <a class="bi-btn" href="{{ route('dashboard.productos.exportar', ['categoria_id' => 'todos']) }}">
+            <a class="bi-btn" data-turbo="false" href="{{ route('dashboard.productos.exportar', ['categoria_id' => 'todos']) }}">
                 <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Exportar
             </a>
             <a class="bi-btn" href="{{ route('dashboard.productos.excel.importar') }}">
