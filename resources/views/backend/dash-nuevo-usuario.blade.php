@@ -33,9 +33,10 @@
                 <div class="col-4">
                     <label for="rol" class="form-label">Rol</label>
                     <select id="rol-select" class="form-select" name="rol">
-                        <option selected value="usuario">Usuario</option>
-                        <option value="administrador">Administrador</option>
-                        <option value="clienteadm">Cliente</option>
+                        {{-- Si vuelve con un error, queda elegido el rol que se había elegido. --}}
+                        <option value="usuario" @selected(old('rol', 'usuario') === 'usuario')>Usuario</option>
+                        <option value="administrador" @selected(old('rol') === 'administrador')>Administrador</option>
+                        <option value="clienteadm" @selected(old('rol') === 'clienteadm')>Cliente</option>
 
                     </select>
                 </div>
@@ -52,7 +53,7 @@
 
             <div class="mt-4 col-12" id="descuento-container" style="display: none;">
                 <x-input-label class='form-label' for="descuento" :value="__('Descuento')" />
-                <x-text-input id="descuento" class="form-control" type="number" name="descuento" value="0" />
+                <x-text-input id="descuento" class="form-control" type="number" name="descuento" :value="old('descuento', 0)" min="0" max="100" step="1" />
                 <x-input-error :messages="$errors->get('descuento')" class="mt-2" />
             </div>
 

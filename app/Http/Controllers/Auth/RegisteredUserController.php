@@ -65,7 +65,18 @@ class RegisteredUserController extends Controller
                     'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 ]);
                 break;
-            
+
+            case 'clienteadm':
+                // Cliente cargado desde el panel (dash-nuevo-usuario): no lleva email, el formulario no lo pide.
+                // Sin este caso caía en el de los usuarios del panel, que exige email, y no se podía crear.
+                $request->merge(['username' => mb_strtolower(trim((string) $request->username))]);
+                $request->validate([
+                    'username' => ['required', 'string', 'lowercase', 'max:255', 'unique:'.User::class],
+                    'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                    'descuento' => ['nullable', 'integer', 'min:0', 'max:100'],
+                ]);
+                break;
+
             default:
                 $request->validate([
                     'name' => ['nullable', 'string', 'max:255'],
@@ -126,14 +137,15 @@ class RegisteredUserController extends Controller
                 $user = User::create([
                     'name' => $request->username,
                     'username' => $request->username,
-                    'descuento' => $request->descuento,
                     'rol' =>  'cliente',
                     'password' => Hash::make($request->password),
                     'habilitado' => true
                     ]);
+                // `descuento` no es asignable en masa (User::$fillable): pasado a create() se perdía sin avisar.
+                $user->descuento = (int) ($request->descuento ?? 0);
+                $user->save();
 
-
-                break;
+                return redirect()->back()->with('success', 'Cliente creado');
 
             default:
                 // Usuarios del panel (dash-nuevo-usuario): sólo estos dos roles.
