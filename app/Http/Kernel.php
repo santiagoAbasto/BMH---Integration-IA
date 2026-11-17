@@ -70,6 +70,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => \App\Http\Middleware\AdminAuthenticate::class,
         'cliente' => \App\Http\Middleware\ClienteAuthenticate::class,
+        'human-form' => \App\Http\Middleware\EnsureHumanFormSubmission::class,
         // Igual que `cliente` pero responde JSON en vez de redirigir. Asesor IA.
         'customer.api' => \App\Http\Middleware\EnsureCustomerForApi::class,
         // Beta cerrada del asesor: permite una lista explícita de clientes.

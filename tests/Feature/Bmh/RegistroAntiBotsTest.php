@@ -1,0 +1,158 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Bmh;
+
+use App\Http\Middleware\EnsureHumanFormSubmission;
+use App\Models\Admin;
+use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+/**
+ * Anti-bots del registro público de clientes: honeypot, token de tiempo, rate limits y validación estricta de los
+ * campos (hotfix de producción por las cuentas de spam). SQLite en memoria.
+ */
+final class RegistroAntiBotsTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'database.default' => 'sqlite_memoria',
+            'database.connections.sqlite_memoria' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
+        ]);
+        DB::purge('sqlite_memoria');
+
+        foreach (['users', 'admins'] as $tabla) {
+            Schema::create($tabla, function (Blueprint $t): void {
+                $t->id();
+                $t->string('name')->nullable();
+                $t->string('username')->nullable();
+                $t->string('email')->nullable();
+                $t->string('password')->nullable();
+                $t->string('rol')->nullable();
+                $t->boolean('habilitado')->nullable();
+                foreach (['dni', 'direccion', 'localidad', 'provincia', 'cp', 'celular'] as $columna) {
+                    $t->string($columna)->nullable();
+                }
+                $t->rememberToken();
+                $t->timestamps();
+            });
+        }
+
+        // La pantalla de login del panel lee el logo.
+        Schema::create('imagenes', function (Blueprint $t): void {
+            $t->id();
+            $t->string('sector')->nullable();
+            $t->string('path')->nullable();
+            $t->timestamps();
+        });
+
+        User::query()->forceCreate(['name' => 'Cliente', 'username' => 'cliente-antibots', 'rol' => 'cliente', 'habilitado' => true, 'password' => Hash::make('Clave-Segura-123')]);
+        Admin::query()->forceCreate(['name' => 'Admin', 'username' => 'admin-antibots', 'rol' => 'administrador', 'password' => Hash::make('Clave-Segura-123')]);
+    }
+
+    private function antiBots(): array
+    {
+        $token = EnsureHumanFormSubmission::token();
+        $this->travel(3)->seconds();
+
+        return [EnsureHumanFormSubmission::HONEYPOT => '', EnsureHumanFormSubmission::TOKEN => $token];
+    }
+
+    // --- Registro público de clientes ---
+
+    private function registro(): array
+    {
+        return [
+            'nombre' => 'Taller Nuevo', 'username' => 'taller-nuevo', 'email' => 'taller@example.com',
+            'password' => 'Clave-Segura-123', 'password_confirmation' => 'Clave-Segura-123',
+            'dni' => '20123456', 'direccion' => 'Calle 1', 'localidad' => 'Morón', 'provincia' => '06', 'celular' => '1144822609', 'cp' => '1708',
+        ];
+    }
+
+    public function test_el_registro_legitimo_crea_el_cliente(): void
+    {
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), ...$this->antiBots()])
+            ->assertRedirect(route('home', ['registro' => true]));
+
+        $this->assertSame(1, User::query()->where('username', 'taller-nuevo')->count());
+    }
+
+    public function test_el_registro_con_el_honeypot_finge_el_alta_pero_no_crea_nada(): void
+    {
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), ...$this->antiBots(), 'website' => 'spam'])
+            ->assertRedirect(route('home', ['registro' => true]));
+
+        $this->assertSame(0, User::query()->where('username', 'taller-nuevo')->count());
+    }
+
+    public function test_el_registro_demasiado_rapido_o_repetido_se_rechaza_y_el_exceso_devuelve_429(): void
+    {
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), EnsureHumanFormSubmission::TOKEN => EnsureHumanFormSubmission::token()])
+            ->assertSessionHasErrors(['username' => EnsureHumanFormSubmission::MESSAGE]);
+
+        for ($i = 2; $i <= 5; $i++) {
+            $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), 'username' => "bot{$i}", 'email' => "bot{$i}@example.com", ...$this->antiBots()]);
+        }
+
+        $this->postJson(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), 'username' => 'bot6', ...$this->antiBots()])
+            ->assertStatus(429);
+        $this->assertSame(4, User::query()->where('username', 'like', 'bot%')->count());
+    }
+
+    public function test_el_registro_de_un_bot_de_spam_que_pasa_el_filtro_igual_se_rechaza(): void
+    {
+        // Los datos del bot que se coló en producción («$3,222 credit available», 31/10).
+        $spam = [
+            'nombre' => 'afdxc9',
+            'username' => '* * * <a href="https://example.ru/go.php?39i31h">$3,222 credit available</a> * * * hs=a324d8a17d9e9f8017036edfef874135* ххх*',
+            'email' => 'bgg~671lbkbz0p7mt7ywd@example.com',
+            'dni' => '14rp2f', 'celular' => 'c30pu5', 'cp' => 'g9k03h', 'provincia' => '90',
+            'direccion' => 'H5twmi', 'localidad' => 'Villa Urquiza',
+        ];
+
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), ...$spam, ...$this->antiBots()])
+            ->assertSessionHasErrors(['username', 'dni', 'celular', 'cp']);
+
+        $this->assertSame(0, User::query()->where('email', $spam['email'])->count());
+    }
+
+    public function test_el_registro_no_acepta_enlaces_ni_etiquetas_en_el_texto_libre(): void
+    {
+        foreach (['nombre', 'direccion', 'localidad'] as $campo) {
+            $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), 'username' => "taller-{$campo}", $campo => 'Visitá https://spam.example', ...$this->antiBots()], ['REMOTE_ADDR' => "10.0.0.{$this->ip()}"])
+                ->assertSessionHasErrors([$campo]);
+        }
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [...$this->registro(), 'nombre' => '<b>Taller</b>', ...$this->antiBots()], ['REMOTE_ADDR' => "10.0.0.{$this->ip()}"])
+            ->assertSessionHasErrors(['nombre']);
+
+        $this->assertSame(0, User::query()->where('username', 'like', 'taller-%')->count());
+    }
+
+    public function test_el_registro_guarda_los_datos_normalizados(): void
+    {
+        $this->post(route('crear.usuario', ['rol' => 'cliente']), [
+            ...$this->registro(),
+            'username' => '  Taller.Nuevo ', 'email' => 'Taller@Example.com',
+            'dni' => '20-12345678-9', 'celular' => '(11) 4482-2609', 'cp' => 'c1425abc', 'nombre' => '  Taller   Nuevo ',
+            ...$this->antiBots(),
+        ])->assertRedirect(route('home', ['registro' => true]));
+
+        $user = User::query()->where('username', 'taller.nuevo')->firstOrFail();
+        $this->assertSame(['20123456789', '1144822609', 'C1425ABC', 'Taller Nuevo', 'taller@example.com'], [$user->dni, $user->celular, $user->cp, $user->name, $user->email]);
+    }
+
+    private int $ip = 0;
+
+    private function ip(): int
+    {
+        return ++$this->ip;
+    }
+}

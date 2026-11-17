@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,26 @@ class RouteServiceProvider extends ServiceProvider
         */
         RateLimiter::for('buscador', function (Request $request) {
             return Limit::perMinute(120)->by('buscador:'.$request->ip());
+        });
+
+        // Registro público de clientes (además del filtro anti-bots `human-form`). El alta desde el panel (misma ruta)
+        // no tiene límite. Por IP para frenar ráfagas, y por usuario/email para que un bot que rota IPs no insista.
+        RateLimiter::for('registro', function (Request $request) {
+            if (Auth::guard('admin')->check()) {
+                return Limit::none();
+            }
+            $mensaje = 'Hubo demasiados intentos de registro desde esta conexión. Esperá un rato antes de volver a intentar.';
+            $aviso = fn (Request $request, array $headers) => $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $mensaje, 'errors' => ['username' => [$mensaje]]], 429, $headers)
+                : back(303)->withErrors(['username' => $mensaje])->with('warning', $mensaje)
+                    ->withInput($request->except(['_token', 'password', 'password_confirmation', 'website', '_form_token']));
+            $cuenta = mb_strtolower(trim((string) ($request->input('email') ?: $request->input('username')))) ?: 'ip:'.$request->ip();
+
+            return [
+                Limit::perMinute(5)->by('registro:ip:'.$request->ip())->response($aviso),
+                Limit::perDay(20)->by('registro:ip-dia:'.$request->ip())->response($aviso),
+                Limit::perHour(5)->by('registro:cuenta:'.$cuenta)->response($aviso),
+            ];
         });
 
         $this->routes(function () {

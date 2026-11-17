@@ -379,7 +379,9 @@ Route::controller(AnuncioController::class)->middleware('admin')->group(function
     Route::post('anuncio/mostrar', 'mostrar')->name('anuncio.mostrar');
 });
 
+// Registro público de clientes y alta de usuarios desde el panel: el anti-bots sólo se aplica sin sesión del panel.
 Route::post('dashboard/crear-usuario', [RegisteredUserController::class, 'store'])
+                ->middleware(['throttle:registro', 'human-form:username,excepto-admin'])
                 ->name('crear.usuario');
 
 Route::controller(UserController::class)->group(function () {
