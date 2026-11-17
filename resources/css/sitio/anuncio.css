@@ -1,0 +1,67 @@
+/*
+ * Anuncio de la Zona de Clientes: una imagen en una ventana de Bootstrap (layouts/plantilla-front).
+ * La ventana toma la proporción de la imagen (--anuncio-proporcion = ancho / alto) y entra entera en la pantalla:
+ * nunca se deforma ni se recorta. 700 px de ancho como máximo, como el cartel de siempre.
+ */
+#anuncio .bmh-anuncio__dialogo {
+    --anuncio-margen: 1rem;
+    inline-size: min(
+        43.75rem,
+        calc(100vw - 2 * var(--anuncio-margen)),
+        calc((100dvh - 4 * var(--anuncio-margen)) * var(--anuncio-proporcion, 1.4))
+    );
+    max-inline-size: none;
+    margin-inline: auto;
+}
+
+#anuncio .bmh-anuncio__tarjeta {
+    position: relative;
+    overflow: hidden;
+    border: 0;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 1.875rem 5rem rgb(8 28 54 / 0.35);
+}
+
+#anuncio .bmh-anuncio__imagen {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: var(--anuncio-proporcion, 1.4);
+    object-fit: contain;
+}
+
+#anuncio .bmh-anuncio__cerrar {
+    position: absolute;
+    inset-block-start: 0.75rem;
+    inset-inline-end: 0.75rem;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.94);
+    color: #0b2a4a;
+    box-shadow: 0 0.375rem 1.125rem rgb(0 0 0 / 0.18);
+    cursor: pointer;
+    transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+#anuncio .bmh-anuncio__cerrar:hover {
+    background: #fff;
+    transform: scale(1.06);
+}
+
+#anuncio .bmh-anuncio__cerrar:focus-visible {
+    outline: 3px solid var(--bmh-brand, #0098da);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #anuncio .bmh-anuncio__cerrar {
+        transition: none;
+    }
+}

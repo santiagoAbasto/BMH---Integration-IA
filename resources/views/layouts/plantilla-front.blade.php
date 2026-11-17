@@ -30,7 +30,7 @@ $cart = Cart::content();
   <style>
     @layer legacy, osole;
     @import url("https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css") layer(legacy);
-    @import url("{{ asset('css/styles2.css') }}?v=77") layer(legacy);
+    @import url("{{ asset('css/styles2.css') }}?v=78") layer(legacy);
     @import url("{{ asset('css/layout.css') }}?v=3") layer(legacy);
     @import url("{{ asset('css/buscador-header.css') }}?v=2") layer(legacy);
     @import url("{{ asset('css/galeria-producto.css') }}?v=1") layer(legacy);
@@ -174,19 +174,18 @@ $cart = Cart::content();
     @yield('content')
   </main>
 
+  {{-- Anuncio: una imagen que el cliente ve una vez al ingresar (Panel › Carrito › Anuncio). ?anuncio=1 lo muestra para revisarlo. --}}
   @php
     $anuncio = \App\Models\Anuncio::find(1);
   @endphp
-  @if($anuncio && $anuncio->mostrar && (session('anuncio_pendiente') || request()->query('anuncio')))
-    <div class="modal fade" id="anuncio" aria-hidden="true" aria-labelledby="anuncioLabel" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered anuncio-dialog">
-        <div class="modal-content anuncio-card">
-          <button type="button" class="anuncio-close" data-bs-dismiss="modal" aria-label="Cerrar">&times;</button>
-          <div class="anuncio-media">
-            <div class="anuncio-content">
-              {!! $anuncio->contenido !!}
-            </div>
-          </div>
+  @if($anuncio?->visible() && (session('anuncio_pendiente') || request()->query('anuncio')))
+    <div class="modal fade bmh-anuncio" id="anuncio" tabindex="-1" aria-label="Anuncio de BMH" style="--anuncio-proporcion: {{ $anuncio->proporcion() }}">
+      <div class="modal-dialog modal-dialog-centered bmh-anuncio__dialogo">
+        <div class="modal-content bmh-anuncio__tarjeta">
+          <button type="button" class="bmh-anuncio__cerrar" data-bs-dismiss="modal" aria-label="Cerrar anuncio">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+          <img class="bmh-anuncio__imagen" src="{{ $anuncio->url() }}" alt="{{ $anuncio->textoAlternativo() }}" @if($anuncio->ancho && $anuncio->alto) width="{{ $anuncio->ancho }}" height="{{ $anuncio->alto }}" @endif decoding="async">
         </div>
       </div>
     </div>

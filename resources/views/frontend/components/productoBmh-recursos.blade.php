@@ -15,7 +15,10 @@
      */
     .pbmh-card { --pbmh-foto:420px; }
     .pbmh-gallery { display:flex; gap:12px; flex:0 0 auto; align-self:flex-start; }
-    .pbmh-thumbs { display:flex; flex-direction:column; gap:9px; width:108px; max-height:var(--pbmh-foto); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding-right:2px; }
+    /* La barra de scroll ocupa su propio carril (scrollbar-gutter) y la columna se ensancha para ella (max-content): antes
+       se comía el ancho de las previews y tapaba el borde derecho, también el azul de la activa. El padding deja ver la
+       sombra de la activa. */
+    .pbmh-thumbs { display:flex; flex-direction:column; gap:9px; width:max-content; flex:0 0 auto; max-height:var(--pbmh-foto); overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:#E8EBEF transparent; padding:1px 3px 1px 1px; }
     .pbmh-thumbs::-webkit-scrollbar { width:3px; height:3px; }
     .pbmh-thumbs::-webkit-scrollbar-track { background:transparent; }
     .pbmh-thumbs::-webkit-scrollbar-thumb { background:#E8EBEF; border-radius:10px; }
@@ -122,7 +125,7 @@
     @media (max-width: 991px) {
         .pbmh-top { flex-direction:column; }
         .pbmh-gallery { width:100%; flex-direction:column; }
-        .pbmh-thumbs { flex-direction:row; width:100%; max-height:none; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; padding-right:0; }
+        .pbmh-thumbs { flex-direction:row; width:100%; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-gutter:auto; padding:1px 1px 4px; }
         .pbmh-thumb-btn { flex:0 0 108px; }
         /* Cuadrada a todo el ancho: todas las cards con el mismo alto. */
         .pbmh-imgbox { flex:none; width:100%; max-width:560px; align-self:center; }

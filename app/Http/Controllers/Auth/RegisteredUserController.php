@@ -36,18 +36,10 @@ class RegisteredUserController extends Controller
         switch($request->rol){
             
             case 'cliente':
-                $request->validate([
-                    'nombre' => ['required', 'string', 'max:255'],
-                    'username' => ['required', 'string', 'max:255'],
-                    'username' => ['required', 'string', 'lowercase', 'max:255', 'unique:'.User::class],
-                    'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                    'dni' => ['required'],
-                    'direccion' => ['required'],
-                    'localidad' => ['required'],
-                    'provincia' => ['required'],
-                    'celular' => ['required'],
-                    'cp' => ['required']
-                ]);
+                // Registro público: además del anti-bots (honeypot, token de tiempo y rate limit de la ruta), cada
+                // campo tiene que tener la forma de un dato real. Un bot que pase el filtro igual choca acá: los de
+                // spam mandan HTML con enlaces en el usuario y basura como «14rp2f» en el DNI o el celular.
+                $this->validarRegistroPublico($request);
                 break;
 
             case 'vendedor':
@@ -170,5 +162,58 @@ class RegisteredUserController extends Controller
 
         // return redirect(RouteServiceProvider::HOME);
         return redirect()->back()->with('success', 'Usuario creado');
+    }
+
+    /**
+     * Normaliza y valida el registro público de clientes. Se guarda lo normalizado: el DNI/CUIT y el celular sólo con
+     * sus dígitos, el usuario en minúsculas y el CP en mayúsculas.
+     */
+    private function validarRegistroPublico(Request $request): void
+    {
+        $texto = fn (string $campo) => is_string($request->input($campo)) ? trim(preg_replace('/\s+/u', ' ', $request->input($campo))) : $request->input($campo);
+        $digitos = fn (string $campo) => is_string($request->input($campo)) ? preg_replace('/[\s.\-\/()]/', '', $request->input($campo)) : $request->input($campo);
+
+        $request->merge([
+            'nombre' => $texto('nombre'),
+            'username' => is_string($request->username) ? mb_strtolower(trim($request->username)) : $request->username,
+            'email' => is_string($request->email) ? mb_strtolower(trim($request->email)) : $request->email,
+            'dni' => $digitos('dni'),
+            'celular' => $digitos('celular'),
+            'direccion' => $texto('direccion'),
+            'localidad' => $texto('localidad'),
+            'provincia' => $texto('provincia'),
+            'cp' => is_string($request->cp) ? mb_strtoupper(str_replace(' ', '', $request->cp)) : $request->cp,
+        ]);
+
+        $sinEnlaces = new \App\Rules\SinEnlaces();
+
+        $request->validate([
+            'nombre' => ['required', 'string', 'min:2', 'max:120', $sinEnlaces],
+            'username' => ['required', 'string', 'min:3', 'max:40', 'regex:/^[a-z0-9][a-z0-9._-]*$/', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'email' => ['required', 'string', 'email:rfc', 'max:120', $sinEnlaces],
+            'dni' => ['required', 'string', 'regex:/^\d{7,11}$/'],
+            'celular' => ['required', 'string', 'regex:/^\+?\d{8,15}$/'],
+            'direccion' => ['required', 'string', 'min:3', 'max:160', $sinEnlaces],
+            // Provincia: el id de georef que manda el select (dos dígitos).
+            'provincia' => ['required', 'string', 'regex:/^\d{2}$/'],
+            'localidad' => ['required', 'string', 'max:120', $sinEnlaces],
+            // CP de 4 dígitos o CPA (C1425ABC).
+            'cp' => ['required', 'string', 'regex:/^[A-Z]?\d{4}([A-Z]{3})?$/'],
+        ], [
+            'required' => 'Completá este campo.',
+            'username.regex' => 'Usá sólo letras minúsculas, números, punto, guion o guion bajo (sin espacios).',
+            'username.min' => 'El nombre de usuario tiene que tener al menos 3 caracteres.',
+            'username.max' => 'El nombre de usuario puede tener hasta 40 caracteres.',
+            'username.unique' => 'Ese nombre de usuario ya está en uso.',
+            'email.email' => 'Revisá el email: no parece válido.',
+            'dni.regex' => 'Ingresá el DNI (7 u 8 números) o el CUIT (11 números).',
+            'celular.regex' => 'Ingresá el celular con código de área, sólo números (por ejemplo 1144822609).',
+            'provincia.regex' => 'Elegí una provincia de la lista.',
+            'cp.regex' => 'Ingresá el código postal de 4 números (o el CPA, como C1425ABC).',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'max' => 'Este campo es demasiado largo.',
+            'min' => 'Este campo es demasiado corto.',
+        ]);
     }
 }

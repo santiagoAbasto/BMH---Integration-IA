@@ -33,7 +33,7 @@ $secciones = [
         ['label' => 'Pedidos', 'href' => route('ventas'), 'icon' => $icono('<path d="M5.5 7h13l1 14h-15z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>'), 'active' => request()->routeIs('ventas', 'pedido.datos') ? 'page' : null],
         ['label' => 'Clientes', 'href' => route('dashboard.clientes'), 'icon' => 'users'],
         ['label' => 'Carrito', 'icon' => $icono('<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2.5 3.5h3l2.4 11.2a1 1 0 0 0 1 .8h9.3a1 1 0 0 0 1-.8L21 7H6.4"/>'), 'items' => [
-            ['label' => 'Información', 'href' => route('dashboard.informacion')],
+            ['label' => 'Mensaje del pedido', 'href' => route('dashboard.informacion')],
             ['label' => 'Lista de precios', 'href' => route('dashboard.lista')],
             ['label' => 'Anuncio', 'href' => route('dashboard.anuncio')],
         ]],

@@ -339,49 +339,45 @@ class CarritoController extends Controller
         return redirect()->route('carrito', ['aviso' => true]);
     }
 
+    /**
+     * Panel › Carrito › Información: la ventana que ve el cliente al enviar un pedido (título y mensaje).
+     * El resto de las columnas de `carritos` (textos de pago y de entrega) no se editan acá.
+     */
     public function informacion()
     {
-        $informacion = Carrito::find(1);
+        $informacion = (Carrito::query()->find(1) ?? Carrito::query()->forceCreate(['id' => 1]));
 
-        return view('backend/dash-carrito-informacion', compact('informacion'));
+        return view('backend/dash-carrito-informacion', [
+            'informacion' => $informacion,
+            'mensajeTexto' => Carrito::textoPlano($informacion->pedido),
+            'maximoTitulo' => self::MAXIMO_TITULO_PEDIDO,
+            'maximoMensaje' => self::MAXIMO_MENSAJE_PEDIDO,
+        ]);
     }
+
+    public const MAXIMO_TITULO_PEDIDO = 90;
+
+    public const MAXIMO_MENSAJE_PEDIDO = 500;
 
     public function carrito_info_update(Request $request)
     {
-        $informacion = Carrito::find(1);
-        $informacion->info = $request->info;
-        $informacion->pedido = $request->pedido;
-        $informacion->pedido_titulo = $request->pedido_titulo;
-        if (isset($request->info_efectivo) && $request->info_efectivo > 0) {
-            $informacion->info_efectivo = $request->info_efectivo;
-        } else {
-            $informacion->info_efectivo = null;
-        }
-        if (isset($request->info_mp) && $request->info_mp > 0) {
-            $informacion->info_mp = $request->info_mp;
-        } else {
-            $informacion->info_mp = null;
-        }
-        if (isset($request->info_retiro) && $request->info_retiro > 0) {
-            $informacion->info_retiro = $request->info_retiro;
-        } else {
-            $informacion->info_retiro = null;
-        }
-        if (isset($request->info_convenir) && $request->info_convenir > 0) {
-            $informacion->info_convenir = $request->info_convenir;
-        } else {
-            $informacion->info_convenir = null;
-        }
-        if (isset($request->info_empresa) && $request->info_empresa > 0) {
-            $informacion->info_empresa = $request->info_empresa;
-        } else {
-            $informacion->info_empresa = null;
-        }
+        $datos = $request->validate([
+            'pedido_titulo' => ['required', 'string', 'max:'.self::MAXIMO_TITULO_PEDIDO],
+            'pedido' => ['required', 'string', 'max:'.self::MAXIMO_MENSAJE_PEDIDO],
+        ], [
+            'pedido_titulo.required' => 'Escribí el título de la ventana.',
+            'pedido_titulo.max' => 'El título puede tener hasta '.self::MAXIMO_TITULO_PEDIDO.' caracteres.',
+            'pedido.required' => 'Escribí el mensaje para el cliente.',
+            'pedido.max' => 'El mensaje puede tener hasta '.self::MAXIMO_MENSAJE_PEDIDO.' caracteres.',
+        ]);
 
-        $informacion->descuento_efectivo = $request->descuento_efectivo;
-
+        // Sólo estas dos columnas: antes se guardaban también los textos de pago y de entrega, que ya no están en el
+        // formulario, y cada vez que se tocaba «Actualizar» se borraban.
+        $informacion = (Carrito::query()->find(1) ?? Carrito::query()->forceCreate(['id' => 1]));
+        $informacion->pedido_titulo = trim($datos['pedido_titulo']);
+        $informacion->pedido = Carrito::htmlDeTexto($datos['pedido']);
         $informacion->save();
 
-        return redirect()->back()->with('success', 'Información del carrito actualizada');
+        return redirect()->route('dashboard.informacion')->with('success', 'Mensaje del pedido actualizado');
     }
 }

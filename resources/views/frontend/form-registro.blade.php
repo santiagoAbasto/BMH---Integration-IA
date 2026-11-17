@@ -32,7 +32,8 @@
                     <!-- username -->
                     <div class="mt-4 col-12">
                         <x-input-label class='form-label' for="username" :value="__('Nombre de usuario*')" />
-                        <x-text-input id="username" class="form-control" type="text" name="username" :value="old('username')" autocomplete="username" />
+                        <x-text-input id="username" class="form-control" type="text" name="username" :value="old('username')" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" title="Letras, números, punto, guion o guion bajo, sin espacios" required />
+                        <small class="text-muted d-block mt-1">Sin espacios: letras, números, punto, guion o guion bajo.</small>
                         <x-input-error :messages="$errors->get('username')" class="mt-2"/>
                     </div>
 
@@ -62,26 +63,26 @@
                     <!-- Name -->
                     <div class="mt-4 col-md-6">
                         <x-input-label class='form-label' for="nombre" :value="__('Nombre y apellido / Razón social*')" />
-                        <x-text-input id="nombre" class="form-control" type="text" name="nombre" :value="old('nombre')" autocomplete="nombre" />
+                        <x-text-input id="nombre" class="form-control" type="text" name="nombre" :value="old('nombre')" autocomplete="name" maxlength="120" required />
                         <x-input-error :messages="$errors->get('nombre')" class="mt-2"/>
                     </div>
 
                     <div class="mt-4 col-md-6">
                         <x-input-label class='form-label' for="dni" :value="__('DNI / CUIT*')" />
-                        <x-text-input id="dni" class="form-control" type="number" name="dni" :value="old('dni')"  autocomplete="dni" />
-                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                        <x-text-input id="dni" class="form-control" type="text" inputmode="numeric" name="dni" :value="old('dni')" autocomplete="off" maxlength="14" required />
+                        <x-input-error :messages="$errors->get('dni')" class="mt-2" />
                     </div>
 
                     <!-- Email Address -->
                     <div class="mt-4 col-md-6">
                         <x-input-label class='form-label' for="email" :value="__('Email*')" />
-                        <x-text-input id="email" class="form-control" type="email" name="email" :value="old('email')"  autocomplete="email" />
+                        <x-text-input id="email" class="form-control" type="email" name="email" :value="old('email')" autocomplete="email" maxlength="120" required />
                         <x-input-error :messages="$errors->get('email')" class="mt-2" />
                     </div>
 
                     <div class="mt-4 col-md-6">
                         <x-input-label class='form-label' for="celular" :value="__('Celular*')" />
-                        <x-text-input id="celular" class="form-control" type="number" name="celular" :value="old('celular')" autocomplete="celular" />
+                        <x-text-input id="celular" class="form-control" type="tel" inputmode="tel" name="celular" :value="old('celular')" autocomplete="tel" maxlength="20" placeholder="1144822609" required />
                         <x-input-error :messages="$errors->get('celular')" class="mt-2"/>
                     </div>
 
@@ -89,7 +90,7 @@
 
                     <div class="mt-4 col-md-12">
                         <x-input-label class='form-label' for="direccion" :value="__('Dirección*')" />
-                        <x-text-input id="direccion" class="form-control" type="text" name="direccion" :value="old('direccion')" autocomplete="direccion" />
+                        <x-text-input id="direccion" class="form-control" type="text" name="direccion" :value="old('direccion')" autocomplete="street-address" maxlength="160" required />
                         <x-input-error :messages="$errors->get('direccion')" class="mt-2"/>
                     </div>
 
@@ -101,6 +102,7 @@
                             @endforeach
                             
                         </select>
+                        <x-input-error :messages="$errors->get('provincia')" class="mt-2"/>
                     </div>
     
                     <div class="mt-4 col-md-4">
@@ -111,11 +113,12 @@
                             @endforeach
                             
                         </select>
+                        <x-input-error :messages="$errors->get('localidad')" class="mt-2"/>
                     </div>
     
                     <div class="mt-4 col-md-4">
                         <x-input-label class='form-label' for="cp" :value="__('Código Postal*')" />
-                        <x-text-input id="cp" class="form-control" type="text" name="cp" :value="old('cp')" autocomplete="cp" />
+                        <x-text-input id="cp" class="form-control" type="text" name="cp" :value="old('cp')" autocomplete="postal-code" maxlength="10" required />
                         <x-input-error :messages="$errors->get('cp')" class="mt-2"/>
                     </div>
                 </div>
@@ -123,7 +126,7 @@
                 
                 
                 
-                <button id='nosotros-mas' type="submit" onclick='toggleSpinner(event)' class="mt-5 green-btn submit" style='float: right;'>{{ __('Registrarme') }}</button>
+                <button id='nosotros-mas' type="submit" class="mt-5 green-btn submit" style='float: right;'>{{ __('Registrarme') }}</button>
             </form>
             
                 
@@ -164,9 +167,12 @@
 
     });
 
-    function toggleSpinner(event){
-        event.target.innerHTML = '<div class="loading-spinner"></div>  Procesando';
-    }
+    // «Procesando» recién cuando el navegador da el formulario por válido (antes cambiaba aunque faltaran datos).
+    document.getElementById('formulario').addEventListener('submit', function () {
+        var boton = this.querySelector('[type=submit]');
+        boton.disabled = true;
+        boton.innerHTML = '<div class="loading-spinner"></div>  Procesando';
+    });
 
 
 </script>

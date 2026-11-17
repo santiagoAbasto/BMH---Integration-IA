@@ -14,6 +14,31 @@ class Carrito extends Model
 
     protected $table = 'carrito_informacion';
 
+    /**
+     * El mensaje del pedido enviado se escribe como texto (una línea en blanco separa párrafos) y se guarda como HTML
+     * escapado, porque el carrito lo imprime sin escapar.
+     */
+    public static function htmlDeTexto(string $texto): string
+    {
+        $parrafos = preg_split('/\R\s*\R/u', trim(str_replace("\r\n", "\n", $texto))) ?: [];
+
+        return collect($parrafos)
+            ->map(fn (string $p) => trim($p))
+            ->filter()
+            ->map(fn (string $p) => '<p>'.nl2br(e($p), false).'</p>')
+            ->implode('');
+    }
+
+    /** El HTML guardado (del editor anterior o de htmlDeTexto) como texto para editarlo. */
+    public static function textoPlano(?string $html): string
+    {
+        $texto = preg_replace(['#<br\s*/?>#i', '#</(p|div|li)>#i'], ["\n", "\n\n"], (string) $html);
+        $texto = html_entity_decode(strip_tags((string) $texto), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $texto = preg_replace(["/[ \t\x{00A0}]+/u", "/ *\n */", "/\n{3,}/"], [' ', "\n", "\n\n"], $texto);
+
+        return trim((string) $texto);
+    }
+
     public static function subtotal_format()
     {
         $subtotal = 0;
