@@ -43,7 +43,8 @@
     }
 
     // Misma barra en todas las páginas (como la Home): datos y redes a la izquierda, secciones a la derecha.
-    $linksBarra = [
+    // En la Zona de Clientes, sin Nosotros ni Contacto: el cliente ya está comprando (pedido del cliente, 17/11).
+    $linksBarra = $zonaPrivada ? [] : [
         ['label' => 'Nosotros', 'href' => route('nosotros'), 'active' => $ruta === 'nosotros'],
         ['label' => 'Contacto', 'href' => route('contacto'), 'active' => $ruta === 'contacto'],
     ];

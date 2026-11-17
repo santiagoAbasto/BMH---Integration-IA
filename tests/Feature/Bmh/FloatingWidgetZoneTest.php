@@ -87,6 +87,17 @@ final class FloatingWidgetZoneTest extends TestCase
         }
     }
 
+    public function test_en_la_zona_de_clientes_el_header_no_lleva_nosotros_ni_contacto(): void
+    {
+        $privada = $this->actingAs($this->customer())->get(route('productos.clientes'))->assertOk();
+        $privada->assertDontSee('class="osole-header-catalog-v1__topbar-link"', false);
+
+        // En la zona pública (aunque tenga sesión) siguen estando.
+        $publica = $this->actingAs($this->customer())->get(route('nosotros'))->assertOk();
+        $publica->assertSee('osole-header-catalog-v1__topbar-link', false);
+        $publica->assertSee('>Contacto</a>', false);
+    }
+
     public function test_el_item_del_header_abre_el_asesor_sin_navegar(): void
     {
         $response = $this->actingAs($this->customer())->get('/productos-zona-home');
