@@ -40,6 +40,7 @@ final class AltaUsuariosTest extends TestCase
                 $t->string('password')->nullable();
                 $t->string('rol')->nullable();
                 $t->boolean('habilitado')->nullable();
+                $t->decimal('descuento', 8, 2)->nullable();
                 $t->rememberToken();
                 $t->timestamps();
             });
@@ -87,6 +88,32 @@ final class AltaUsuariosTest extends TestCase
 
         // Sólo los roles del panel.
         $this->actingAs($admin, 'admin')->post(route('crear.usuario'), $this->datosAdmin('superadmin'))->assertStatus(422);
+    }
+
+    /**
+     * Rol «Cliente» del formulario del panel (clienteadm): no lleva email (el formulario lo oculta). El arreglo del
+     * 16/11 que le pidió email a los usuarios del panel se lo pedía también a este rol y no dejaba crear clientes.
+     */
+    public function test_un_administrador_crea_un_cliente_sin_email(): void
+    {
+        $admin = Admin::query()->forceCreate(['name' => 'BMH', 'username' => 'bmh', 'rol' => 'administrador']);
+        $datos = ['rol' => 'clienteadm', 'username' => 'ricciardi', 'descuento' => '10', 'password' => 'Clave-Segura-123', 'password_confirmation' => 'Clave-Segura-123'];
+
+        $this->actingAs($admin, 'admin')->post(route('crear.usuario'), $datos)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $cliente = User::query()->where('username', 'ricciardi')->first();
+        $this->assertNotNull($cliente, 'crea el cliente');
+        $this->assertSame('cliente', $cliente->rol);
+        $this->assertEquals(10, $cliente->descuento);
+        $this->assertSame(0, Admin::query()->where('username', 'ricciardi')->count(), 'no crea un usuario del panel');
+
+        // El usuario no se puede repetir, y el error vuelve con el rol elegido.
+        $this->actingAs($admin, 'admin')->post(route('crear.usuario'), $datos)
+            ->assertSessionHasErrors('username')
+            ->assertSessionHasInput('rol', 'clienteadm');
+        $this->assertSame(1, User::query()->where('username', 'ricciardi')->count());
     }
 
     public function test_el_registro_publico_de_breeze_ya_no_existe(): void
