@@ -945,12 +945,8 @@ public function dash_productos(Request $request)
         // $producto->precio = $request->precio;
         // $producto->caracteristicas = $request->caracteristicas;
         $producto->descripcion = $request->descripcion;
-
-        $producto->diametroInterno = $request->diametroInterno;
-        $producto->diametroExterno = $request->diametroExterno;
-        $producto->anchoBanda = $request->anchoBanda;
-        $producto->tolerancia = $request->tolerancia;
-        $producto->blindaje = $request->blindaje;
+        // Diámetros, ancho, tolerancia y blindaje de los rodamientos ya no son columnas de productos: son
+        // características (las guarda SincronizarCaracteristicasProducto, más abajo).
 
 
         $producto->precio = $request->precio;

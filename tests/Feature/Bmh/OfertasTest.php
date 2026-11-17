@@ -190,6 +190,45 @@ final class OfertasTest extends BaseTestCase
         $this->assertStringContainsString('pbmh-card--oferta', $publico);
     }
 
+    /**
+     * Guardar el producto desde el formulario de edición con una oferta. Daba un error 500: el update seguía escribiendo
+     * las columnas fijas de rodamientos (diametroInterno, …) que la migración del 16/11 borró al pasarlas a
+     * características.
+     */
+    public function test_el_admin_guarda_el_producto_con_su_oferta(): void
+    {
+        $id = $this->productos['C'];
+        $actual = DB::table('productos')->where('id', $id)->first();
+
+        $this->actingAs($this->admin(), 'admin')
+            ->from('/dashboard/productos/editar?id='.$id)
+            ->put(route('producto.update'), [
+                'id' => $id,
+                'categoria' => $this->categoria,
+                'nombre' => 'Producto editado',
+                'codigo' => $actual->codigo,
+                'orden' => $actual->orden,
+                'descripcion' => '<p>Descripción</p>',
+                'precio' => '1000',
+                'precioN' => '1000',
+                'descuento' => '0',
+                'marca' => '',
+                'modelo' => '',
+                'oferta' => 'publica',
+                'oferta_tipo' => 'porcentaje',
+                'oferta_valor' => '15',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/dashboard/productos/editar?id='.$id)
+            ->assertSessionHas('success', 'Producto actualizado');
+
+        $guardado = Producto::findOrFail($id);
+        $this->assertSame('Producto editado', $guardado->nombre);
+        $this->assertSame(AlcanceOferta::Publica, $guardado->oferta);
+        $this->assertSame('porcentaje', $guardado->oferta_tipo);
+        $this->assertEquals(15, $guardado->oferta_valor);
+    }
+
     public function test_el_admin_no_puede_cargar_un_descuento_imposible(): void
     {
         DB::table('productos')->where('id', $this->productos['C'])->update(['precio' => 1000]);
