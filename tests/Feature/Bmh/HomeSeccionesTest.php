@@ -88,8 +88,10 @@ final class HomeSeccionesTest extends BaseTestCase
 
         $marca = MarcaAliada::query()->where('nombre', 'Proveedor de prueba')->firstOrFail();
         $this->assertSame('https://www.proveedor-prueba.com', $marca->url);
-        $this->assertMatchesRegularExpression('#^imagenes/marca_[a-f0-9]{12}\.png$#', $marca->logo);
+        // Se guarda sin margen y en el lienzo común de los logos (LogoMarca).
+        $this->assertMatchesRegularExpression('#^imagenes/marca_[a-f0-9]{12}\.webp$#', $marca->logo);
         $this->assertFileExists(public_path($marca->logo));
+        $this->assertSame([366, 196], array_slice(getimagesize(public_path($marca->logo)), 0, 2));
 
         $home = $this->get(route('home'))->assertOk()->getContent();
         $this->assertStringContainsString('alt="Proveedor de prueba"', $home);

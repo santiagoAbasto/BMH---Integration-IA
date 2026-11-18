@@ -48,9 +48,13 @@ final class MarcaAliada extends Model
         $query->where('visible', true);
     }
 
+    /** Con la fecha del archivo en la URL: si se reemplaza el archivo (mismo nombre), el navegador no usa el viejo. */
     public function logoUrl(): string
     {
-        return asset($this->logo);
+        $archivo = public_path($this->logo);
+        $version = is_file($archivo) ? '?v='.filemtime($archivo) : '';
+
+        return asset($this->logo).$version;
     }
 
     /** Si el logo lo subió alguien desde el admin (y por lo tanto se puede borrar al reemplazarlo). */

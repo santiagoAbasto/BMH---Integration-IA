@@ -33,9 +33,11 @@
     justify-content: space-around;
     gap: 2rem;
 
+    /* Como en la Home: la caja de 183 × 98 (los logos ya traen su margen, todos iguales). */
     & img {
-        inline-size: 7.5rem;
-        block-size: 3.25rem;
+        inline-size: auto;
+        block-size: 3.5rem;
+        aspect-ratio: 183 / 98;
         object-fit: contain;
     }
 }

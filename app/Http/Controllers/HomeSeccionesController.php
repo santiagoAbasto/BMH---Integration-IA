@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\HomeNosotros;
 use App\Models\MarcaAliada;
+use App\Services\Imagenes\LogoMarca;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -48,7 +49,7 @@ final class HomeSeccionesController extends Controller
     {
         $datos = $this->validarMarca($request, nueva: true);
         $marca = new MarcaAliada($datos);
-        $marca->logo = $this->subir($request->file('logo'), 'marca_');
+        $marca->logo = $this->subirLogo($request->file('logo'));
         $marca->save();
 
         return redirect()->route('dashboard.home.trabajamos-con')->with('success', "«{$marca->nombre}» ya aparece en «Trabajamos con».");
@@ -60,7 +61,7 @@ final class HomeSeccionesController extends Controller
         $marca->fill($datos);
         if ($request->hasFile('logo')) {
             $anterior = $marca->logoSubido() ? $marca->logo : null;
-            $marca->logo = $this->subir($request->file('logo'), 'marca_');
+            $marca->logo = $this->subirLogo($request->file('logo'));
             $this->borrar($anterior);
         }
         $marca->save();
@@ -154,6 +155,27 @@ final class HomeSeccionesController extends Controller
         $archivo->move(public_path(MarcaAliada::CARPETA), $nombre);
 
         return MarcaAliada::CARPETA.'/'.$nombre;
+    }
+
+    /**
+     * El logo de una marca, sin margen y en el lienzo común (LogoMarca): todos quedan con el mismo aire y tamaño en la
+     * franja. Si no se puede procesar, se guarda tal como vino.
+     */
+    private function subirLogo(UploadedFile $archivo): string
+    {
+        $nombre = 'marca_'.bin2hex(random_bytes(6)).'.webp';
+        $destino = public_path(MarcaAliada::CARPETA.'/'.$nombre);
+        try {
+            File::ensureDirectoryExists(dirname($destino));
+            app(LogoMarca::class)->normalizar($archivo->getRealPath(), $destino);
+
+            return MarcaAliada::CARPETA.'/'.$nombre;
+        } catch (\Throwable $e) {
+            report($e);
+            File::delete($destino);
+
+            return $this->subir($archivo, 'marca_');
+        }
     }
 
     /** Borra un archivo subido desde estas pantallas (nunca uno de fábrica ni de otra sección). */

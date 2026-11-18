@@ -135,7 +135,7 @@
                             </span>
                             <span class="hsec-drop__cambiar" data-logo-cambiar hidden><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Cambiar logo</span>
                         </label>
-                        <p class="form-text">Se ve en una caja de 183 × 98 px. Recortá el aire de más alrededor del logo para que no quede chico.</p>
+                        <p class="form-text">Se ajusta solo: al guardar se le saca el margen y queda centrado, con el mismo aire y el mismo tamaño que los demás. Conviene PNG o WebP con fondo transparente, de al menos 400 px de ancho.</p>
                     </div>
                     <div class="hsec-campos">
                         <div>
