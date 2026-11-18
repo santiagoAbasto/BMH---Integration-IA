@@ -31,6 +31,8 @@ use App\Actions\Caracteristicas\SincronizarCaracteristicasProducto;
 use Illuminate\Validation\ValidationException;
 use App\Services\BusquedaPorEquivalencia;
 use App\Services\Imagenes\ImagenesDeCategoria;
+use App\Services\Imagenes\EmparejarBordes;
+use App\Services\Imagenes\NoSePuedeEmparejar;
 use App\Services\Imagenes\OptimizadorImagenes;
 use App\Services\CatalogFilterOptions;
 use App\Services\LogosSitio;
@@ -840,7 +842,7 @@ public function dash_productos(Request $request)
             for ($i = 0; $i < count($files); $i++) {
                 if ($files[$i]->isValid()) {
                     // Se guarda como WebP optimizado si conviene (ver OptimizadorImagenes).
-                    $nombreImagen = $this->optimizador()->guardarSubida($files[$i], config('imagenes.directorio'));
+                    $nombreImagen = $this->conBordes($request, $this->optimizador()->guardarSubida($files[$i], config('imagenes.directorio')));
                     $nueva_imagen = new Imagen();
                     $nueva_imagen->path = $nombreImagen;
                     $nueva_imagen->producto_id = $nuevo_producto->id;
@@ -912,7 +914,7 @@ public function dash_productos(Request $request)
             foreach ($files as $file) {
                 // Verificar si el archivo se cargï¿½ï¿½ correctamente
                 if ($file->isValid()) {
-                    $nombreImagen = $this->optimizador()->guardarSubida($file, config('imagenes.directorio'));
+                    $nombreImagen = $this->conBordes($request, $this->optimizador()->guardarSubida($file, config('imagenes.directorio')));
 
                     $nueva_imagen = new Imagen();
                     $nueva_imagen->path = $nombreImagen;
@@ -1103,13 +1105,44 @@ public function dash_productos(Request $request)
 
         $imagenes = Imagen::where('producto_id', $request->id)->where('sector', 'producto')->get();
         foreach ($imagenes as $imagen) {
-            File::delete(public_path('imagenes/' . $imagen->path));
+            $this->borrarFoto($imagen->path, $imagen->id);
             $imagen->delete();
         }
 
         $producto->delete();
 
         return redirect()->back()->with('success', 'Producto eliminado');
+    }
+
+    /**
+     * «Emparejar bordes» al subir (la casilla del formulario): la foto emparejada en vez de la subida, que queda
+     * guardada para poder volver. Si no se puede, se usa la subida y se avisa por qué.
+     */
+    private function conBordes(Request $request, string $nombre): string
+    {
+        if (! $request->boolean('emparejar_bordes')) {
+            return $nombre;
+        }
+        try {
+            return app(EmparejarBordes::class)->emparejar($nombre, EmparejarBordes::PRODUCTO);
+        } catch (NoSePuedeEmparejar $e) {
+            session()->flash('warning', 'Una foto se guardó tal cual: '.$e->getMessage());
+
+            return $nombre;
+        }
+    }
+
+    /** Borra el archivo de una foto (y su original o su emparejada) si ninguna otra foto lo usa. */
+    private function borrarFoto(?string $path, int $menosId): void
+    {
+        if (blank($path)) {
+            return;
+        }
+        foreach (app(EmparejarBordes::class)->familia($path) as $archivo) {
+            if (! Imagen::query()->where('path', $archivo)->whereKeyNot($menosId)->exists()) {
+                File::delete(config('imagenes.directorio').DIRECTORY_SEPARATOR.$archivo);
+            }
+        }
     }
 
     public function imagen_update(Request $request)
@@ -1120,8 +1153,8 @@ public function dash_productos(Request $request)
 
             // Verificar si el archivo se cargï¿½ï¿½ correctamente
             if ($file->isValid()) {
-                $nombreImagen = $this->optimizador()->guardarSubida($file, config('imagenes.directorio'));
-                File::delete(public_path('imagenes/' . $imagen->path));
+                $nombreImagen = $this->conBordes($request, $this->optimizador()->guardarSubida($file, config('imagenes.directorio')));
+                $this->borrarFoto($imagen->path, $imagen->id);
                 $imagen->path = $nombreImagen;
             }
         }
@@ -1161,7 +1194,7 @@ public function dash_productos(Request $request)
             ->where('tipo', 'portada')
             ->firstOrFail();
 
-        File::delete(public_path('imagenes/' . $imagen->path));
+        $this->borrarFoto($imagen->path, $imagen->id);
         $imagen->delete();
 
         return redirect()->back()->with('success', 'Imagen principal eliminada. El producto mostrará la imagen predeterminada de BMH.');

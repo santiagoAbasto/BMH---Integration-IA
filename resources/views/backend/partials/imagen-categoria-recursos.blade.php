@@ -6,10 +6,13 @@
     @media (max-width: 767px) { .cimg { grid-template-columns: 1fr; } }
 
     .cimg__rotulo { font-weight: 600; margin-bottom: .25rem; }
-    .cimg__medida { margin: 0 0 .5rem; font-size: .9rem; color: var(--cimg-tinta); }
-    .cimg__consejos { margin: 0 0 .875rem; padding-left: 1.1rem; font-size: .82rem; line-height: 1.5; color: var(--cimg-suave); }
-    .cimg__consejos li + li { margin-top: .2rem; }
-    .cimg__consejos strong { color: var(--cimg-tinta); font-weight: 600; }
+    .cimg__medida { margin: 0 0 .625rem; font-size: .85rem; color: var(--cimg-suave); }
+    .cimg__medida strong { color: var(--cimg-tinta); font-weight: 600; }
+
+    .cimg__emparejar { margin: .75rem 0 0; padding: .625rem .75rem .625rem 2.25rem; border: 1px solid var(--cimg-borde); border-radius: 8px; background: #fff; }
+    .cimg__emparejar .form-check-input { margin-top: .2rem; }
+    .cimg__emparejar label { font-size: .875rem; line-height: 1.4; }
+    .cimg__emparejar small { display: block; margin-top: .125rem; color: var(--cimg-suave); font-size: .78rem; }
 
     .cimg__chequeos:empty { display: none; }
     .cimg__chequeos { margin-top: .625rem; display: grid; gap: .375rem; }
@@ -22,13 +25,11 @@
     .cimg__chequeo--info { color: var(--cimg-suave); }
     .cimg__chequeo--info::before { content: "\f05a"; }
 
-    .cimg__ajuste { margin-top: .875rem; padding: .75rem .875rem; border: 1px solid var(--cimg-borde); border-radius: 8px; background: #fff; }
-    .cimg__ajuste[hidden] { display: none; }
-    .cimg__ajuste-fila { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
-    .cimg__ajuste-fila label { font-size: .85rem; font-weight: 600; margin: 0; }
-    .cimg__ajuste-fila output { font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--cimg-suave); }
-    .cimg__ajuste-fila small { color: var(--cimg-suave); font-size: .78rem; flex: 1 1 12rem; }
-    .cimg__ajuste .form-range { margin: .25rem 0 .375rem; }
+    .cimg__guardada { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+        margin-top: .875rem; padding-top: .875rem; border-top: 1px dashed var(--cimg-borde); }
+    .cimg__guardada p { margin: 0; font-size: .85rem; }
+    .cimg__estado { color: var(--cimg-suave); }
+    .cimg__estado--ok { color: var(--cimg-ok); font-weight: 600; }
 
     .cimg__vista { background: #fff; border: 1px solid var(--cimg-borde); border-radius: 10px; padding: .875rem; }
     .cimg__vista-titulo { margin: 0 0 .625rem; font-size: .8rem; font-weight: 600; color: var(--cimg-suave); }
@@ -40,25 +41,23 @@
     .cimg__media img[hidden] { display: none; }
     .cimg__vacia { position: absolute; inset: 0; display: grid; place-items: center; font-size: .75rem; color: var(--cimg-suave); }
     .cimg__vacia[hidden] { display: none; }
-    /* Guía: el ancho que ocupa el producto en las demás categorías (unos dos tercios). */
-    .cimg__guia { position: absolute; inset: 6% 17%; border-inline: 2px dashed var(--cimg-azul); background: rgb(0 152 218 / .06); opacity: 0; transition: opacity .15s; pointer-events: none; }
-    .cimg--guia .cimg__guia { opacity: 1; }
     .cimg__tarjeta figcaption { display: flex; align-items: center; justify-content: space-between; gap: .375rem; padding: .5rem .5625rem .5625rem;
         font-size: .625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .01em; color: var(--cimg-tinta); line-height: 1.25; }
     .cimg__tarjeta figcaption span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cimg__tarjeta figcaption i { color: var(--cimg-azul); flex: 0 0 auto; }
     .cimg__tarjeta--vecina { opacity: .85; }
-    .cimg__mostrar-guia { display: flex; align-items: center; gap: .5rem; margin: .75rem 0 0; font-size: .8rem; color: var(--cimg-suave); cursor: pointer; }
-    .cimg__mostrar-guia .form-check-input { margin: 0; }
+
+    /* Encabezado del listado: emparejar todas / volver todas. */
+    .cimg-todas { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; }
+    .cimg-todas__estado { font-size: .8rem; color: #667085; margin-right: .25rem; }
 </style>
 
 <script>
     (() => {
-        const LADO = 1080;            // lo que se sube al achicar el producto
         const LADO_MINIMO = 800;
-        const ANCHO_IDEAL = 66;       // % del ancho que ocupa el producto en las demás categorías
-        const ANCHO_MAXIMO = 80;
-        const ANCHO_MINIMO = 45;
+        // Lo mismo que hace el servidor al guardar (App\Services\Imagenes\EmparejarBordes, perfil categoría), para que
+        // la vista previa muestre el resultado.
+        const LADO = 1080, ANCHO_MAX = 0.68, ALTO_MAX = 0.54, SUPERFICIE = 0.52;
 
         const pesoTexto = (bytes) => (bytes / 1048576).toLocaleString('es-AR', { maximumFractionDigits: 1 }) + ' MB';
 
@@ -70,82 +69,98 @@
             img.src = url;
         });
 
-        // Fondo de la foto: los colores de las 4 esquinas, interpolados (sirve para fondos lisos y con degradé).
-        const esquinas = (img) => {
+        // Dónde está el producto: lo que se distingue del fondo (estimado con las 4 esquinas, sirve con degradé).
+        const analizar = (img) => {
             const c = document.createElement('canvas');
-            const w = c.width = 160, h = c.height = Math.max(1, Math.round(160 * img.naturalHeight / img.naturalWidth));
+            const W = img.naturalWidth, H = img.naturalHeight;
+            const e = Math.min(1, 320 / Math.max(W, H));
+            const w = c.width = Math.max(8, Math.round(W * e)), h = c.height = Math.max(8, Math.round(H * e));
             const ctx = c.getContext('2d', { willReadFrequently: true });
             ctx.drawImage(img, 0, 0, w, h);
-            const datos = ctx.getImageData(0, 0, w, h).data;
-            const k = 4;
-            const promedio = (x0, y0) => {
-                const s = [0, 0, 0];
-                for (let y = y0; y < y0 + k; y++) for (let x = x0; x < x0 + k; x++) { const i = (y * w + x) * 4; s[0] += datos[i]; s[1] += datos[i + 1]; s[2] += datos[i + 2]; }
+            const d = ctx.getImageData(0, 0, w, h).data;
+            const k = Math.max(3, Math.floor(w / 60));
+            const esquina = (x0, y0) => {
+                const s = [0, 0, 0, 0];
+                for (let y = y0; y < y0 + k; y++) for (let x = x0; x < x0 + k; x++) { const i = (y * w + x) * 4; for (let j = 0; j < 4; j++) s[j] += d[i + j]; }
                 return s.map((v) => v / (k * k));
             };
-            return { w, h, datos, tl: promedio(0, 0), tr: promedio(w - k, 0), bl: promedio(0, h - k), br: promedio(w - k, h - k) };
-        };
-        const fondoEn = (e, s, t) => [0, 1, 2].map((i) => (e.tl[i] * (1 - s) + e.tr[i] * s) * (1 - t) + (e.bl[i] * (1 - s) + e.br[i] * s) * t);
-
-        // Qué % del ancho ocupa el producto: las columnas con píxeles que no son fondo.
-        const anchoDelProducto = (e) => {
-            let primera = -1, ultima = -1;
-            for (let x = 0; x < e.w; x++) {
-                let distintos = 0;
-                for (let y = 0; y < e.h; y++) {
-                    const i = (y * e.w + x) * 4, f = fondoEn(e, x / (e.w - 1), y / (e.h - 1));
-                    if (Math.max(Math.abs(e.datos[i] - f[0]), Math.abs(e.datos[i + 1] - f[1]), Math.abs(e.datos[i + 2] - f[2])) > 28) distintos++;
+            const tl = esquina(0, 0), tr = esquina(w - k, 0), bl = esquina(0, h - k), br = esquina(w - k, h - k);
+            const transparente = (tl[3] + tr[3] + bl[3] + br[3]) / 4 < 32;
+            const dif = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+            const escena = !transparente && (dif(tl, tr) > 40 || dif(bl, br) > 40);
+            const cols = new Array(w).fill(0), filas = new Array(h).fill(0);
+            for (let y = 0; y < h; y++) {
+                const t = y / (h - 1);
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4, s = x / (w - 1);
+                    let distinto;
+                    if (transparente) distinto = d[i + 3] > 54;
+                    else {
+                        distinto = false;
+                        for (let j = 0; j < 3; j++) {
+                            const f = (tl[j] * (1 - s) + tr[j] * s) * (1 - t) + (bl[j] * (1 - s) + br[j] * s) * t;
+                            if (Math.abs(d[i + j] - f) > 22) { distinto = true; break; }
+                        }
+                    }
+                    if (distinto) { cols[x]++; filas[y]++; }
                 }
-                if (distintos > e.h * 0.02) { if (primera < 0) primera = x; ultima = x; }
             }
-            return primera < 0 ? null : Math.round((ultima - primera + 1) / e.w * 100);
+            const xs = cols.flatMap((n, x) => (n > h * 0.006 ? [x] : [])), ys = filas.flatMap((n, y) => (n > w * 0.006 ? [y] : []));
+            if (!xs.length || !ys.length) return { escena, caja: null };
+            const fx = W / w, fy = H / h;
+            return { escena, caja: [Math.floor(xs[0] * fx), Math.floor(ys[0] * fy), Math.min(W, Math.ceil((xs[xs.length - 1] + 1) * fx)), Math.min(H, Math.ceil((ys[ys.length - 1] + 1) * fy))] };
         };
 
-        // La foto en un cuadrado de 1080 con el producto al {escala}% y el fondo extendido alrededor.
-        const componer = (img, e, escala) => {
+        // Igual que el servidor: el producto centrado con la misma superficie y el fondo de la foto extendido.
+        const componer = (img, caja) => {
+            const W = img.naturalWidth, H = img.naturalHeight;
+            const [x0, y0, x1, y1] = caja, bw = x1 - x0, bh = y1 - y0;
+            const izq = x0 <= W * 0.012, der = x1 >= W * 0.988, arr = y0 <= H * 0.012, aba = y1 >= H * 0.988;
+            if (izq && der && arr && aba) return null;
+            const costado = izq || der;
+            let s = Math.min((costado ? 0.99 : ANCHO_MAX) * LADO / bw, ALTO_MAX * LADO / bh);
+            if (!costado) s = Math.min(s, SUPERFICIE * LADO / Math.sqrt(bw * bh));
+            const rw = Math.round(W * s), rh = Math.round(H * s);
+            let ox = Math.round(LADO / 2 - (x0 + x1) / 2 * s);
+            const oy = Math.round(LADO / 2 - (y0 + y1) / 2 * s);
+            if (izq) ox = 0; else if (der) ox = LADO - rw;
+
+            const chica = document.createElement('canvas');
+            const cw = chica.width = Math.max(1, Math.floor(W / 8)), ch = chica.height = Math.max(1, Math.floor(H / 8));
+            chica.getContext('2d').drawImage(img, 0, 0, cw, ch);
             const c = document.createElement('canvas');
             c.width = c.height = LADO;
             const ctx = c.getContext('2d');
-            const fondo = ctx.createImageData(LADO, LADO);
-            for (let y = 0; y < LADO; y++) {
-                for (let x = 0; x < LADO; x++) {
-                    const f = fondoEn(e, x / (LADO - 1), y / (LADO - 1)), i = (y * LADO + x) * 4;
-                    fondo.data[i] = f[0]; fondo.data[i + 1] = f[1]; fondo.data[i + 2] = f[2]; fondo.data[i + 3] = 255;
-                }
-            }
-            ctx.putImageData(fondo, 0, 0);
-            const ajuste = Math.min(LADO / img.naturalWidth, LADO / img.naturalHeight) * escala / 100;
-            const w = img.naturalWidth * ajuste, h = img.naturalHeight * ajuste;
+            const pegar = (sx, sy, sw, sh, dx, dy, dw, dh) => { if (dw > 0 && dh > 0) ctx.drawImage(chica, sx, sy, sw, sh, dx, dy, dw, dh); };
+            const pi = Math.max(0, ox), pa = Math.max(0, oy), pd = Math.max(0, LADO - ox - rw), pb = Math.max(0, LADO - oy - rh);
+            pegar(0, 0, cw, ch, ox, oy, rw, rh);
+            pegar(0, 0, 1, ch, 0, oy, pi, rh);
+            pegar(cw - 1, 0, 1, ch, ox + rw, oy, pd, rh);
+            pegar(0, 0, cw, 1, ox, 0, rw, pa);
+            pegar(0, ch - 1, cw, 1, ox, oy + rh, rw, pb);
+            pegar(0, 0, 1, 1, 0, 0, pi, pa);
+            pegar(cw - 1, 0, 1, 1, ox + rw, 0, pd, pa);
+            pegar(0, ch - 1, 1, 1, 0, oy + rh, pi, pb);
+            pegar(cw - 1, ch - 1, 1, 1, ox + rw, oy + rh, pd, pb);
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, (LADO - w) / 2, (LADO - h) / 2, w, h);
-            return c;
+            ctx.drawImage(img, ox, oy, rw, rh);
+            return c.toDataURL('image/jpeg', 0.9);
         };
 
         const iniciar = (raiz) => {
             raiz.dataset.cimgListo = '1';
             const input = raiz.querySelector('[data-cimg-input]');
+            const emparejar = raiz.querySelector('[data-cimg-emparejar]');
             const vista = raiz.querySelector('[data-cimg-img]');
             const vacia = raiz.querySelector('[data-cimg-vacia]');
+            const titulo = raiz.querySelector('[data-cimg-vista-titulo]');
             const chequeos = raiz.querySelector('[data-cimg-chequeos]');
-            const ajuste = raiz.querySelector('[data-cimg-ajuste]');
-            const escala = raiz.querySelector('[data-cimg-escala]');
-            const escalaValor = raiz.querySelector('[data-cimg-escala-valor]');
             const nombre = raiz.closest('form')?.querySelector('[name="nombre"]');
             const nombreVista = raiz.querySelector('[data-cimg-nombre]');
-            const puedeReemplazar = typeof DataTransfer === 'function';
-
-            let original = null, cargada = null, bordes = null, ancho = null, urlVista = null, espera = null, turno = 0;
+            const fotoGuardada = vista.getAttribute('src');
+            let cargada = null, analisis = null, emparejada = null;
 
             nombre?.addEventListener('input', () => { nombreVista.textContent = nombre.value.trim() || 'Nueva categoría'; });
-            raiz.querySelector('[data-cimg-mostrar-guia]').addEventListener('change', (ev) => raiz.classList.toggle('cimg--guia', ev.target.checked));
-
-            const mostrar = (url) => {
-                if (urlVista && urlVista !== cargada?.url) URL.revokeObjectURL(urlVista);
-                urlVista = url;
-                vista.src = url;
-                vista.hidden = false;
-                vacia.hidden = true;
-            };
 
             const chequeo = (tipo, texto) => {
                 const p = document.createElement('p');
@@ -154,85 +169,46 @@
                 chequeos.append(p);
             };
 
-            const evaluar = () => {
+            const mostrar = () => {
+                if (!cargada) return;
+                const usarPareja = emparejar.checked && emparejada;
+                vista.src = usarPareja ? emparejada : cargada.url;
+                vista.hidden = false;
+                vacia.hidden = true;
+                titulo.textContent = usarPareja ? 'Así se va a ver (con los bordes emparejados)' : 'Así se va a ver';
+
                 chequeos.replaceChildren();
                 const { naturalWidth: w, naturalHeight: h } = cargada.img;
-                const valor = Number(escala.value);
-                const anchoFinal = ancho === null ? null : Math.round(ancho * (valor < 100 ? valor / 100 * Math.min(1, w / h) : 1));
-                const cuadrada = Math.abs(w - h) / Math.max(w, h) < 0.03 || valor < 100;
-
                 if (Math.min(w, h) < LADO_MINIMO) chequeo('aviso', `Es chica (${w} × ${h} px): en pantallas grandes se va a ver borrosa. Usá una de al menos ${LADO_MINIMO} px.`);
-                else chequeo('ok', valor < 100 ? `Medida: ${w} × ${h} px; se sube cuadrada, de ${LADO} × ${LADO} px.` : `Medida: ${w} × ${h} px.`);
-
-                if (!cuadrada) chequeo('aviso', `No es cuadrada: la tarjeta recorta ${w > h ? 'los costados' : 'arriba y abajo'}. Mirá la vista previa, o usá «Tamaño del producto», que la deja cuadrada.`);
-
-                if (anchoFinal !== null) {
-                    if (anchoFinal > ANCHO_MAXIMO) chequeo('aviso', `El producto ocupa el ${anchoFinal}% del ancho; en las otras categorías ocupa cerca del ${ANCHO_IDEAL}%, por eso se ve más grande. Achicalo con «Tamaño del producto».`);
-                    else if (anchoFinal < ANCHO_MINIMO) chequeo('aviso', `El producto ocupa sólo el ${anchoFinal}% del ancho: se va a ver más chico que en las otras categorías.`);
-                    else chequeo('ok', `El producto ocupa el ${anchoFinal}% del ancho, como en las otras categorías.`);
-                }
-
-                const peso = input.files[0]?.size ?? original.size;
-                if (peso > 1048576) chequeo('info', `Pesa ${pesoTexto(peso)}: al guardar se optimiza para que cargue rápido.`);
+                else chequeo('ok', `Medida: ${w} × ${h} px.`);
+                if (analisis.escena) chequeo('aviso', 'El fondo no es liso: esta foto no se puede emparejar y se guarda tal cual. Mirá la vista previa.');
+                else if (!emparejada) chequeo('info', 'El producto ya llena la foto: se guarda tal cual.');
+                else if (emparejar.checked) chequeo('ok', 'Bordes emparejados: el producto queda del mismo tamaño que en las otras categorías.');
+                else chequeo('info', 'Sin emparejar: el producto se ve del tamaño que tiene en la foto.');
+                if (input.files[0]?.size > 1048576) chequeo('info', `Pesa ${pesoTexto(input.files[0].size)}: al guardar se optimiza para que cargue rápido.`);
             };
 
-            const aplicar = () => {
-                const valor = Number(escala.value);
-                escalaValor.textContent = valor + '%';
-                const mio = ++turno;
-                if (valor >= 100) {
-                    const dt = new DataTransfer();
-                    dt.items.add(original);
-                    input.files = dt.files;
-                    mostrar(cargada.url);
-                    evaluar();
-                    return;
-                }
-                const lienzo = componer(cargada.img, bordes, valor);
-                lienzo.toBlob((blob) => {
-                    if (!blob || mio !== turno) return;
-                    const base = original.name.replace(/\.[^.]+$/, '') || 'categoria';
-                    const archivo = new File([blob], `${base}-ajustada.${blob.type === 'image/webp' ? 'webp' : 'png'}`, { type: blob.type });
-                    const dt = new DataTransfer();
-                    dt.items.add(archivo);
-                    input.files = dt.files;
-                    mostrar(URL.createObjectURL(blob));
-                    evaluar();
-                }, 'image/webp', 0.95);
-            };
-
-            escala.addEventListener('input', () => {
-                escalaValor.textContent = escala.value + '%';
-                clearTimeout(espera);
-                espera = setTimeout(aplicar, 120);
-            });
-
-            raiz.querySelector('[data-cimg-auto]').addEventListener('click', () => {
-                if (!ancho) return;
-                escala.value = String(Math.max(50, Math.min(100, Math.round(ANCHO_IDEAL / ancho * 100))));
-                aplicar();
-            });
+            emparejar.addEventListener('change', mostrar);
 
             input.addEventListener('change', async () => {
                 const file = input.files[0];
-                if (!file) return;
-                original = file;
-                escala.value = '100';
-                escalaValor.textContent = '100%';
+                if (cargada) URL.revokeObjectURL(cargada.url);
+                cargada = null;
+                if (!file) {
+                    chequeos.replaceChildren();
+                    if (fotoGuardada) vista.src = fotoGuardada; else { vista.hidden = true; vacia.hidden = false; }
+                    return;
+                }
                 try {
-                    if (cargada) URL.revokeObjectURL(cargada.url);
                     cargada = await cargar(file);
                 } catch {
                     chequeos.replaceChildren();
                     chequeo('aviso', 'No se pudo leer la imagen. Probá con un JPG, PNG o WebP.');
-                    ajuste.hidden = true;
                     return;
                 }
-                bordes = esquinas(cargada.img);
-                ancho = anchoDelProducto(bordes);
-                mostrar(cargada.url);
-                ajuste.hidden = !puedeReemplazar;
-                evaluar();
+                analisis = analizar(cargada.img);
+                emparejada = !analisis.escena && analisis.caja ? componer(cargada.img, analisis.caja) : null;
+                mostrar();
             });
         };
 

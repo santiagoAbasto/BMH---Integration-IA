@@ -43,8 +43,21 @@ final class BibliotecaImagenes
     /** @var array<string, list<array{id: int, codigo: string, nombre: string}>>|null */
     private ?array $productosPorCodigo = null;
 
+    /** «Emparejar bordes» al subir (la casilla de la página): se guarda la foto emparejada; la subida queda guardada. */
+    private bool $emparejarBordes = false;
+
+    /** Mensaje si se pidió emparejar la última foto subida y no se pudo. */
+    public ?string $avisoBordes = null;
+
     public function __construct(private readonly OptimizadorImagenes $optimizador)
     {
+    }
+
+    public function emparejandoBordes(bool $si): static
+    {
+        $this->emparejarBordes = $si;
+
+        return $this;
     }
 
     // ------------------------------------------------------------- registro
@@ -646,6 +659,14 @@ final class BibliotecaImagenes
     private function guardarArchivo(UploadedFile $archivo): array
     {
         $path = $this->optimizador->guardarSubida($archivo, $this->directorio());
+        $this->avisoBordes = null;
+        if ($this->emparejarBordes) {
+            try {
+                $path = (new EmparejarBordes($this->directorio()))->emparejar($path, EmparejarBordes::PRODUCTO);
+            } catch (NoSePuedeEmparejar $e) {
+                $this->avisoBordes = 'Se guardó tal cual: '.$e->getMessage();
+            }
+        }
         $ruta = $this->directorio().DIRECTORY_SEPARATOR.$path;
         $medidas = @getimagesize($ruta);
 

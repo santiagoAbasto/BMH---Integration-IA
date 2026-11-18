@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Caracteristica;
 use App\Models\Categoria;
+use App\Services\Imagenes\EmparejarBordes;
+use App\Services\Imagenes\FotosParejas;
+use App\Services\Imagenes\NoSePuedeEmparejar;
 use App\Models\Producto;
 use App\Models\Imagen;
 use Illuminate\Support\Facades\File;
@@ -79,7 +82,6 @@ class CategoriaController extends Controller
             $categoria->portada = $this->guardarImagen($request);
         }
 
-
         $categoria->orden = $request->orden;
         $categoria->nombre = $request->nombre;
         // $categoria->descuento = $request->descuento;
@@ -88,7 +90,7 @@ class CategoriaController extends Controller
 
         $categoria->caracteristicas()->sync($this->idsCaracteristicas($request));
 
-        return redirect()->back()->with('success', 'Categoría creada exitosamente');
+        return $this->conAvisoDeBordes(redirect()->back()->with('success', 'Categoría creada exitosamente'));
     }
 
     public function update(Request $request)
@@ -100,9 +102,14 @@ class CategoriaController extends Controller
         if ($request->hasFile('portada')) {
             $anterior = $categoria->portada;
             $categoria->portada = $this->guardarImagen($request);
-            // La anterior se borra recién con la nueva guardada, y sólo si ninguna otra categoría la usa.
-            if (filled($anterior) && $anterior !== $categoria->portada && ! Categoria::query()->where('portada', $anterior)->whereKeyNot($categoria->id)->exists()) {
-                File::delete(config('imagenes.directorio').DIRECTORY_SEPARATOR.basename($anterior));
+            // La anterior (con su original o su emparejada) se borra recién con la nueva guardada, y sólo si ninguna
+            // otra categoría la usa.
+            if (filled($anterior) && $anterior !== $categoria->portada) {
+                foreach (app(EmparejarBordes::class)->familia($anterior) as $archivo) {
+                    if (! Categoria::query()->where('portada', $archivo)->whereKeyNot($categoria->id)->exists()) {
+                        File::delete(config('imagenes.directorio').DIRECTORY_SEPARATOR.$archivo);
+                    }
+                }
             }
         }
         
@@ -115,8 +122,62 @@ class CategoriaController extends Controller
 
         $categoria->caracteristicas()->sync($this->idsCaracteristicas($request));
 
-        return redirect()->back()->with('success', 'Categoría actualizada');
+        return $this->conAvisoDeBordes(redirect()->back()->with('success', 'Categoría actualizada'));
     }
+
+    // ---------------------------------------------------------------- Emparejar bordes
+
+    /** Empareja los bordes de la foto de una categoría (o vuelve a la original). */
+    public function bordes(Request $request, Categoria $categoria, FotosParejas $fotos)
+    {
+        $volver = $request->input('accion') === 'original';
+        abort_if(blank($categoria->portada), 404);
+        $nombre = ucfirst(mb_strtolower($categoria->nombre));
+        try {
+            $volver ? $fotos->deshacer($categoria->portada) : $fotos->emparejar($categoria->portada, EmparejarBordes::CATEGORIA);
+        } catch (NoSePuedeEmparejar $e) {
+            return redirect()->back()->with('warning', $nombre.': '.$e->getMessage());
+        }
+
+        return redirect()->back()->with('success', $volver
+            ? $nombre.': volvió a la foto original.'
+            : $nombre.': bordes emparejados. Si no te gusta, «Volver a la original» la deja como estaba.');
+    }
+
+    /** Todas las categorías con foto: emparejar o volver a las originales. Las que no se pueden, se dicen. */
+    public function bordesDeTodas(Request $request, FotosParejas $fotos)
+    {
+        $volver = $request->input('accion') === 'original';
+        $hechas = 0;
+        $avisos = [];
+        foreach (Categoria::query()->whereNotNull('portada')->where('portada', '!=', '')->orderBy('orden')->get() as $categoria) {
+            if ($volver !== EmparejarBordes::esPareja($categoria->portada)) {
+                continue; // ya está como se pidió
+            }
+            try {
+                $volver ? $fotos->deshacer($categoria->portada) : $fotos->emparejar($categoria->portada, EmparejarBordes::CATEGORIA);
+                $hechas++;
+            } catch (NoSePuedeEmparejar $e) {
+                $avisos[] = ucfirst(mb_strtolower($categoria->nombre)).': '.$e->getMessage();
+            }
+        }
+
+        $mensaje = $volver
+            ? ($hechas === 1 ? 'Volvió a la original 1 foto.' : "Volvieron a la original {$hechas} fotos.")
+            : ($hechas === 1 ? 'Se emparejaron los bordes de 1 foto.' : "Se emparejaron los bordes de {$hechas} fotos.");
+
+        $respuesta = redirect()->back()->with('success', $mensaje);
+
+        return $avisos === [] ? $respuesta : $respuesta->with('warning', 'No se pudieron emparejar: '.implode(' ', $avisos));
+    }
+
+    /** Si al guardar se pidió emparejar y no se pudo, se avisa por qué (la foto quedó tal cual). */
+    private function conAvisoDeBordes($respuesta)
+    {
+        return $this->avisoBordes !== null ? $respuesta->with('warning', 'La foto se guardó tal cual: '.$this->avisoBordes) : $respuesta;
+    }
+
+    private ?string $avisoBordes = null;
 
     /** La imagen de la tarjeta: JPG, PNG o WebP de hasta 10 MB (se optimiza al guardar). */
     private static function reglasImagen(): array
@@ -136,7 +197,19 @@ class CategoriaController extends Controller
         $directorio = config('imagenes.directorio');
         File::ensureDirectoryExists($directorio);
 
-        return app(\App\Services\Imagenes\OptimizadorImagenes::class)->guardarSubida($request->file('portada'), $directorio);
+        $nombre = app(\App\Services\Imagenes\OptimizadorImagenes::class)->guardarSubida($request->file('portada'), $directorio);
+
+        // «Emparejar bordes» (marcado por defecto): el producto centrado y del mismo tamaño que en las demás. La
+        // original queda guardada para poder volver.
+        if ($request->boolean('emparejar_bordes')) {
+            try {
+                return app(EmparejarBordes::class)->emparejar($nombre, EmparejarBordes::CATEGORIA);
+            } catch (NoSePuedeEmparejar $e) {
+                $this->avisoBordes = $e->getMessage();
+            }
+        }
+
+        return $nombre;
     }
 
     public function subcategoria_delete(Request $request)
@@ -148,8 +221,14 @@ class CategoriaController extends Controller
 
     public function delete(Request $request)
     {
-        $categoria = Categoria::find($request->id);
-        File::delete(public_path('imagenes/' . $categoria->portada));
+        $categoria = Categoria::findOrFail($request->id);
+        if (filled($categoria->portada)) {
+            foreach (app(EmparejarBordes::class)->familia($categoria->portada) as $archivo) {
+                if (! Categoria::query()->where('portada', $archivo)->whereKeyNot($categoria->id)->exists()) {
+                    File::delete(config('imagenes.directorio').DIRECTORY_SEPARATOR.$archivo);
+                }
+            }
+        }
         $nombre = $categoria->nombre;
         $categoria->delete();
         return redirect()->back()->with('success', 'La categoría ' . ucfirst($nombre) . ' ha sido eliminada');

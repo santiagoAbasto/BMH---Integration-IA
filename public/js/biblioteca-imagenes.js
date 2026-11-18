@@ -429,6 +429,9 @@
       if (tarea.modo) datos.append('modo', tarea.modo);
       if (tarea.lugar && tarea.lugar.objetivo) datos.append('objetivo', tarea.lugar.objetivo);
       if (tarea.lugar && tarea.lugar.posicion) datos.append('posicion', tarea.lugar.posicion);
+      // «Emparejar bordes» (la casilla de la subida).
+      var bordes = document.querySelector('[data-emparejar-bordes]');
+      datos.append('emparejar_bordes', bordes && bordes.checked ? '1' : '0');
       return pedir(URL_SUBIR, 'POST', datos);
     }).then(function (respuesta) {
       tarea.modo = null;

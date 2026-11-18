@@ -82,12 +82,12 @@ final class ImagenCategoriaTest extends BaseTestCase
         $html = $this->actingAs($this->admin(), 'admin')->get(route('dashboard.categorias'))->assertOk()->getContent();
 
         $this->assertStringContainsString('Cuadrada, de 1080 × 1080 px', $html);
-        $this->assertStringContainsString('unos dos tercios del ancho', $html);
+        $this->assertStringContainsString('name="emparejar_bordes" value="1"', $html);
         $this->assertStringContainsString('Así se ve en el sitio', $html);
         $this->assertStringContainsString('cimg__tarjeta--vecina', $html);
         $this->assertStringNotContainsString('recomendada 260x260', $html);
         // Los estilos y el script, una sola vez.
-        $this->assertSame(1, substr_count($html, 'const ANCHO_IDEAL'));
+        $this->assertSame(1, substr_count($html, 'SUPERFICIE = 0.52'));
     }
 
     public function test_la_imagen_se_guarda_optimizada_y_reemplaza_a_la_anterior(): void
@@ -132,5 +132,98 @@ final class ImagenCategoriaTest extends BaseTestCase
         ])->assertSessionHasErrors('portada');
 
         $this->assertSame('media_actual.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+    }
+
+    /** Una foto de $w × $h: fondo gris claro y el «producto» (un rectángulo oscuro) de $pw × $ph en el medio. */
+    private function foto(string $nombre, int $w = 1254, int $h = 1254, int $pw = 1100, int $ph = 500): string
+    {
+        $img = imagecreatetruecolor($w, $h);
+        imagefill($img, 0, 0, imagecolorallocate($img, 238, 239, 241));
+        $x = intdiv($w - $pw, 2);
+        $y = intdiv($h - $ph, 2);
+        imagefilledrectangle($img, $x, $y, $x + $pw - 1, $y + $ph - 1, imagecolorallocate($img, 40, 45, 55));
+        imagepng($img, $this->directorio.'/'.$nombre);
+        imagedestroy($img);
+
+        return $nombre;
+    }
+
+    public function test_al_guardar_con_emparejar_bordes_queda_la_emparejada_y_la_original(): void
+    {
+        $id = $this->categoria();
+        $png = UploadedFile::fake()->createWithContent('motor.png', (string) file_get_contents($this->directorio.'/'.$this->foto('subida.png')));
+
+        $this->actingAs($this->admin(), 'admin')->put(route('categoria.update'), [
+            'id' => $id, 'orden' => 'zzz', 'nombre' => 'ZZ', 'portada' => $png, 'emparejar_bordes' => '1',
+        ])->assertSessionHasNoErrors()->assertSessionMissing('warning');
+
+        $portada = DB::table('categorias')->where('id', $id)->value('portada');
+        $this->assertStringEndsWith('-parejo.webp', $portada);
+        $this->assertSame([1080, 1080], array_slice(getimagesize($this->directorio.'/'.$portada), 0, 2));
+        $original = substr($portada, 0, -strlen('-parejo.webp'));
+        $this->assertNotEmpty(glob($this->directorio.'/'.$original.'.*'), 'la original queda guardada');
+    }
+
+    public function test_sin_emparejar_bordes_se_guarda_tal_cual(): void
+    {
+        $id = $this->categoria();
+        $png = UploadedFile::fake()->createWithContent('motor.png', (string) file_get_contents($this->directorio.'/'.$this->foto('subida.png')));
+
+        $this->actingAs($this->admin(), 'admin')->put(route('categoria.update'), [
+            'id' => $id, 'orden' => 'zzz', 'nombre' => 'ZZ', 'portada' => $png, 'emparejar_bordes' => '0',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertStringEndsNotWith('-parejo.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+    }
+
+    public function test_se_empareja_la_foto_guardada_y_se_vuelve_a_la_original(): void
+    {
+        $id = $this->categoria($this->foto('media_zzprueba1.png'));
+
+        $this->actingAs($this->admin(), 'admin')->from(route('dashboard.categorias'))
+            ->post(route('categoria.bordes', $id), ['accion' => 'emparejar'])->assertRedirect(route('dashboard.categorias'))->assertSessionHas('success');
+        $this->assertSame('media_zzprueba1-parejo.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+
+        $this->actingAs($this->admin(), 'admin')->post(route('categoria.bordes', $id), ['accion' => 'original'])->assertSessionHas('success');
+        $this->assertSame('media_zzprueba1.png', DB::table('categorias')->where('id', $id)->value('portada'));
+        // Las dos quedan: se puede volver a emparejar sin procesar de nuevo nada que se haya perdido.
+        $this->assertFileExists($this->directorio.'/media_zzprueba1-parejo.webp');
+    }
+
+    public function test_una_foto_de_escena_no_se_empareja_y_se_dice_por_que(): void
+    {
+        // Esquinas de un mismo lado de colores distintos: una escena, no un fondo liso.
+        $img = imagecreatetruecolor(800, 800);
+        imagefill($img, 0, 0, imagecolorallocate($img, 230, 230, 235));
+        imagefilledrectangle($img, 0, 400, 300, 799, imagecolorallocate($img, 30, 30, 35));
+        imagepng($img, $this->directorio.'/media_zzescena.png');
+        imagedestroy($img);
+        $id = $this->categoria('media_zzescena.png');
+
+        $this->actingAs($this->admin(), 'admin')->post(route('categoria.bordes', $id), ['accion' => 'emparejar'])
+            ->assertSessionHas('warning', fn (string $m) => str_contains($m, 'El fondo no es liso'));
+        $this->assertSame('media_zzescena.png', DB::table('categorias')->where('id', $id)->value('portada'));
+    }
+
+    public function test_emparejar_todas_y_volver_todas(): void
+    {
+        $a = $this->categoria($this->foto('media_zzprueba2.png'));
+        $b = $this->categoria($this->foto('media_zzprueba3.png', 900, 900, 300, 600));
+
+        $this->actingAs($this->admin(), 'admin')->post(route('categoria.bordes.todas'), ['accion' => 'emparejar'])->assertSessionHas('success');
+        $this->assertSame('media_zzprueba2-parejo.webp', DB::table('categorias')->where('id', $a)->value('portada'));
+        $this->assertSame('media_zzprueba3-parejo.webp', DB::table('categorias')->where('id', $b)->value('portada'));
+
+        $this->actingAs($this->admin(), 'admin')->post(route('categoria.bordes.todas'), ['accion' => 'original'])->assertSessionHas('success');
+        $this->assertSame('media_zzprueba2.png', DB::table('categorias')->where('id', $a)->value('portada'));
+        $this->assertSame('media_zzprueba3.png', DB::table('categorias')->where('id', $b)->value('portada'));
+    }
+
+    public function test_un_visitante_no_puede_emparejar(): void
+    {
+        $id = $this->categoria($this->foto('media_zzprueba4.png'));
+        $this->post(route('categoria.bordes', $id), ['accion' => 'emparejar']);
+        $this->post(route('categoria.bordes.todas'), ['accion' => 'emparejar']);
+        $this->assertSame('media_zzprueba4.png', DB::table('categorias')->where('id', $id)->value('portada'));
     }
 }

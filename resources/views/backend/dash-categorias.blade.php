@@ -124,6 +124,22 @@
                 <h2 id="categorias-listado">Todas las categorías</h2>
                 <p>{{ count($categorias) }} {{ count($categorias) === 1 ? 'categoría' : 'categorías' }}. Las destacadas se muestran primero en el sitio.</p>
             </div>
+            {{-- Emparejar bordes de todas las fotos (o volver a las originales): el producto centrado y del mismo tamaño en
+                 todas las tarjetas. Las originales quedan guardadas. --}}
+            @php($conFoto = $categorias->filter(fn ($c) => filled($c->portada)))
+            @php($emparejadas = $conFoto->filter(fn ($c) => \App\Services\Imagenes\EmparejarBordes::esPareja($c->portada))->count())
+            @if ($conFoto->isNotEmpty())
+                <form method="POST" action="{{ route('categoria.bordes.todas') }}" class="cimg-todas">
+                    @csrf
+                    <span class="cimg-todas__estado">{{ $emparejadas }} de {{ $conFoto->count() }} fotos con los bordes emparejados</span>
+                    @if ($emparejadas < $conFoto->count())
+                        <button type="submit" name="accion" value="emparejar" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Emparejar bordes de todas</button>
+                    @endif
+                    @if ($emparejadas > 0)
+                        <button type="submit" name="accion" value="original" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Volver todas a las originales</button>
+                    @endif
+                </form>
+            @endif
             {{-- <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-success"><i
                     class="fa-solid fa-plus"></i> CREAR</button> --}}
 
@@ -260,12 +276,18 @@
                                         'actual' => $categoria->portada ? asset('imagenes/'.$categoria->portada) : null,
                                         'nombre' => $categoria->nombre,
                                         'vecina' => $vecinas[$categoria->id] ?? null,
+                                        'formBordes' => $categoria->portada ? 'bordes-'.$categoria->id : null,
+                                        'emparejada' => \App\Services\Imagenes\EmparejarBordes::esPareja((string) $categoria->portada),
                                     ])
                                 </div>
 
 
                             </div>
                         </form>
+                        {{-- Emparejar / volver a la original la foto guardada (los botones están en el campo de la imagen). --}}
+                        @if ($categoria->portada)
+                            <form id="bordes-{{ $categoria->id }}" method="POST" action="{{ route('categoria.bordes', $categoria) }}" hidden>@csrf</form>
+                        @endif
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

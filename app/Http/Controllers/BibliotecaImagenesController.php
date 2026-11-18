@@ -83,7 +83,9 @@ class BibliotecaImagenesController extends Controller
             ->mapWithKeys(fn (ImagenBiblioteca $i) => [$i->id => true])
             ->all();
 
-        return view('backend.biblioteca-imagenes', compact('imagenes', 'usos', 'filtro', 'orden', 'busqueda', 'totales', 'sinProducto'));
+        $bordes = BordesFotosController::resumen();
+
+        return view('backend.biblioteca-imagenes', compact('imagenes', 'usos', 'filtro', 'orden', 'busqueda', 'totales', 'sinProducto', 'bordes'));
     }
 
     public function store(Request $request): JsonResponse
@@ -99,7 +101,8 @@ class BibliotecaImagenesController extends Controller
         ]);
 
         try {
-            $subida = $this->biblioteca->subir($request->file('imagen'), $request->input('modo'), $request->input('objetivo'), $request->integer('posicion') ?: null);
+            $subida = $this->biblioteca->emparejandoBordes($request->boolean('emparejar_bordes'))
+                ->subir($request->file('imagen'), $request->input('modo'), $request->input('objetivo'), $request->integer('posicion') ?: null);
         } catch (RuntimeException $e) {
             return response()->json(['mensaje' => $e->getMessage()], 422);
         }
@@ -124,6 +127,9 @@ class BibliotecaImagenesController extends Controller
                 : "Reemplazó a la imagen anterior con el código {$imagen->codigo}.",
             default => 'Es la '.self::foto($destino).'.',
         };
+        if ($this->biblioteca->avisoBordes !== null) {
+            $mensaje .= ' '.$this->biblioteca->avisoBordes;
+        }
 
         return response()->json([
             'resultado' => $subida['resultado'],
