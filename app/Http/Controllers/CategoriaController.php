@@ -48,7 +48,19 @@ class CategoriaController extends Controller
 
     // «Ajustar precios por porcentaje»: el producto se busca mientras se escribe (producto.buscar.partes), así que
     // ya no se mandan los ~6.000 productos a la página. Las categorías llevan cuántos productos tienen.
-    return view('backend/dash-categorias', compact('categorias', 'caracteristicas'));
+    // Vista previa de la imagen (admin): la tarjeta al lado de la categoría vecina en el orden, como en el sitio.
+    $conImagen = $categorias->filter(fn ($c) => filled($c->portada))->values();
+    $tarjeta = fn ($c) => $c ? ['nombre' => $c->nombre, 'imagen' => asset('imagenes/'.$c->portada)] : null;
+    $vecinas = [];
+    foreach ($conImagen as $i => $c) {
+        $vecinas[$c->id] = $tarjeta($conImagen[$i + 1] ?? $conImagen[$i - 1] ?? null);
+    }
+    foreach ($categorias as $c) {
+        $vecinas[$c->id] ??= $tarjeta($conImagen->first());
+    }
+    $vecinaParaCrear = $tarjeta($conImagen->first());
+
+    return view('backend/dash-categorias', compact('categorias', 'caracteristicas', 'vecinas', 'vecinaParaCrear'));
 }
 
 
@@ -60,14 +72,11 @@ class CategoriaController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate(self::reglasImagen(), self::MENSAJES_IMAGEN);
         $categoria = new Categoria();
 
         if ($request->hasFile('portada')) {
-            File::delete(public_path('imagenes/' . $categoria->portada));
-            $file = $request->file('portada');
-            $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move('imagenes', $nombreImagen);
-            $categoria->portada = $nombreImagen;
+            $categoria->portada = $this->guardarImagen($request);
         }
 
 
@@ -85,14 +94,16 @@ class CategoriaController extends Controller
     public function update(Request $request)
     {
         
-        $categoria = Categoria::find($request->id);
+        $request->validate(self::reglasImagen(), self::MENSAJES_IMAGEN);
+        $categoria = Categoria::findOrFail($request->id);
 
         if ($request->hasFile('portada')) {
-            File::delete(public_path('imagenes/' . $categoria->portada));
-            $file = $request->file('portada');
-            $nombreImagen = 'media_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move('imagenes', $nombreImagen);
-            $categoria->portada = $nombreImagen;
+            $anterior = $categoria->portada;
+            $categoria->portada = $this->guardarImagen($request);
+            // La anterior se borra recién con la nueva guardada, y sólo si ninguna otra categoría la usa.
+            if (filled($anterior) && $anterior !== $categoria->portada && ! Categoria::query()->where('portada', $anterior)->whereKeyNot($categoria->id)->exists()) {
+                File::delete(config('imagenes.directorio').DIRECTORY_SEPARATOR.basename($anterior));
+            }
         }
         
 
@@ -105,6 +116,27 @@ class CategoriaController extends Controller
         $categoria->caracteristicas()->sync($this->idsCaracteristicas($request));
 
         return redirect()->back()->with('success', 'Categoría actualizada');
+    }
+
+    /** La imagen de la tarjeta: JPG, PNG o WebP de hasta 10 MB (se optimiza al guardar). */
+    private static function reglasImagen(): array
+    {
+        return ['portada' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240']];
+    }
+
+    private const MENSAJES_IMAGEN = [
+        'portada.image' => 'La imagen tiene que ser un JPG, PNG o WebP.',
+        'portada.mimes' => 'La imagen tiene que ser un JPG, PNG o WebP.',
+        'portada.max' => 'La imagen pesa más de 10 MB. Guardala más liviana (1080 × 1080 px alcanza).',
+    ];
+
+    /** Guarda la imagen subida optimizada (WebP, como las fotos de productos) y devuelve el nombre del archivo. */
+    private function guardarImagen(Request $request): string
+    {
+        $directorio = config('imagenes.directorio');
+        File::ensureDirectoryExists($directorio);
+
+        return app(\App\Services\Imagenes\OptimizadorImagenes::class)->guardarSubida($request->file('portada'), $directorio);
     }
 
     public function subcategoria_delete(Request $request)

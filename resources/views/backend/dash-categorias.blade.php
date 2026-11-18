@@ -14,6 +14,11 @@
             {{ session('success') }}
         </div>
     @endif
+    @if ($errors->any())
+        <div class="alert alert-danger" role="alert">
+            {{ $errors->first() }}
+        </div>
+    @endif
     @if (session('warning'))
         <div class="alert alert-danger" role="alert">
             {{ session('warning') }}
@@ -124,7 +129,7 @@
 
             {{-- MODAL CREAR --}}
             <div class="modal fade" id="crear" tabindex="-1" aria-labelledby="crear-titulo" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-dialog modal-dialog-centered modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h2 class="modal-title" id="crear-titulo">Crear categoría</h2>
@@ -152,11 +157,8 @@
 
 
 
-                                    <div class="mb-3">
-                                        <label for="portada" class="form-label">Imagen <span
-                                                class='recomendada'>(recomendada 260x260 px)</span></label>
-                                        <input class="form-control preview" type="file" id="imagen" name='portada'
-                                            accept="image/*" required>
+                                    <div class="col-12">
+                                        @include('backend.partials.imagen-categoria', ['uid' => 'crear', 'actual' => null, 'nombre' => '', 'vecina' => $vecinaParaCrear, 'requerida' => true])
                                     </div>
 
                                 </div>
@@ -220,7 +222,7 @@
         {{-- MODAL EDITAR --}}
         <div class="modal fade" id="editar{{ $categoria->id }}" tabindex="-1" aria-labelledby="editar{{ $categoria->id }}-titulo"
             aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h2 class="modal-title" id="editar{{ $categoria->id }}-titulo">Editar categoría</h2>
@@ -252,16 +254,13 @@
                                 <div class="col-12">
                                     @include('backend.partials.caracteristicas.selector-categoria', ['uid' => 'car-editar-'.$categoria->id, 'seleccionadas' => $categoria->caracteristicas, 'categoriaId' => $categoria->id])
                                 </div>
-                                <div class="my-3">
-                                    <label for="portada" class="form-label">Imagen <span
-                                            class='recomendada'>(recomendada 260x260 px)</span></label>
-                                    <input class="form-control preview" data-form-id="{{ 'imagen' . $categoria->id }}"
-                                        type="file" id="imagen" name='portada' accept="image/*">
-                                </div>
-                                <div class='d-flex justify-content-center' style='max-height:50vh;'>
-                                    <img id="{{ 'imagen' . $categoria->id }}"
-                                        src="{{ asset('imagenes/' . $categoria->portada) }}"
-                                        alt="Vista previa de la imagen" style="max-width: 100%; object-fit: contain;">
+                                <div class="col-12">
+                                    @include('backend.partials.imagen-categoria', [
+                                        'uid' => 'editar-'.$categoria->id,
+                                        'actual' => $categoria->portada ? asset('imagenes/'.$categoria->portada) : null,
+                                        'nombre' => $categoria->nombre,
+                                        'vecina' => $vecinas[$categoria->id] ?? null,
+                                    ])
                                 </div>
 
 
@@ -303,6 +302,8 @@
             </div>
         </div>
     @endforeach
+
+    @include('backend.partials.imagen-categoria-recursos')
 @endsection
 
 @section('script')
