@@ -98,6 +98,21 @@ final class FloatingWidgetZoneTest extends TestCase
         $publica->assertSee('>Contacto</a>', false);
     }
 
+    public function test_el_logo_lleva_siempre_a_la_home_sin_cerrar_la_sesion(): void
+    {
+        $me = $this->customer();
+        $logo = 'href="'.route('home').'" class="osole-header-catalog-v1__logo"';
+
+        // Desde la Zona de Clientes también (antes llevaba al inicio de la zona).
+        foreach ([route('productos.clientes'), route('carrito'), route('nosotros')] as $url) {
+            $this->actingAs($me)->get($url)->assertOk()->assertSee($logo, false);
+        }
+
+        // La Home con sesión: sigue logueado y tiene a mano la Zona de Clientes.
+        $this->actingAs($me)->get(route('home'))->assertOk()->assertSee('Ir a la Zona de Clientes');
+        $this->assertAuthenticatedAs($me, 'web');
+    }
+
     public function test_el_item_del_header_abre_el_asesor_sin_navegar(): void
     {
         $response = $this->actingAs($this->customer())->get('/productos-zona-home');

@@ -60,13 +60,15 @@
     ], $categoriasMenu);
 
     $logo = $logosSitio->url(LogosSitio::HEADER_TRANSPARENTE);
+    // El logo siempre lleva a la Home, también desde la Zona de Clientes (pedido del cliente, 18/11/2026); la sesión
+    // sigue abierta y la Zona de Clientes está en el menú de la cuenta.
 @endphp
 
 <x-osole::header-catalog.v1
     id="site-header"
     :style="$estiloHeader ?: null"
     :class="\Illuminate\Support\Arr::toCssClasses(['bmh-header', 'bmh-header--home' => $enHome, 'bmh-header--privada' => $zonaPrivada, 'bmh-header--con-asesor' => $conAsesor])"
-    :home-href="$zonaPrivada ? route('productos.clientes') : route('home')"
+    :home-href="route('home')"
     home-label="BMH Distribuidora, ir al inicio"
     :topbar-items="$datosBarra"
     :social-links="$redes"
