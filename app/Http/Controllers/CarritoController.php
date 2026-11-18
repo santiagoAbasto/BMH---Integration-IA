@@ -32,6 +32,7 @@ class CarritoController extends Controller
     public function carrito(Request $request)
     {
         $zonaclientes = true;
+        $this->actualizarPrecios();
         $cart = Cart::content();
         $informacion = Carrito::find(1);
         $aviso = isset($request->aviso) ? $request->aviso : false;
@@ -154,6 +155,24 @@ class CarritoController extends Controller
         return $this->respuestaCarrito($request);
     }
 
+    /**
+     * El precio de cada renglón como es hoy: el carrito guarda el precio del momento en que se agregó, y una oferta
+     * que empieza, termina o cambia lo deja viejo.
+     */
+    private function actualizarPrecios(): void
+    {
+        foreach (Cart::content() as $item) {
+            $producto = Producto::find($item->id);
+            if (! $producto) {
+                continue;
+            }
+            $precio = round((float) $producto->precio_unitario_descontado(), 2);
+            if (abs((float) $item->price - $precio) >= 0.005) {
+                Cart::update($item->rowId, ['price' => $precio]);
+            }
+        }
+    }
+
     /** El carrito actualizado, con la vista de la sección desde donde se pidió. */
     private function respuestaCarrito(Request $request)
     {
@@ -173,7 +192,7 @@ class CarritoController extends Controller
         // SEGURIDAD: sólo un pedido propio (o de un cliente del vendedor), no cualquier id.
         $pedido = Pedido::visiblesPara(Auth::guard('web')->user())->findOrFail($request->integer('id'));
         foreach ($pedido->productos()->get() as $producto) {
-            Cart::add($producto->id, $producto->nombre, $producto->pivot->cantidad, $producto->precio_final());
+            Cart::add($producto->id, $producto->nombre, $producto->pivot->cantidad, (float) $producto->precio_unitario_descontado());
         }
     }
 
@@ -300,10 +319,11 @@ class CarritoController extends Controller
             $relacion->pedido_id = $pedido->id;
             $relacion->producto_id = $item->id;
             $relacion->cantidad = $item->qty;
-            if ($producto->descuento) {
-                $relacion->descuento_producto = $producto->descuento;
-            } else {
-                $relacion->descuento_producto = 0;
+            // Con precio de oferta, ese precio es el final: sin descuento del producto ni del cliente en el renglón.
+            $conOferta = ! $producto->aplicaDescuentoCliente();
+            $relacion->descuento_producto = ! $conOferta && $producto->descuento ? $producto->descuento : 0;
+            if ($conOferta) {
+                $relacion->descuento_cliente = 0;
             }
 
             if ($producto->precio) {

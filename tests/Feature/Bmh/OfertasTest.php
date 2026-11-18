@@ -66,6 +66,7 @@ final class OfertasTest extends BaseTestCase
 
     protected function tearDown(): void
     {
+        DB::table('carritos_clientes')->where('user_id', 999999)->delete();
         DB::table('productos')->whereIn('id', $this->productos)->delete();
         DB::table('categorias')->where('id', $this->categoria)->delete();
         config(['database.default' => $this->origDefault, 'database.connections.mysql' => $this->origMysql]);
@@ -163,9 +164,16 @@ final class OfertasTest extends BaseTestCase
 
         $this->actingAs($this->cliente(), 'web');
         $this->assertEquals(800, $a->precio());
-        // Antes: lista con el 10% del cliente; ahora: oferta con el mismo 10%.
-        $this->assertEqualsWithDelta(900.0, $a->precioClienteSinOferta(), 0.001);
-        $this->assertEqualsWithDelta(720.0, $a->precio_unitario_descontado(), 0.001);
+        // El precio de oferta es el final: no se le resta el 10% del cliente (BMH, 18/11/2026).
+        $this->assertFalse($a->aplicaDescuentoCliente());
+        $this->assertEqualsWithDelta(800.0, $a->precio_unitario_descontado(), 0.001);
+        $this->assertEqualsWithDelta(750.0, $b->precio_unitario_descontado(), 0.001);
+        // Sin oferta con precio, el 10% del cliente sigue.
+        $c = Producto::findOrFail($this->productos['C']);
+        DB::table('productos')->where('id', $c->id)->update(['precio' => 1000]);
+        $c->refresh();
+        $this->assertTrue($c->aplicaDescuentoCliente());
+        $this->assertEqualsWithDelta(900.0, $c->precio_unitario_descontado(), 0.001);
     }
 
     public function test_la_tarjeta_del_cliente_muestra_el_precio_de_antes_y_el_de_ahora(): void
@@ -177,17 +185,31 @@ final class OfertasTest extends BaseTestCase
 
         $this->assertStringContainsString('Precio de oferta', $html);
         $this->assertStringContainsString('−20%', $html);
-        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__ahora">\$720,00#', $html);
-        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__antes">.*\$900,00#s', $html);
-        $this->assertStringContainsString('Ahorrás $180,00 por unidad', $html);
+        // Oferta 800 final (sin el 10% del cliente) y tachado el precio de lista; sin el texto de «Ahorrás».
+        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__ahora">\$800,00#', $html);
+        $this->assertMatchesRegularExpression('#pbmh-oferta-precio__antes">.*\$1\.000,00#s', $html);
+        $this->assertStringNotContainsString('Ahorrás', $html);
 
         // Zona pública (sin sesión): ni precio de antes y de ahora ni porcentaje; sólo la etiqueta «Oferta».
         auth('web')->logout();
         $publico = $this->get(route('ofertas', ['categoria' => $this->categoria]))->getContent();
         $this->assertStringNotContainsString('Precio de oferta', $publico);
         $this->assertStringNotContainsString('−20%', $publico);
-        $this->assertStringNotContainsString('$720,00', $publico);
+        $this->assertStringNotContainsString('$800,00', $publico);
         $this->assertStringContainsString('pbmh-card--oferta', $publico);
+    }
+
+    public function test_el_carrito_cobra_el_precio_de_oferta_sin_el_descuento_del_cliente(): void
+    {
+        DB::table('productos')->where('id', $this->productos['B'])->update(['precio' => 96759, 'oferta_tipo' => 'precio', 'oferta_valor' => 66000]);
+        DB::table('productos')->where('id', $this->productos['C'])->update(['precio' => 1000]);
+
+        $agregar = fn (string $letra) => $this->actingAs($this->cliente(), 'web')
+            ->postJson(route('carrito.agregar'), ['producto_id' => $this->productos[$letra], 'qty' => 1])->assertOk()->json();
+        $precio = fn (array $carrito, string $letra) => collect($carrito)->firstWhere('id', $this->productos[$letra])['price'];
+
+        $this->assertEquals(66000, $precio($agregar('B'), 'B'));
+        $this->assertEquals(900, $precio($agregar('C'), 'C'), 'sin oferta, con el 10% del cliente');
     }
 
     /**

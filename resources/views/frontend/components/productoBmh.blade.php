@@ -12,11 +12,11 @@
     $descuentoCliente = $clienteLogueado ? (float) ($cliente->descuento ?? 0) : 0;
     $precioListaF = number_format($producto->precio(), 2, ',', '.');
     $precioConDescF = number_format($producto->precio_unitario_descontado(), 2, ',', '.');
-    // Oferta con descuento (sólo clientes con sesión): el precio de antes (lo que pagaba sin la oferta, con sus
-    // descuentos) y el de ahora (el mismo cálculo sobre el precio de oferta).
+    // Oferta con descuento (sólo clientes con sesión): tachado el precio de lista y destacado el de oferta, que es el
+    // precio final (no se le resta el descuento del cliente).
     $ofertaConPrecio = $clienteLogueado && $producto->ofertaAplicaPrecio();
-    $precioAntes = $ofertaConPrecio ? $producto->precioClienteSinOferta() : null;
-    $precioAhora = $ofertaConPrecio ? $producto->precio_unitario_descontado() : null;
+    $precioAntes = $ofertaConPrecio ? $producto->precioLista() : null;
+    $precioAhora = $ofertaConPrecio ? $producto->precioOferta() : null;
     // El margen de reventa del cliente se aplica sobre su costo (el precio con
     // su descuento), no sobre el de lista: sin margen cargado, es su costo.
     $precioReventaF = $clienteLogueado ? $producto->precio_reventa() : $precioListaF;
@@ -74,7 +74,7 @@
             @if ($clienteLogueado)
                 <div class="pbmh-precios">
                     @if ($ofertaConPrecio)
-                        {{-- Oferta: antes tachado, ahora destacado y cuánto ahorra. Con «ocultar precios» no se ve. --}}
+                        {{-- Oferta: lista tachado y oferta destacado. Con «ocultar precios» no se ve. --}}
                         <div class="pbmh-oferta-precio" data-sensitive-fields>
                             <div class="pbmh-oferta-precio__cabeza">
                                 <span class="pbmh-oferta-precio__titulo">Precio de oferta</span>
@@ -82,11 +82,8 @@
                             </div>
                             <div class="pbmh-oferta-precio__valores">
                                 <span class="pbmh-oferta-precio__ahora">${{ number_format($precioAhora, 2, ',', '.') }}</span>
-                                <del class="pbmh-oferta-precio__antes"><span class="visually-hidden">Antes: </span>${{ number_format($precioAntes, 2, ',', '.') }}</del>
+                                <del class="pbmh-oferta-precio__antes"><span class="visually-hidden">Precio de lista: </span>${{ number_format($precioAntes, 2, ',', '.') }}</del>
                             </div>
-                            <p class="pbmh-oferta-precio__ahorro">
-                                Ahorrás ${{ number_format(max(0, $precioAntes - $precioAhora), 2, ',', '.') }} por unidad{{ $descuentoCliente > 0 ? ' · incluye tu descuento del '.($descuentoCliente + 0).'%' : '' }}
-                            </p>
                         </div>
                     @else
                     <div class="pbmh-precio-fila" data-sensitive-fields>

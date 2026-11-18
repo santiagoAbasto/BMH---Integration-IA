@@ -54,6 +54,9 @@ Migraciones nuevas del rediseño (todas aditivas, con guards):
 - `2026_11_17_000008_anuncio_como_imagen` — el anuncio pasa a ser una imagen: agrega `imagen`, `ancho`, `alto` y
   `texto_alternativo` a `anuncios` y saca la imagen base64 del `contenido` a `public/imagenes/anuncio-*.png`
   (archivo nuevo, no pisa ninguno). `contenido` queda como estaba.
+- `2026_11_18_000001_descuento_cliente_por_renglon` — `pedido_producto.descuento_cliente` (nullable). Los renglones
+  con precio de oferta guardan 0: la oferta es el precio final, sin el descuento del cliente. NULL = el del pedido
+  (todos los pedidos de antes). **Tiene que correr antes de subir el código** (Pedido lee esa columna).
 - IA (de main, ya corrida en producción el 2026-11-16): `2026_11_16_000001_add_learning_to_ai_corrections_and_demo_accounts`
   sólo con `--database=mysql_ai --path=...`. No volver a correrla con `migrate` a secas.
 

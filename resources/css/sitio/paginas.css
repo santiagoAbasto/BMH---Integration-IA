@@ -627,13 +627,6 @@ a.bmh-contacto__valor:hover {
     font-variant-numeric: tabular-nums;
 }
 
-.pbmh-oferta-precio__ahorro {
-    margin: 0;
-    color: #3f8f1a;
-    font-size: 0.8125rem;
-    font-weight: 600;
-}
-
 /* Celulares de 320–380px: «PREDETERMINADO» entra entero achicando un poco el aire de los dos controles. */
 @media (max-width: 380px) {
     .catalogo__cabecera .catalogo__orden .desplegable__boton {

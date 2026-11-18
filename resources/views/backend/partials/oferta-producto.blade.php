@@ -1,6 +1,7 @@
 {{--
     Oferta del producto (crear y editar): sin oferta, para todos (sitio y Zona de Clientes) o sólo Zona de Clientes, y
-    el descuento opcional de la oferta: % sobre el precio de lista o precio de oferta. Viaja como `oferta`
+    el descuento opcional de la oferta: % sobre el precio de lista o precio de oferta (el precio final: sin el descuento
+    del cliente). Viaja como `oferta`
     ('' | publica | clientes), `oferta_tipo` (porcentaje | precio) y `oferta_valor`. La vista previa lee el precio de
     lista del mismo formulario (#precio).
 
@@ -48,7 +49,7 @@
         @enderror
         <p class="adm-oferta__previa" id="oferta-previa" data-oferta-previa aria-live="polite"></p>
     </div>
-    <p class="producto-oferta-ayuda" id="oferta-ayuda">El descuento se aplica sobre el precio de lista y sólo lo ven los clientes con sesión; los descuentos de cada cliente se suman igual. Sin descuento, el producto se muestra en Ofertas con su precio de siempre.</p>
+    <p class="producto-oferta-ayuda" id="oferta-ayuda">El precio de oferta es el precio final: no se le resta el descuento de cada cliente. Sólo lo ven los clientes con sesión. Sin descuento, el producto se muestra en Ofertas con su precio de siempre.</p>
 </fieldset>
 
 <script>
@@ -89,7 +90,7 @@
             previa.classList.toggle('is-error', malo);
             previa.textContent = malo
                 ? (tipo === 'precio' ? 'El precio de oferta tiene que ser menor que el de lista (' + pesos(base) + ').' : 'El descuento tiene que ser menor que 100%.')
-                : 'Lista ' + pesos(base) + ' → en oferta ' + pesos(oferta) + ' (−' + porcentaje + '%).';
+                : 'Los clientes pagan ' + pesos(oferta) + ' y ven tachado el precio de lista, ' + pesos(base) + ' (−' + porcentaje + '%).';
         };
 
         caja.addEventListener('change', actualizar);

@@ -357,7 +357,7 @@
                                         <div class="d-flex" style="width: 250px;">
                                             <div class="col-lg-8">
                                                 <span>
-                                                    Precio Lista:
+                                                    {{ $producto->ofertaAplicaPrecio() ? 'Precio de oferta:' : 'Precio Lista:' }}
                                                 </span>
                             
                                             </div>
@@ -369,7 +369,7 @@
                                             </div>
                             
                                         </div>
-                                        @if ($producto->descuento > 0)
+                                        @if ($producto->descuento > 0 && $producto->aplicaDescuentoCliente())
                                             <div class="d-flex" style=" width: 250px;">
                                                 <div class="col-lg-8">
                                                     <span>
@@ -404,7 +404,7 @@
                                             </div>
                                         @endif
                             
-                                        @if (Auth::guard('web')->user()->descuento > 0)
+                                        @if (Auth::guard('web')->user()->descuento > 0 && $producto->aplicaDescuentoCliente())
                                             <div class="d-flex" style=" width: 250px;">
                                                 <div class="col-lg-8">
                                                     <span>

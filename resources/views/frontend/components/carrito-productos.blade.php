@@ -70,8 +70,9 @@ background: #EBEBEB !important; height: 60px !important;">
                     </td>
 
                     @if (Auth::guard('web')->user()->descuento > 0)
+                        {{-- El precio de oferta es final: no lleva el descuento del cliente. --}}
                         <td class="descuentoTexto" style="padding-top: 25px; text-align: end !important">
-                            -{{ Auth::guard('web')->user()->descuento }}%
+                            {{ $producto->aplicaDescuentoCliente() ? '-'.Auth::guard('web')->user()->descuento.'%' : 'Oferta' }}
 
                         </td>
                     @endif

@@ -357,19 +357,37 @@ class Producto extends Model
         return $lista > 0 ? (int) round((1 - $oferta / $lista) * 100) : null;
     }
 
-    /** Lo que pagaría el cliente sin la oferta (lista con el descuento del producto y el suyo): el «antes». */
-    public function precioClienteSinOferta(): float
+    /**
+     * Lo que paga el cliente por unidad, sin IVA. Con oferta con precio es el precio de oferta tal cual: es el precio
+     * final, no se le restan el descuento del producto ni el del cliente (BMH, 18/11/2026: «lista 96.759, oferta
+     * 66.000 final»). Sin oferta: lista × (1 − descuento del producto) × (1 − descuento del cliente).
+     */
+    public function precioCliente(): float
     {
+        if ($this->ofertaAplicaPrecio()) {
+            return (float) $this->precioOferta();
+        }
+
         $precio = $this->precioLista() * (1 - floatval($this->descuento) / 100);
         if (Auth::guard('web')->check()) {
-            $precio *= 1 - (Auth::guard('web')->user()->descuento / 100);
+            $precio *= 1 - (floatval(Auth::guard('web')->user()->descuento) / 100);
         }
 
         return $precio;
     }
 
+    /** ¿Se le resta el descuento del cliente? No en los productos con precio de oferta (ese precio es el final). */
+    public function aplicaDescuentoCliente(): bool
+    {
+        return ! $this->ofertaAplicaPrecio();
+    }
+
     public function precio_final()
     {
+        if ($this->ofertaAplicaPrecio()) {
+            return (float) $this->precioOferta();
+        }
+
         $precioConPorcentaje = $this->precio();
     
         if ($this->descuento) {
@@ -385,43 +403,17 @@ class Producto extends Model
     }
 
     public function precio_unitario_descontado(){
-        $precio = $this->precio() * (1 - (floatval($this->descuento) / 100));
-        if(Auth::guard('web')->check()){
-            $precio = $precio * (1 - (Auth::guard('web')->user()->descuento / 100));
-        }
-        return $precio;
+        return $this->precioCliente();
     }
 
     public function precio_unitario_descontado_format(){
-
-
-        if($this->descuento > 0){
-            $precio_final = $this->precio() * (1 - ($this->descuento / 100));       
-            
-        }else{
-            $precio_final = $this->precio();
-        }
-
-
-        
-        if(Auth::guard('web')->user()->descuento > 0){
-            
-            $precio_final = $this->precio() * (1 - (Auth::guard('web')->user()->descuento / 100));       
-
-        }
-        
-
-        return number_format($precio_final, 2, ',', '.');
+        return number_format($this->precioCliente(), 2, ',', '.');
     }
 
 
     public function precio_reventa(){
 
-        $precio_neto = $this->precio() * (1 - (floatval($this->descuento) / 100));
-        if(Auth::guard('web')->check()){
-            $precio_neto = $precio_neto * (1 - (Auth::guard('web')->user()->descuento / 100));
-        }
-
+        $precio_neto = $this->precioCliente();
 
         $user = Auth::guard('web')->user();
         $margen = $user ? $user->margenReventaParaCategoria($this->categoria_id) : 0;
@@ -484,9 +476,7 @@ class Producto extends Model
     
     public function precio_neto(){
 
-        $precio_final = $this->precio() * (1 - ($this->descuento / 100));
-
-        return number_format($precio_final, 2, ',', '.');
+        return number_format($this->precio_final(), 2, ',', '.');
     }
     // public function precio_cliente(){
     //     $precio_final = $this->precio * (1 - ($this->descuento / 100));

@@ -66,14 +66,18 @@ class Pedido extends Model
                 $precioLista = (float) ($producto->precio() ?? 0); // pedidos sin el precio guardado
             }
             $descuentoProducto = (float) ($producto->pivot->descuento_producto ?? 0);
+            // Por renglón desde el 18/11/2026: 0 en los productos con precio de oferta (ese precio es el final).
+            // NULL (pedidos de antes) = el del pedido.
+            $descuentoRenglon = $producto->pivot->descuento_cliente;
+            $descuentoClienteRenglon = $descuentoRenglon === null ? $descuentoCliente : (float) $descuentoRenglon;
             $cantidad = (int) ($producto->pivot->cantidad ?? 0);
-            $precioNeto = $precioLista * (1 - $descuentoProducto / 100) * (1 - $descuentoCliente / 100);
+            $precioNeto = $precioLista * (1 - $descuentoProducto / 100) * (1 - $descuentoClienteRenglon / 100);
 
             return (object) [
                 'producto' => $producto,
                 'precio_lista' => $precioLista,
                 'descuento_producto' => $descuentoProducto,
-                'descuento_cliente' => $descuentoCliente,
+                'descuento_cliente' => $descuentoClienteRenglon,
                 'precio_neto' => $precioNeto,
                 'cantidad' => $cantidad,
                 'subtotal' => $precioNeto * $cantidad,
@@ -145,6 +149,6 @@ class Pedido extends Model
     }
 
     public function productos(){
-        return $this->belongsToMany('App\Models\Producto')->withPivot('id', 'cantidad', 'descuento_producto', 'precio_unitario', 'precio_descontado');
+        return $this->belongsToMany('App\Models\Producto')->withPivot('id', 'cantidad', 'descuento_producto', 'descuento_cliente', 'precio_unitario', 'precio_descontado');
     }
 }

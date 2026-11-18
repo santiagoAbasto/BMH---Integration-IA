@@ -55,6 +55,7 @@ final class PedidoTotalesTest extends TestCase
             $t->string('precio_unitario');
             $t->string('precio_descontado');
             $t->string('descuento_producto');
+            $t->decimal('descuento_cliente', 5, 2)->nullable();
             $t->timestamps();
         });
         Schema::create('impuestos', function (Blueprint $t): void {
@@ -117,5 +118,20 @@ final class PedidoTotalesTest extends TestCase
 
         $linea = Pedido::find(409)->lineas()->firstWhere('producto.id', 1111);
         $this->assertSame(58315.0, $linea->precio_lista);
+    }
+
+    public function test_un_renglon_con_precio_de_oferta_no_lleva_el_descuento_del_cliente(): void
+    {
+        // Como lo guarda realizar_pedido desde el 18/11/2026: el renglón en oferta con descuento_cliente 0.
+        DB::table('pedido_producto')->where('producto_id', 1111)->update(['precio_unitario' => '50000', 'descuento_cliente' => 0]);
+
+        $pedido = Pedido::find(409);
+        $oferta = $pedido->lineas()->firstWhere('producto.id', 1111);
+        $this->assertSame(0.0, $oferta->descuento_cliente);
+        $this->assertSame(50000.0, $oferta->precio_neto);
+        // El otro renglón (NULL) sigue con el 18% del pedido.
+        $this->assertSame(18.0, $pedido->lineas()->firstWhere('producto.id', 707)->descuento_cliente);
+        // 61210 × 18 × 0,82 + 50000
+        $this->assertEqualsWithDelta(953459.60, $pedido->subtotal(), 0.001);
     }
 }
