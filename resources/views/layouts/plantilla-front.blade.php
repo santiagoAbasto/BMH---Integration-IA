@@ -120,15 +120,11 @@ $cart = Cart::content();
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container h-100" style='position:relative;align-items:center !important;'>
     
-        @if(Auth::guard('web')->check() && !isset($zonaclientes))
+        {{-- El logo siempre lleva a la Home, también desde la Zona de Clientes (pedido del cliente, 18/11/2026). La sesión
+             sigue abierta: la Zona de Clientes está en el menú. --}}
         <a class="navbar-brand" href="{{route('home')}}">
           @include('layouts.partials.logos-header')
         </a>
-        @else
-        <a class="navbar-brand" href="{{route('productos.home')}}">
-          @include('layouts.partials.logos-header')
-        </a>
-        @endif
 
         {{-- El mismo buscador en el sitio y en la Zona de Clientes: los
              resultados (CatalogoController) muestran los precios a quien entró. --}}
