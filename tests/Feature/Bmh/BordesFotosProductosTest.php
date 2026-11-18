@@ -31,7 +31,7 @@ final class BordesFotosProductosTest extends TestCase
         DB::purge('sqlite_memoria');
         $this->dir = sys_get_temp_dir().'/bmh_bordes_'.uniqid();
         File::ensureDirectoryExists($this->dir);
-        config(['imagenes.directorio' => $this->dir]);
+        config(['imagenes.directorio' => $this->dir, 'imagenes.ajustes_bordes' => $this->dir.'/ajustes-bordes.json']);
 
         Schema::create('admins', function (Blueprint $t) {
             $t->id();
@@ -181,5 +181,55 @@ final class BordesFotosProductosTest extends TestCase
         $this->postJson(route('dashboard.imagenes.bordes'), ['accion' => 'emparejar']);
 
         $this->assertSame('media_i.png', DB::table('imagenes')->value('path'));
+    }
+
+    /** [ancho, alto] del producto (lo oscuro) en la foto emparejada, en % del lado. */
+    private function ocupa(string $foto): array
+    {
+        $img = imagecreatefromwebp($this->dir.'/'.$foto);
+        $w = imagesx($img);
+        $x0 = $w; $x1 = -1;
+        for ($x = 0; $x < $w; $x += 2) {
+            $c = imagecolorat($img, $x, intdiv(imagesy($img), 2));
+            if ((($c >> 16) & 0xFF) < 128) { $x0 = min($x0, $x); $x1 = max($x1, $x); }
+        }
+
+        return [round(($x1 - $x0) / $w * 100)];
+    }
+
+    public function test_el_margen_se_elige_en_la_biblioteca_y_cambia_el_nombre_y_el_tamano(): void
+    {
+        $id = $this->producto('ZZ8', $this->foto('media_j.png'));
+        $admin = $this->admin();
+
+        // De fábrica: 8% de cada lado, el producto ocupa el 84% y la foto se llama «-parejo.webp».
+        $this->actingAs($admin, 'admin')->post(route('producto.bordes', $id), ['accion' => 'emparejar']);
+        $this->assertSame('media_j-parejo.webp', DB::table('imagenes')->value('path'));
+        $this->assertEqualsWithDelta(84, $this->ocupa('media_j-parejo.webp')[0], 2);
+
+        $this->actingAs($admin, 'admin')->from(route('dashboard.imagenes'))
+            ->put(route('dashboard.imagenes.bordes.margen'), ['producto' => 15, 'categoria' => 20])->assertSessionHas('success');
+        $this->assertSame(['producto' => 15, 'categoria' => 20], \App\Services\Imagenes\AjustesBordes::actuales());
+
+        // «Rehacer con el margen nuevo»: otro nombre (el navegador no muestra la vieja) y la vieja se borra.
+        $r = $this->actingAs($admin, 'admin')->postJson(route('dashboard.imagenes.bordes'), ['accion' => 'rehacer'])->assertOk()->json();
+        $this->assertSame(1, $r['hechas']);
+        $this->assertSame('media_j-parejo-15.webp', DB::table('imagenes')->value('path'));
+        $this->assertSame('media_j-parejo-15.webp', DB::table('biblioteca_imagenes')->value('path'));
+        $this->assertEqualsWithDelta(70, $this->ocupa('media_j-parejo-15.webp')[0], 2);
+        $this->assertFileDoesNotExist($this->dir.'/media_j-parejo.webp');
+
+        // Ya está con el margen nuevo: no hay nada para rehacer. Y se puede volver a la original.
+        $this->assertSame(0, $this->actingAs($admin, 'admin')->postJson(route('dashboard.imagenes.bordes'), ['accion' => 'rehacer'])->json('hechas'));
+        $this->actingAs($admin, 'admin')->post(route('producto.bordes', $id), ['accion' => 'original']);
+        $this->assertSame('media_j.png', DB::table('imagenes')->value('path'));
+    }
+
+    public function test_el_margen_tiene_limites(): void
+    {
+        $this->actingAs($this->admin(), 'admin')
+            ->put(route('dashboard.imagenes.bordes.margen'), ['producto' => 40, 'categoria' => 1])
+            ->assertSessionHasErrors(['producto', 'categoria']);
+        $this->assertSame(\App\Services\Imagenes\AjustesBordes::DEFECTO, \App\Services\Imagenes\AjustesBordes::actuales());
     }
 }

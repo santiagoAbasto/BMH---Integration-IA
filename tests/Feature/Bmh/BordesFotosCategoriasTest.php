@@ -29,7 +29,7 @@ final class BordesFotosCategoriasTest extends TestCase
         DB::purge('sqlite_memoria');
         $this->dir = sys_get_temp_dir().'/bmh_bordes_cat_'.uniqid();
         File::ensureDirectoryExists($this->dir);
-        config(['imagenes.directorio' => $this->dir]);
+        config(['imagenes.directorio' => $this->dir, 'imagenes.ajustes_bordes' => $this->dir.'/ajustes-bordes.json']);
 
         Schema::create('admins', function (Blueprint $t) {
             $t->id();
@@ -105,5 +105,20 @@ final class BordesFotosCategoriasTest extends TestCase
         $this->post(route('categoria.bordes', $id), ['accion' => 'emparejar']);
         $this->post(route('categoria.bordes.todas'), ['accion' => 'emparejar']);
         $this->assertSame('media_c4.png', DB::table('categorias')->where('id', $id)->value('portada'));
+    }
+
+    public function test_con_otro_margen_se_rehacen(): void
+    {
+        $id = $this->categoria('media_c5.png');
+        $admin = $this->admin();
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes', $id), ['accion' => 'emparejar']);
+
+        \App\Services\Imagenes\AjustesBordes::guardar(['categoria' => 22]);
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes.todas'), ['accion' => 'rehacer'])->assertSessionHas('success');
+
+        $this->assertSame('media_c5-parejo-22.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+        $this->assertFileDoesNotExist($this->dir.'/media_c5-parejo.webp');
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes', $id), ['accion' => 'original']);
+        $this->assertSame('media_c5.png', DB::table('categorias')->where('id', $id)->value('portada'));
     }
 }

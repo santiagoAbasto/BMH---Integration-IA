@@ -31,6 +31,10 @@ final class FotosParejas
         $pareja = $this->emparejar->emparejar($nombre, $perfil);
         if ($pareja !== $nombre) {
             $this->mover($nombre, $pareja);
+            // Rehecha con otro margen: la emparejada anterior ya no la usa nadie (la original sí queda siempre).
+            if (EmparejarBordes::esPareja($nombre)) {
+                $this->borrarSiNoSeUsa($nombre);
+            }
         }
 
         return $pareja;
@@ -43,6 +47,14 @@ final class FotosParejas
         $this->mover($pareja, $original);
 
         return $original;
+    }
+
+    private function borrarSiNoSeUsa(string $nombre): void
+    {
+        $this->columnas ??= array_values(array_diff($this->referencias->columnasConReferencias(), self::NO_SON_USOS));
+        if (array_sum($this->referencias->de($nombre, $this->columnas)['exactas']) === 0) {
+            @unlink(rtrim((string) config('imagenes.directorio'), '/\\').DIRECTORY_SEPARATOR.basename($nombre));
+        }
     }
 
     private function mover(string $de, string $a): void

@@ -193,6 +193,7 @@ Route::middleware('admin')->group(function () {
     Route::delete('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'destroy'])->name('dashboard.imagenes.destroy');
     // Emparejar bordes de las fotos de productos (o volver a las originales): de un producto, o todas de a tandas.
     Route::post('dashboard/imagenes/bordes', [\App\Http\Controllers\BordesFotosController::class, 'lote'])->name('dashboard.imagenes.bordes');
+    Route::put('dashboard/imagenes/bordes/margen', [\App\Http\Controllers\BordesFotosController::class, 'ajustes'])->name('dashboard.imagenes.bordes.margen');
     Route::post('dashboard/productos/{producto}/bordes', [\App\Http\Controllers\BordesFotosController::class, 'producto'])->whereNumber('producto')->name('producto.bordes');
 
     Route::get('dashboard/productos/exportar-excel', [ExcelProductosController::class, 'exportar'])->name('dashboard.productos.exportar');

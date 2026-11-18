@@ -128,9 +128,14 @@
                     @if ($emparejadas < $conFoto->count())
                         <button type="submit" name="accion" value="emparejar" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Emparejar bordes de todas</button>
                     @endif
+                    @php($empareja = app(\App\Services\Imagenes\EmparejarBordes::class))
+                    @if ($conFoto->contains(fn ($c) => \App\Services\Imagenes\EmparejarBordes::esPareja($c->portada) && $empareja->nombrePara($c->portada, 'categoria') !== $c->portada))
+                        <button type="submit" name="accion" value="rehacer" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Rehacer con el margen nuevo</button>
+                    @endif
                     @if ($emparejadas > 0)
                         <button type="submit" name="accion" value="original" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Volver todas a las originales</button>
                     @endif
+                    <a href="{{ route('dashboard.imagenes') }}#bordes" class="btn btn-link btn-sm">Cambiar el margen</a>
                 </form>
             @endif
             {{-- <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-success"><i

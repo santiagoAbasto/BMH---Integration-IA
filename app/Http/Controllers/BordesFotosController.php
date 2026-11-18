@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Imagen;
 use App\Models\Producto;
+use App\Services\Imagenes\AjustesBordes;
 use App\Services\Imagenes\EmparejarBordes;
 use App\Services\Imagenes\FotosParejas;
 use App\Services\Imagenes\NoSePuedeEmparejar;
@@ -63,19 +64,21 @@ final class BordesFotosController extends Controller
     public function lote(Request $request, FotosParejas $fotos): JsonResponse
     {
         $datos = $request->validate([
-            'accion' => ['required', 'in:emparejar,original'],
+            'accion' => ['required', 'in:emparejar,original,rehacer'],
             'despues_de' => ['nullable', 'string', 'max:255'],
         ]);
         $volver = $datos['accion'] === 'original';
+        $rehacer = $datos['accion'] === 'rehacer';
         // Margen para la última foto de la tanda, si el servidor tiene un límite más corto (sin límite, no se toca).
         $limite = (int) ini_get('max_execution_time');
         if ($limite > 0 && $limite < self::SEGUNDOS_POR_TANDA * 4) {
             @set_time_limit(self::SEGUNDOS_POR_TANDA * 4);
         }
 
-        $pendientes = fn (): Builder => DB::table('imagenes')
-            ->where('sector', 'producto')->whereNotNull('path')->where('path', '!=', '')
-            ->where('path', $volver ? 'like' : 'not like', '%'.EmparejarBordes::SUFIJO);
+        // emparejar: las que no lo están; original: las emparejadas; rehacer: las emparejadas con otro margen.
+        $pendientes = fn (): Builder => self::fotos()
+            ->where('path', $volver || $rehacer ? 'like' : 'not like', self::EMPAREJADA)
+            ->when($rehacer, fn ($q) => $q->where('path', 'not like', '%'.self::sufijoActual()));
 
         $paths = $pendientes()
             ->when($datos['despues_de'] ?? null, fn ($q, $desde) => $q->where('path', '>', $desde))
@@ -117,14 +120,53 @@ final class BordesFotosController extends Controller
             ->limit(5)->pluck('productos.codigo')->filter()->values()->all();
     }
 
-    /** Cuántas fotos de productos hay y cuántas tienen los bordes emparejados (para la Biblioteca). */
+    /** Las emparejadas, con cualquier margen: «x-parejo.webp», «x-parejo-12.webp». */
+    private const EMPAREJADA = '%-parejo%.webp';
+
+    private static function fotos(): Builder
+    {
+        return DB::table('imagenes')->where('sector', 'producto')->whereNotNull('path')->where('path', '!=', '');
+    }
+
+    /** Cómo termina el nombre de una foto emparejada con el margen elegido ahora. */
+    private static function sufijoActual(): string
+    {
+        return substr((new EmparejarBordes())->nombrePara('x.png', EmparejarBordes::PRODUCTO), 1);
+    }
+
+    /** Cuántas fotos de productos hay, cuántas tienen los bordes emparejados y cuántas con otro margen (Biblioteca). */
     public static function resumen(): array
     {
-        $base = fn () => DB::table('imagenes')->where('sector', 'producto')->whereNotNull('path')->where('path', '!=', '');
-
         return [
-            'total' => $base()->distinct()->count('path'),
-            'emparejadas' => $base()->where('path', 'like', '%'.EmparejarBordes::SUFIJO)->distinct()->count('path'),
+            'total' => self::fotos()->distinct()->count('path'),
+            'emparejadas' => self::fotos()->where('path', 'like', self::EMPAREJADA)->distinct()->count('path'),
+            'con_otro_margen' => self::fotos()->where('path', 'like', self::EMPAREJADA)->where('path', 'not like', '%'.self::sufijoActual())->distinct()->count('path'),
+            'margenes' => AjustesBordes::actuales(),
+            'limites' => AjustesBordes::LIMITES,
+            'defecto' => AjustesBordes::DEFECTO,
         ];
+    }
+
+    /** Biblioteca › margen de «Emparejar bordes» (productos y categorías). */
+    public function ajustes(Request $request): RedirectResponse
+    {
+        [$pMin, $pMax] = AjustesBordes::LIMITES[AjustesBordes::PRODUCTO];
+        [$cMin, $cMax] = AjustesBordes::LIMITES[AjustesBordes::CATEGORIA];
+        $datos = $request->validate([
+            'producto' => ['required', 'integer', "between:{$pMin},{$pMax}"],
+            'categoria' => ['required', 'integer', "between:{$cMin},{$cMax}"],
+        ], [
+            'producto.between' => "El margen de las fotos de productos va de {$pMin}% a {$pMax}%.",
+            'categoria.between' => "El margen de las fotos de categorías va de {$cMin}% a {$cMax}%.",
+        ]);
+        $antes = AjustesBordes::actuales();
+        AjustesBordes::guardar(['producto' => (int) $datos['producto'], 'categoria' => (int) $datos['categoria']]);
+
+        $mensaje = 'Margen guardado. Se usa en las fotos que se emparejen desde ahora.';
+        if ($antes !== AjustesBordes::actuales()) {
+            $mensaje .= ' Las que ya estaban emparejadas siguen con el margen anterior: «Rehacer con el margen nuevo» las actualiza.';
+        }
+
+        return redirect()->to(url()->previous().'#bordes')->with('success', $mensaje);
     }
 }
