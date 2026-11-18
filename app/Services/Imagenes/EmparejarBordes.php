@@ -13,12 +13,13 @@ use RuntimeException;
  * Busca el producto sobre el fondo (el fondo se estima con los colores de las cuatro esquinas: sirve para fondos
  * lisos y con degradé), lo centra en un cuadrado con el tamaño del perfil y completa alrededor estirando el borde de
  * la propia foto, así el fondo sigue igual. La foto original no se toca: el resultado es otro archivo,
- * «{nombre}-parejo.webp», y se puede volver a la original (original()).
+ * «{nombre}-parejo.webp» (con el margen de fábrica) o «{nombre}-parejo-{margen}.webp» (con otro margen: así, al
+ * cambiar el margen, el navegador no muestra la foto vieja que tenía guardada), y se puede volver a la original.
  *
- * Perfiles:
- *  - producto: la ficha muestra la foto entera en un cuadrado; el producto ocupa el 84% del lado más largo.
+ * Perfiles (el margen de cada uno se elige en la Biblioteca de imágenes, ver AjustesBordes):
+ *  - producto: la ficha muestra la foto entera en un cuadrado; de fábrica, 8% de aire a cada lado.
  *  - categoria: la tarjeta recorta la foto a 5:4; el producto queda dentro de la zona que se ve, con el mismo «peso»
- *    (superficie) en todas.
+ *    (superficie) en todas; de fábrica, 16% de aire a cada lado.
  *
  * No se empareja (y se dice por qué) si el fondo no es liso (una escena: las esquinas de un mismo lado son de colores
  * distintos) o si el producto ya llena toda la foto.
@@ -31,17 +32,37 @@ final class EmparejarBordes
 
     public const SUFIJO = '-parejo.webp';
 
+    /** «x-parejo.webp» o «x-parejo-12.webp». */
+    private const PATRON = '/-parejo(?:-\d{1,2})?\.webp$/';
+
     private const ANALISIS = 320;
 
     private const EXTENSIONES = ['webp', 'png', 'jpg', 'jpeg'];
 
-    public function __construct(private readonly ?string $directorio = null)
+    /** @param int|null $margen % de aire a cada lado; null = el elegido en la Biblioteca (AjustesBordes) */
+    public function __construct(private readonly ?string $directorio = null, private readonly ?int $margen = null)
     {
     }
 
     public static function esPareja(string $nombre): bool
     {
-        return str_ends_with($nombre, self::SUFIJO);
+        return preg_match(self::PATRON, $nombre) === 1;
+    }
+
+    /** El nombre que tendría la foto emparejada con el margen actual (sin procesar nada). */
+    public function nombrePara(string $nombre, string $perfil): string
+    {
+        $base = preg_replace(self::PATRON, '', basename($nombre));
+        $base = self::esPareja(basename($nombre)) ? $base : pathinfo(basename($nombre), PATHINFO_FILENAME);
+        $margen = $this->margen($perfil);
+        $defecto = AjustesBordes::DEFECTO[$perfil === self::CATEGORIA ? AjustesBordes::CATEGORIA : AjustesBordes::PRODUCTO];
+
+        return $base.($margen === $defecto ? self::SUFIJO : '-parejo-'.$margen.'.webp');
+    }
+
+    private function margen(string $perfil): int
+    {
+        return $this->margen ?? AjustesBordes::margen($perfil === self::CATEGORIA ? AjustesBordes::CATEGORIA : AjustesBordes::PRODUCTO);
     }
 
     /**
@@ -70,7 +91,7 @@ final class EmparejarBordes
             imagedestroy($imagen);
         }
 
-        $destino = pathinfo($origen, PATHINFO_FILENAME).self::SUFIJO;
+        $destino = $this->nombrePara($origen, $perfil);
         try {
             if (! imagewebp($lienzo, $this->ruta($destino), 88)) {
                 throw new RuntimeException('No se pudo guardar la foto emparejada.');
@@ -88,7 +109,7 @@ final class EmparejarBordes
         if (! self::esPareja($pareja)) {
             return null;
         }
-        $base = substr(basename($pareja), 0, -strlen(self::SUFIJO));
+        $base = preg_replace(self::PATRON, '', basename($pareja));
         foreach (self::EXTENSIONES as $extension) {
             if (is_file($this->ruta($base.'.'.$extension))) {
                 return $base.'.'.$extension;
@@ -107,9 +128,20 @@ final class EmparejarBordes
     public function familia(string $nombre): array
     {
         $nombre = basename($nombre);
-        $otra = self::esPareja($nombre) ? $this->original($nombre) : pathinfo($nombre, PATHINFO_FILENAME).self::SUFIJO;
+        $original = self::esPareja($nombre) ? $this->original($nombre) : $nombre;
+        $familia = [$nombre];
+        if ($original !== null) {
+            $familia[] = $original;
+            // Las emparejadas de esa original (con cualquier margen).
+            $base = pathinfo($original, PATHINFO_FILENAME);
+            foreach (glob($this->ruta(addcslashes($base, '*?[]').'-parejo*.webp')) ?: [] as $ruta) {
+                if (self::esPareja(basename($ruta))) {
+                    $familia[] = basename($ruta);
+                }
+            }
+        }
 
-        return array_values(array_filter([$nombre, $otra], fn (?string $n): bool => $n !== null && is_file($this->ruta($n))));
+        return array_values(array_unique(array_filter($familia, fn (string $n): bool => is_file($this->ruta($n)))));
     }
 
     // ------------------------------------------------------------------ composición
@@ -133,15 +165,19 @@ final class EmparejarBordes
 
         $costado = $toca['izq'] || $toca['der'];
         if ($perfil === self::CATEGORIA) {
+            // De fábrica (16% de margen): 68% de ancho y 54% de alto como máximo, y la misma superficie en todas.
+            $f = AjustesBordes::escalaCategoria($this->margen(self::CATEGORIA));
             $lado = 1080;
-            $s = min(($costado ? 0.99 : 0.68) * $lado / $bw, 0.54 * $lado / $bh);
+            $s = min(($costado ? 0.99 : 0.68 * $f) * $lado / $bw, 0.54 * $f * $lado / $bh);
             if (! $costado) {
-                $s = min($s, 0.52 * $lado / sqrt($bw * $bh));
+                $s = min($s, 0.52 * $f * $lado / sqrt($bw * $bh));
             }
         } else {
-            // Sin agrandar de más: el lado sale del tamaño del producto (entre 800 y 1400 px).
-            $lado = (int) max(800, min(1400, round(max($bw, $bh) / 0.84)));
-            $s = min(($costado ? 0.99 : 0.84) * $lado / $bw, 0.84 * $lado / $bh);
+            // El producto ocupa el lado menos el margen de cada costado (de fábrica, 8% → 84%). Sin agrandar de más:
+            // el lado sale del tamaño del producto (entre 800 y 1400 px).
+            $ocupa = (100 - 2 * $this->margen(self::PRODUCTO)) / 100;
+            $lado = (int) max(800, min(1400, round(max($bw, $bh) / $ocupa)));
+            $s = min(($costado ? 0.99 : $ocupa) * $lado / $bw, $ocupa * $lado / $bh);
         }
 
         $rw = max(1, (int) round($W * $s));

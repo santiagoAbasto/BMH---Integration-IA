@@ -57,7 +57,9 @@
         const LADO_MINIMO = 800;
         // Lo mismo que hace el servidor al guardar (App\Services\Imagenes\EmparejarBordes, perfil categoría), para que
         // la vista previa muestre el resultado.
-        const LADO = 1080, ANCHO_MAX = 0.68, ALTO_MAX = 0.54, SUPERFICIE = 0.52;
+        // Con el margen elegido en la Biblioteca de imágenes (AjustesBordes).
+        @php($f = \App\Services\Imagenes\AjustesBordes::escalaCategoria())
+        const LADO = 1080, ANCHO_MAX = {{ round(0.68 * $f, 4) }}, ALTO_MAX = {{ round(0.54 * $f, 4) }}, SUPERFICIE = {{ round(0.52 * $f, 4) }};
 
         const pesoTexto = (bytes) => (bytes / 1048576).toLocaleString('es-AR', { maximumFractionDigits: 1 }) + ' MB';
 

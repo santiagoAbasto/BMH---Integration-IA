@@ -44,7 +44,7 @@ final class ImagenCategoriaTest extends BaseTestCase
 
         $this->directorio = sys_get_temp_dir().'/bmh_categorias_'.uniqid();
         File::ensureDirectoryExists($this->directorio);
-        config(['imagenes.directorio' => $this->directorio]);
+        config(['imagenes.directorio' => $this->directorio, 'imagenes.ajustes_bordes' => $this->directorio.'/ajustes-bordes.json']);
     }
 
     protected function tearDown(): void
@@ -225,5 +225,24 @@ final class ImagenCategoriaTest extends BaseTestCase
         $this->post(route('categoria.bordes', $id), ['accion' => 'emparejar']);
         $this->post(route('categoria.bordes.todas'), ['accion' => 'emparejar']);
         $this->assertSame('media_zzprueba4.png', DB::table('categorias')->where('id', $id)->value('portada'));
+    }
+
+    public function test_con_otro_margen_se_rehacen_las_categorias(): void
+    {
+        $id = $this->categoria($this->foto('media_zzprueba5.png'));
+        $admin = $this->admin();
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes', $id), ['accion' => 'emparejar']);
+        $this->assertSame('media_zzprueba5-parejo.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+
+        \App\Services\Imagenes\AjustesBordes::guardar(['categoria' => 22]);
+        $this->actingAs($admin, 'admin')->get(route('dashboard.categorias'))->assertOk()->assertSee('Rehacer con el margen nuevo');
+
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes.todas'), ['accion' => 'rehacer'])->assertSessionHas('success');
+        $this->assertSame('media_zzprueba5-parejo-22.webp', DB::table('categorias')->where('id', $id)->value('portada'));
+        $this->assertFileDoesNotExist($this->directorio.'/media_zzprueba5-parejo.webp');
+
+        // Volver a la original encuentra la original aunque el nombre tenga el margen.
+        $this->actingAs($admin, 'admin')->post(route('categoria.bordes', $id), ['accion' => 'original']);
+        $this->assertSame('media_zzprueba5.png', DB::table('categorias')->where('id', $id)->value('portada'));
     }
 }

@@ -148,10 +148,16 @@ class CategoriaController extends Controller
     public function bordesDeTodas(Request $request, FotosParejas $fotos)
     {
         $volver = $request->input('accion') === 'original';
+        $rehacer = $request->input('accion') === 'rehacer';
+        $empareja = app(EmparejarBordes::class);
         $hechas = 0;
         $avisos = [];
         foreach (Categoria::query()->whereNotNull('portada')->where('portada', '!=', '')->orderBy('orden')->get() as $categoria) {
-            if ($volver !== EmparejarBordes::esPareja($categoria->portada)) {
+            $pareja = EmparejarBordes::esPareja($categoria->portada);
+            $yaEsta = $rehacer
+                ? ! $pareja || $empareja->nombrePara($categoria->portada, EmparejarBordes::CATEGORIA) === $categoria->portada
+                : $volver !== $pareja;
+            if ($yaEsta) {
                 continue; // ya está como se pidió
             }
             try {
@@ -162,9 +168,11 @@ class CategoriaController extends Controller
             }
         }
 
-        $mensaje = $volver
-            ? ($hechas === 1 ? 'Volvió a la original 1 foto.' : "Volvieron a la original {$hechas} fotos.")
-            : ($hechas === 1 ? 'Se emparejaron los bordes de 1 foto.' : "Se emparejaron los bordes de {$hechas} fotos.");
+        $mensaje = match (true) {
+            $volver => $hechas === 1 ? 'Volvió a la original 1 foto.' : "Volvieron a la original {$hechas} fotos.",
+            $rehacer => $hechas === 1 ? 'Se rehízo 1 foto con el margen nuevo.' : "Se rehicieron {$hechas} fotos con el margen nuevo.",
+            default => $hechas === 1 ? 'Se emparejaron los bordes de 1 foto.' : "Se emparejaron los bordes de {$hechas} fotos.",
+        };
 
         $respuesta = redirect()->back()->with('success', $mensaje);
 
