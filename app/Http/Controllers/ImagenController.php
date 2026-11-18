@@ -50,8 +50,15 @@ class ImagenController extends Controller
     }
 
     public function delete(Request $request){
-        $imagen = Imagen::find($request->id);
-        File::delete(public_path('imagenes/'.$imagen->path));
+        $imagen = Imagen::findOrFail($request->id);
+        $archivos = $imagen->sector === 'producto' && filled($imagen->path)
+            ? app(\App\Services\Imagenes\EmparejarBordes::class)->familia($imagen->path)
+            : [$imagen->path];
+        foreach ($archivos as $archivo) {
+            if (! Imagen::query()->where('path', $archivo)->whereKeyNot($imagen->id)->exists()) {
+                File::delete(public_path('imagenes/'.$archivo));
+            }
+        }
         if ($imagen->path_mobile) {
             File::delete(public_path('imagenes/'.$imagen->path_mobile));
         }

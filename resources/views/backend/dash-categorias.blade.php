@@ -117,6 +117,22 @@
 
     <div class="card">
         <div class="card-header">
+            {{-- Emparejar bordes de todas las fotos (o volver a las originales): el producto centrado y del mismo tamaño en
+                 todas. Las originales quedan guardadas. --}}
+            @php($conFoto = $categorias->filter(fn ($c) => filled($c->portada)))
+            @php($emparejadas = $conFoto->filter(fn ($c) => \App\Services\Imagenes\EmparejarBordes::esPareja($c->portada))->count())
+            @if ($conFoto->isNotEmpty())
+                <form method="POST" action="{{ route('categoria.bordes.todas') }}" class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                    @csrf
+                    <span class="small text-muted me-1">Fotos: {{ $emparejadas }} de {{ $conFoto->count() }} con los bordes emparejados</span>
+                    @if ($emparejadas < $conFoto->count())
+                        <button type="submit" name="accion" value="emparejar" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Emparejar bordes de todas</button>
+                    @endif
+                    @if ($emparejadas > 0)
+                        <button type="submit" name="accion" value="original" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Volver todas a las originales</button>
+                    @endif
+                </form>
+            @endif
             {{-- <button data-bs-toggle="modal" data-bs-target="#crear" type="button" class="btn btn-success"><i
                     class="fa-solid fa-plus"></i> CREAR</button> --}}
 
@@ -309,6 +325,7 @@
                                                 class='recomendada'>(recomendada 260x260 px)</span></label>
                                         <input class="form-control preview" type="file" id="imagen" name='portada'
                                             accept="image/*" required>
+                                        @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-cat-crear'])
                                     </div>
 
                                 </div>
@@ -623,6 +640,19 @@
                                             class='recomendada'>(recomendada 260x260 px)</span></label>
                                     <input class="form-control preview" data-form-id="{{ 'imagen' . $categoria->id }}"
                                         type="file" id="imagen" name='portada' accept="image/*">
+                                    @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-cat-'.$categoria->id])
+                                    @if ($categoria->portada)
+                                        {{-- La foto guardada: emparejar o volver a la original (formulario aparte, abajo). --}}
+                                        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mt-2">
+                                            <span class="small">Foto guardada:
+                                                {{ \App\Services\Imagenes\EmparejarBordes::esPareja($categoria->portada) ? 'con los bordes emparejados' : 'tal como se subió' }}</span>
+                                            @if (\App\Services\Imagenes\EmparejarBordes::esPareja($categoria->portada))
+                                                <button type="submit" form="bordes-{{ $categoria->id }}" name="accion" value="original" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Volver a la original</button>
+                                            @else
+                                                <button type="submit" form="bordes-{{ $categoria->id }}" name="accion" value="emparejar" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Emparejar bordes</button>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class='d-flex justify-content-center' style='max-height:50vh;'>
                                     <img id="{{ 'imagen' . $categoria->id }}"
@@ -633,6 +663,9 @@
 
                             </div>
                         </form>
+                        @if ($categoria->portada)
+                            <form id="bordes-{{ $categoria->id }}" method="POST" action="{{ route('categoria.bordes', $categoria) }}" hidden>@csrf</form>
+                        @endif
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

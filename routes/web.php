@@ -110,6 +110,9 @@ Route::controller(CategoriaController::class)->group(function () {
         Route::post('dashboard/categoria-destacada', 'actualizarDestacado')->name('categoria.destacada');
         Route::get('dashboard/categoria/{id}', 'show')->name('categoria.show');
         Route::post('dashboard/categoria/actualizar-porcentaje', 'actualizarPorcentaje')->name('categoria.actualizarPorcentaje');
+        // Emparejar los bordes de las fotos (y volver a la original): de una categoría o de todas.
+        Route::post('dashboard/categorias/bordes', 'bordesDeTodas')->name('categoria.bordes.todas');
+        Route::post('dashboard/categorias/{categoria}/bordes', 'bordes')->whereNumber('categoria')->name('categoria.bordes');
     });
 
 });
@@ -188,6 +191,9 @@ Route::middleware('admin')->group(function () {
     Route::post('dashboard/imagenes', [BibliotecaImagenesController::class, 'store'])->name('dashboard.imagenes.store');
     Route::patch('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'update'])->name('dashboard.imagenes.update');
     Route::delete('dashboard/imagenes/{imagen}', [BibliotecaImagenesController::class, 'destroy'])->name('dashboard.imagenes.destroy');
+    // Emparejar bordes de las fotos de productos (o volver a las originales): de un producto, o todas de a tandas.
+    Route::post('dashboard/imagenes/bordes', [\App\Http\Controllers\BordesFotosController::class, 'lote'])->name('dashboard.imagenes.bordes');
+    Route::post('dashboard/productos/{producto}/bordes', [\App\Http\Controllers\BordesFotosController::class, 'producto'])->whereNumber('producto')->name('producto.bordes');
 
     Route::get('dashboard/productos/exportar-excel', [ExcelProductosController::class, 'exportar'])->name('dashboard.productos.exportar');
     Route::get('dashboard/productos/importar-excel', [ExcelProductosController::class, 'importar'])->name('dashboard.productos.excel.importar');

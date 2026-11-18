@@ -269,6 +269,7 @@
                         <label for="imagenes" class="form-label">Añadir imágenes @include('backend.partials.foto-sugerida')</label>
                         <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple data-achicar
                             accept="image/*">
+                        @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-editar'])
                     </div>
 
                     <div class="col-6 my-3">
@@ -281,6 +282,20 @@
 
             </form>
 
+            {{-- Emparejar bordes de todas las fotos del producto (o volver a las originales). --}}
+            @php($emparejadas = collect($imagenes)->filter(fn ($i) => \App\Services\Imagenes\EmparejarBordes::esPareja((string) $i->path))->count())
+            @if (count($imagenes) > 0)
+                <form method="POST" action="{{ route('producto.bordes', $producto) }}" class="d-flex align-items-center gap-2 flex-wrap my-3">
+                    @csrf
+                    <span class="small text-muted me-1">Fotos: {{ $emparejadas }} de {{ count($imagenes) }} con los bordes emparejados</span>
+                    @if ($emparejadas < count($imagenes))
+                        <button type="submit" name="accion" value="emparejar" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Emparejar bordes</button>
+                    @endif
+                    @if ($emparejadas > 0)
+                        <button type="submit" name="accion" value="original" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Volver a las originales</button>
+                    @endif
+                </form>
+            @endif
 
             <div class="row">
 
@@ -289,6 +304,9 @@
                         style='padding:10px;overflow:hidden;'>
                         @if ($imagen->tipo == 'portada')
                             <span class="badge bg-primary mb-2">Imagen principal</span>
+                        @endif
+                        @if (\App\Services\Imagenes\EmparejarBordes::esPareja((string) $imagen->path))
+                            <span class="badge bg-success mb-2">Bordes emparejados</span>
                         @endif
                         <div class='d-flex justify-content-center'>
                             <img src="{{ asset('imagenes/' . $imagen->path) }}" class="img-fluid"
@@ -311,6 +329,16 @@
                                     data-bs-toggle="modal" data-bs-target="{{ '#editar' . $imagen->id }}">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </div>
+                                {{-- Emparejar los bordes de esta foto, o volver a la original. --}}
+                                <form action="{{ route('producto.bordes', $producto) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="imagen" value="{{ $imagen->id }}">
+                                    @if (\App\Services\Imagenes\EmparejarBordes::esPareja((string) $imagen->path))
+                                        <button type="submit" name="accion" value="original" class="btn btn-secondary btn-sm me-2" title="Volver a la original" aria-label="Volver a la foto original"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+                                    @else
+                                        <button type="submit" name="accion" value="emparejar" class="btn btn-info btn-sm me-2" title="Emparejar bordes" aria-label="Emparejar bordes de esta foto"><i class="fa-solid fa-border-all" aria-hidden="true"></i></button>
+                                    @endif
+                                </form>
                                 @if ($imagen->tipo != 'portada' && count($imagenes) > 1)
                                     <form action="{{ route('imagen.delete', ['id' => $imagen->id]) }}" method="POST">
                                         @csrf
@@ -357,6 +385,7 @@
                                                 <input class="form-control preview"
                                                     data-form-id="{{ 'imagen' . $imagen->id }}" type="file"
                                                     id="imagen" name='imagen' accept="image/*" data-achicar>
+                                                @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-imagen-'.$imagen->id])
                                             </div>
                                             <div class="mb-3 col-3">
                                                 <label for="orden" class="form-label">Orden</label>

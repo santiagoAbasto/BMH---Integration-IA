@@ -217,6 +217,7 @@
                 <div class="col-6 my-4">
                     <label for="imagenes" class="form-label">Añadir imágenes @include('backend.partials.foto-sugerida')</label>
                     <input class="form-control limit" type="file" id="imagenes" name="imagenes[]" multiple accept="image/*" data-achicar>
+                    @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-crear'])
                 </div>
                 {{-- <div class="col-6 my-4">
                     <label for="imagenes" class="form-label">Añadir ficha tecnica </label>

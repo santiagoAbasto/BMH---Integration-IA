@@ -39,6 +39,8 @@
         <li class="bi-paso"><div><strong>Revisá el resultado</strong><span>Lo que necesite atención queda arriba, en rojo o amarillo, para corregirlo ahí mismo.</span></div></li>
     </ol>
 
+    @include('backend.partials.bordes-todas-las-fotos', ['bordes' => $bordes])
+
     {{-- Subida --}}
     <section class="bi-card" aria-labelledby="titulo-subir">
         <div class="bi-card-cuerpo">
@@ -60,6 +62,7 @@
                         <li class="is-error"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i><span>Si <strong>no hay un producto</strong> con ese código, te avisa y lo corregís con el lápiz: al guardar, se asigna.</span></li>
                         <li class="is-aviso"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Si <strong>ya hay una foto</strong> con ese código, no pisa nada: te pregunta si reemplazarla o agregarla como otra foto.</span></li>
                     </ul>
+                    @include('backend.partials.emparejar-bordes-casilla', ['id' => 'emparejar-biblioteca'])
                 </div>
             </div>
 
@@ -290,5 +293,5 @@
             data-lado-maximo="{{ (int) config('imagenes.lado_maximo', 2000) }}"
             data-lado-sugerido="{{ $ladoSugerido }}"
             data-lado-minimo="{{ (int) config('imagenes.tamano_sugerido.minimo', 800) }}"></script>
-    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=3"></script>
+    <script src="{{ asset('js/biblioteca-imagenes.js') }}?v=4"></script>
 @endsection
