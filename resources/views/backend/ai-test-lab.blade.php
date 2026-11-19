@@ -97,7 +97,7 @@
     <div>
       <p class="ait-eyebrow">Laboratorio interno</p>
       <h1>Pruebas del asesor IA</h1>
-      <p class="ait-intro">Probá casos reales, compará la respuesta con el banco de preguntas técnicas y dejá una evaluación. Cada prueba queda separada de las conversaciones de clientes.</p>
+      <p class="ait-intro">Probá casos reales, compará la respuesta con el banco de preguntas técnicas y dejá una evaluación. Cada prueba queda separada de las conversaciones de clientes. ¿Querés <strong>enseñarle</strong> algo —un código, un término o una regla—? Eso va en <a href="{{ route('admin.ai-learning.index') }}">Aprendizaje IA</a>.</p>
     </div>
     <span class="ait-badge"><span class="ait-dot"></span>{{ $provider['provider'] ?? 'mock' }} · {{ $provider['mode'] ?? 'MOCK' }} · banco {{ $questionBankVersion }}</span>
   </header>
