@@ -306,7 +306,7 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
             messageId: number | string,
             productId: number | null,
             wasCorrect: boolean,
-            correction?: { reason: string; expectedCode?: string },
+            correction?: { reason?: string; expectedCode?: string },
         ) => {
             if (conversationId === null || typeof messageId !== 'number') {
                 return;

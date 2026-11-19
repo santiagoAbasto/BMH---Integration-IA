@@ -415,6 +415,23 @@ que apareció y se corrigieron:
 Para medir bien: la web hace un fade-in de la foto, y una captura tomada a mitad de la
 animación sale desvanecida (el recorte pasa a ser casi blanco). Esperar a que cargue.
 
+### La comparación visual puede vetar al índice
+
+Caso real (2026-11-19, un estator 1836): el índice visual dio un falso positivo
+(«ALTERNADOR UNIVERSAL BOSCH») como único candidato y el asesor lo devolvió aunque la
+comparación visual había dicho «ninguna coincide con claridad»; además se salteó la búsqueda
+por rubro, y el modelo redactor terminó preguntando la marca. Ahora, si la comparación no
+confirma ninguna coincidencia y la huella no es casi idéntica (3 bits o menos de 128), el
+resultado del índice se descarta y se sigue con código, título y rubro + atributos
+(`VisionMatchService::huellaCasiIdentica()`).
+
+Dos ajustes de ordenamiento que apareció al probarlo: la lista tras la comparación se ordena
+por **confianza** y no sólo por puntaje (una pieza confirmada por el modelo quedaba debajo de
+otras sin confirmar que sumaban un bono de texto), y en `Candidate::confidence()` los pisos de
+«confirmada por visión» y «huella casi idéntica» se **combinan** (gana el mayor) en vez de
+excluirse. Ante una foto sin marca visible se prefieren preguntas de **medidas** a la marca
+(`CandidateDisambiguationService::nextQuestion(..., preferMeasurable)`).
+
 ### Título impreso en la imagen
 
 Una foto hecha a la pantalla (inclinada, con reflejo) o el visor ampliado de la foto de
@@ -513,3 +530,18 @@ Los recortes (63 % / 80 %) fallan casi siempre por variantes de la misma familia
 casi idénticas (poleas `POL16066`↔`POL16005`, `ZEN1173`↔`ZEN1487`): el asesor las propone con
 confianza 0,57–0,62 y pide confirmar, nunca las afirma. Sin texto en la imagen, la foto sola
 no las separa; las separa una cota o el código.
+
+### Fotos enseñadas como ejemplo (2026-11-19)
+
+Una regla sólo reconoce la **misma** foto; pero una foto real de una pieza (un estator
+bobinado) nunca se repite igual. Por eso la foto que el equipo enseña (👎 con el código
+correcto, 👍, o «Enseñar» en el panel) también sirve de **ejemplo visual**:
+`ApprovedCorrectionService::taughtExamples()` devuelve, por rubro, los productos con una foto
+real guardada. Cuando llega una foto de ese rubro sin código ni título, `VisionMatchService`
+los suma como candidatos (después de los 3 primeros, con el puntaje base del rubro y peso
+propio 0) y **su foto va primera en la comparación visual**. Sin confirmación del modelo no
+suben; con ella pasan a «coincidencia parcial». Probado con la API real: enseñada la foto A
+como 1836, otra foto de la misma pieza devolvió el 1836 primero.
+
+El 👎 del chat ahora pregunta primero «¿Cuál era el código correcto?» y alcanza con el código
+(o con el motivo); `StoreFeedbackRequest` exige uno de los dos.
