@@ -8,6 +8,7 @@ use App\Domain\Catalog\Contracts\CatalogRepositoryInterface;
 use App\Models\Ai\AiCorrectionRule;
 use App\Models\Ai\AiDemoAccount;
 use App\Models\Ai\AiFeedback;
+use App\Models\Ai\AiKnowledge;
 use App\Services\Ai\ApprovedCorrectionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,11 +66,15 @@ final class AiLearningController extends Controller
             ->limit(25)
             ->get();
 
+        $knowledge = AiKnowledge::query()->latest('id')->limit(100)->get();
+
         $productIds = $rules->pluck('expected_product_id')
             ->merge($recent->pluck('product_id'))
             ->merge($recent->pluck('expected_product_id'))
+            ->merge($knowledge->pluck('product_id'))
             ->filter()->unique()->map(static fn ($id): int => (int) $id)->values()->all();
         $products = collect($this->catalog->findMany($productIds))->keyBy('id');
+        $categories = collect($this->catalog->categories());
 
         return view('backend.ai-learning', [
             'stats' => [
@@ -93,6 +98,8 @@ final class AiLearningController extends Controller
             'rules' => $rules,
             'recent' => $recent,
             'products' => $products,
+            'knowledge' => $knowledge,
+            'categories' => $categories,
         ]);
     }
 
@@ -182,6 +189,150 @@ final class AiLearningController extends Controller
         $this->corrections->remember($input, $products[0]->id, 'admin_teach', null, $adminId, $data['note'] ?? null, (string) $file->getRealPath());
 
         return back()->with('status', "Aprendido: esa imagen corresponde a {$products[0]->code}. Se aplica también cuando llega recomprimida o reenviada.");
+    }
+
+    /** Enseñar conocimiento: un término, una regla o una nota que el modelo lee. */
+    public function storeKnowledge(Request $request): RedirectResponse
+    {
+        $adminId = $this->adminId();
+        $data = $request->validate([
+            'kind' => ['required', 'in:term,rule,note'],
+            'title' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:2000'],
+            'synonyms' => ['nullable', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer'],
+            'code' => ['nullable', 'string', 'max:64'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+        ]);
+
+        $categoryId = null;
+        if (! empty($data['category_id'])) {
+            $exists = collect($this->catalog->categories())
+                ->contains(static fn ($c): bool => (int) $c->id === (int) $data['category_id']);
+
+            if (! $exists) {
+                return back()->withErrors(['category_id' => 'Ese rubro no existe.'])->withInput();
+            }
+
+            $categoryId = (int) $data['category_id'];
+        }
+
+        $productId = null;
+        if (! empty($data['code'])) {
+            $code = trim($data['code']);
+            $products = $this->catalog->findByCode($code);
+
+            if ($products === []) {
+                $products = $this->catalog->findByNormalizedCode($code);
+            }
+
+            $products = array_values(array_filter($products, static fn ($p): bool => $p->condition->isPublic()));
+
+            if ($products === []) {
+                return back()->withErrors(['code' => "El código «{$code}» no existe en el catálogo público."])->withInput();
+            }
+
+            if (count($products) > 1) {
+                return back()->withErrors(['code' => "El código «{$code}» corresponde a varios artículos. Usa el código exacto."])->withInput();
+            }
+
+            $productId = $products[0]->id;
+        }
+
+        $path = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('knowledge', config('bmh.attachments.disk', 'ai_private'));
+        }
+
+        AiKnowledge::query()->create([
+            'kind' => $data['kind'],
+            'title' => trim($data['title']),
+            'body' => trim($data['body']),
+            'synonyms' => $data['synonyms'] ?? null,
+            'category_id' => $categoryId,
+            'product_id' => $productId,
+            'reference_path' => $path,
+            'status' => AiKnowledge::STATUS_APPROVED,
+            'source' => 'admin',
+            'created_by' => $adminId,
+            'approved_by_admin_id' => $adminId,
+            'approved_at' => now(),
+            'active' => true,
+        ]);
+
+        return back()->with('status', 'Conocimiento agregado: el asesor ya lo tiene en cuenta.');
+    }
+
+    public function updateKnowledge(Request $request, int $entry): RedirectResponse
+    {
+        $this->adminId();
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:2000'],
+            'synonyms' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        AiKnowledge::query()->findOrFail($entry)->update([
+            'title' => trim($data['title']),
+            'body' => trim($data['body']),
+            'synonyms' => $data['synonyms'] ?? null,
+        ]);
+
+        return back()->with('status', 'Conocimiento actualizado.');
+    }
+
+    public function toggleKnowledge(int $entry): RedirectResponse
+    {
+        $this->adminId();
+        $row = AiKnowledge::query()->findOrFail($entry);
+        $row->update(['active' => ! $row->active]);
+
+        return back()->with('status', $row->active ? 'Entrada activada.' : 'Entrada desactivada: el asesor deja de usarla.');
+    }
+
+    public function approveKnowledge(int $entry): RedirectResponse
+    {
+        $adminId = $this->adminId();
+        AiKnowledge::query()->findOrFail($entry)->update([
+            'status' => AiKnowledge::STATUS_APPROVED,
+            'approved_by_admin_id' => $adminId,
+            'approved_at' => now(),
+        ]);
+
+        return back()->with('status', 'Conocimiento aprobado: ya lo usa el asesor.');
+    }
+
+    public function rejectKnowledge(int $entry): RedirectResponse
+    {
+        $this->adminId();
+        AiKnowledge::query()->findOrFail($entry)->update(['status' => AiKnowledge::STATUS_REJECTED]);
+
+        return back()->with('status', 'Conocimiento rechazado: no se usa.');
+    }
+
+    public function destroyKnowledge(int $entry): RedirectResponse
+    {
+        $this->adminId();
+        $row = AiKnowledge::query()->findOrFail($entry);
+
+        if ($row->reference_path !== null) {
+            Storage::disk(config('bmh.attachments.disk', 'ai_private'))->delete($row->reference_path);
+        }
+
+        $row->delete();
+
+        return back()->with('status', 'Entrada eliminada.');
+    }
+
+    public function knowledgeImage(int $entry): BinaryFileResponse
+    {
+        $this->adminId();
+        $row = AiKnowledge::query()->findOrFail($entry);
+        $disk = Storage::disk(config('bmh.attachments.disk', 'ai_private'));
+
+        abort_if($row->reference_path === null || ! $disk->exists($row->reference_path), 404);
+
+        return response()->file($disk->path($row->reference_path));
     }
 
     public function toggleRule(int $rule): RedirectResponse
