@@ -11,6 +11,7 @@ use App\Domain\Catalog\DTO\ProductView;
 use App\Domain\Catalog\Legacy\ProductImageService;
 use App\Domain\Search\DTO\Candidate;
 use App\Domain\Search\DTO\SearchQuery;
+use App\Services\Ai\ApprovedCorrectionService;
 use App\Services\Ai\Contracts\AiProviderInterface;
 use App\Services\Ai\DTO\ImageAnalysis;
 use App\Services\Ai\Support\ImageAnalysisSchema;
@@ -54,6 +55,7 @@ final class VisionMatchService
         private readonly ProductImageService $images,
         private readonly CatalogFamilyResolver $familias,
         private readonly CatalogImageFingerprintIndex $catalogImageIndex,
+        private readonly ApprovedCorrectionService $corrections,
     ) {
     }
 
@@ -99,7 +101,17 @@ final class VisionMatchService
                 if ($provider !== null) {
                     $comparison = $this->compararImagenes($provider, $customerImagePath, $indexed);
 
-                    if ($comparison !== null) {
+                    if ($comparison !== null && $comparison['verified'] === false && ! $this->huellaCasiIdentica($indexed)) {
+                        /*
+                         * La comparación visual vio las dos fotos y dijo que
+                         * ninguna coincide con claridad: el parecido de huella
+                         * era casualidad. Caso real (2026-11-19): la foto de un
+                         * estator dio "ALTERNADOR UNIVERSAL BOSCH" como único
+                         * candidato y se salteó la búsqueda por rubro. Se
+                         * descarta y se sigue con lo que la foto sí muestra.
+                         */
+                        $indexed = [];
+                    } elseif ($comparison !== null) {
                         $indexed = $comparison['candidates'];
                         $compared = true;
 
@@ -108,7 +120,9 @@ final class VisionMatchService
                         }
                     }
                 }
+            }
 
+            if ($indexed !== []) {
                 array_unshift($notes, 'La foto coincide visualmente con una imagen del catálogo. Confirmame la pieza antes de agregarla al carrito.');
 
                 return [
@@ -303,6 +317,20 @@ final class VisionMatchService
             ];
         }
 
+        // Fotos reales que el equipo enseñó para productos de este rubro: entran
+        // como candidatos y se comparan con la foto nueva (ver ejemplosEnsenados).
+        $ejemplos = $this->ejemplosEnsenados($query->categoryIds);
+
+        if ($ejemplos['candidates'] !== []) {
+            // Después de los 3 primeros: entran en la comparación (que mira los
+            // primeros 12) pero sólo suben si la foto nueva los confirma.
+            $resto = array_values(array_filter(
+                $candidates,
+                static fn (Candidate $c): bool => ! isset($ejemplos['paths'][$c->product->id]),
+            ));
+            $candidates = array_merge(array_slice($resto, 0, 3), $ejemplos['candidates'], array_slice($resto, 3));
+        }
+
         /*
          * --- 3. Comparación visual de los MEJORES candidatos ---------------
          *
@@ -317,7 +345,7 @@ final class VisionMatchService
         $compared = false;
 
         if ($provider !== null && $customerImagePath !== null && $candidates !== []) {
-            $comparados = $this->compararImagenes($provider, $customerImagePath, $candidates);
+            $comparados = $this->compararImagenes($provider, $customerImagePath, $candidates, $ejemplos['paths']);
 
             if ($comparados !== null) {
                 $candidates = $comparados['candidates'];
@@ -1032,10 +1060,20 @@ final class VisionMatchService
      * @param  list<Candidate>  $candidates
      * @return array{candidates: list<Candidate>, note: ?string}|null
      */
+    /**
+     * `verified` es false cuando el modelo vio las fotos y ninguna coincide
+     * con claridad; entonces los candidatos vuelven sin señal visual.
+     *
+     * `$ejemplos` son fotos reales enseñadas por el equipo (id de producto => rutas).
+     *
+     * @param  array<int, list<string>>  $ejemplos
+     * @return array{candidates: list<Candidate>, note: ?string, verified: bool}|null
+     */
     private function compararImagenes(
         AiProviderInterface $provider,
         string $customerImagePath,
         array $candidates,
+        array $ejemplos = [],
     ): ?array {
         // Sólo candidatos que tengan imagen en disco: comparar contra un
         // placeholder no dice nada. Se intercala una foto por producto antes
@@ -1056,6 +1094,17 @@ final class VisionMatchService
             ],
             $productos,
         );
+
+        // Primero las fotos reales enseñadas (una por producto): un candidato con
+        // ejemplo no puede quedar afuera porque la galería del catálogo llenó los
+        // lugares. $ejemplos: id de producto => rutas absolutas.
+        foreach ($productos as $candidate) {
+            $ruta = $ejemplos[$candidate->product->id][0] ?? null;
+
+            if (is_string($ruta) && is_file($ruta) && count($conImagen) < $limite) {
+                $conImagen[] = ['candidate' => $candidate, 'path' => $ruta];
+            }
+        }
 
         for ($position = 0; $position < $porProducto && count($conImagen) < $limite; $position++) {
             foreach ($galerias as $galeria) {
@@ -1121,7 +1170,7 @@ final class VisionMatchService
         }
 
         if ($similitudesPorReferencia === []) {
-            return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
+            return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.', 'verified' => false];
         }
 
         $similitudesPorReferencia = array_filter(
@@ -1130,7 +1179,7 @@ final class VisionMatchService
         );
 
         if ($similitudesPorReferencia === []) {
-            return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.'];
+            return ['candidates' => $candidates, 'note' => 'Comparé las fotos pero ninguna coincide con claridad.', 'verified' => false];
         }
 
         // Un candidato puede aportar varias fotos. Conservamos solamente el
@@ -1159,7 +1208,10 @@ final class VisionMatchService
             $candidate->matchedOn[] = 'parecido visual validado contra la galería';
         }
 
-        usort($candidates, static fn (Candidate $a, Candidate $b): int => $b->score <=> $a->score);
+        // Por confianza y, a igual confianza, por puntaje. Sólo por puntaje, una
+        // pieza que el modelo confirmó con claridad (confianza >= 0,5) quedaba
+        // debajo de otras sin confirmar que sumaban un bono de texto.
+        usort($candidates, static fn (Candidate $a, Candidate $b): int => [$b->confidence(), $b->score] <=> [$a->confidence(), $a->score]);
 
         /*
          * El modelo razona sobre "el candidato 3" porque así se le presentaron
@@ -1186,7 +1238,57 @@ final class VisionMatchService
         return [
             'candidates' => $candidates,
             'note' => $razon === '' ? null : 'Comparando las fotos: '.mb_substr($razon, 0, 180),
+            'verified' => true,
         ];
+    }
+
+    /**
+     * Candidatos que aporta lo que el equipo enseñó: productos del rubro con una
+     * foto real guardada (👎 con código correcto, 👍 o «Enseñar» del panel).
+     * Sólo los hace aparecer y les da su foto para comparar: sin confirmación
+     * visual no suman nada, así que no desplazan a los demás.
+     *
+     * @param  list<int>  $categoryIds
+     * @return array{candidates: list<Candidate>, paths: array<int, list<string>>}
+     */
+    private function ejemplosEnsenados(array $categoryIds): array
+    {
+        $candidates = [];
+        $paths = [];
+        $peso = (float) config('bmh.ranking.weights.taught_example', 3.0);
+
+        foreach ($this->corrections->taughtExamples($categoryIds, 6) as $ejemplo) {
+            $candidate = new Candidate($ejemplo['product']);
+            // Es del rubro, como el resto de la lista: mismo puntaje base.
+            $candidate->addSignal('category_match', (float) config('bmh.ranking.weights.category_match', 6.0));
+            $candidate->addSignal('taught_example', $peso);
+            $candidate->matchedOn[] = 'foto real enseñada por el equipo';
+            $candidates[] = $candidate;
+            $paths[$ejemplo['product']->id] = [$ejemplo['path']];
+        }
+
+        return ['candidates' => $candidates, 'paths' => $paths];
+    }
+
+    /**
+     * ¿Alguno de los candidatos del índice tiene una huella casi idéntica a la
+     * foto? Con 3 bits o menos de diferencia (de 128) es la misma imagen, y ahí
+     * la comparación visual no puede vetar: una captura recortada del catálogo
+     * puede verse distinta para el modelo y seguir siendo esa foto.
+     *
+     * @param  list<Candidate>  $indexed
+     */
+    private function huellaCasiIdentica(array $indexed): bool
+    {
+        $peso = (float) config('bmh.ranking.weights.catalog_image_fingerprint', 60.0);
+
+        foreach ($indexed as $candidate) {
+            if ($peso > 0.0 && ($candidate->signals['catalog_image_fingerprint'] ?? 0.0) / $peso >= 0.97) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

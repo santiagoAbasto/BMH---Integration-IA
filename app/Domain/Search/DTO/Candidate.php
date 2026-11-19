@@ -76,11 +76,16 @@ final class Candidate
          */
         $base = min(0.74, $this->score / $exactWeight);
 
+        // Los pisos se combinan (gana el mayor): una pieza confirmada por la
+        // comparación visual Y con huella casi idéntica no puede valer menos que
+        // una que sólo tiene la huella.
+        $floor = 0.0;
+
         $visionWeight = (float) config('bmh.ranking.weights.vision_similarity', 3.0);
         $visionSignal = $this->signals['vision_similarity'] ?? 0.0;
 
         if ($visionWeight > 0.0 && $visionSignal / $visionWeight >= 0.8) {
-            return max($base, (float) config('bmh.confidence.ambiguous', 0.5));
+            $floor = max($floor, (float) config('bmh.confidence.ambiguous', 0.5));
         }
 
         $catalogImageWeight = (float) config('bmh.ranking.weights.catalog_image_fingerprint', 60.0);
@@ -90,10 +95,10 @@ final class Candidate
         // texto no dé pistas. No llega a "alta": una imagen reutilizada puede
         // servir a más de un código o a una variante muy parecida.
         if ($catalogImageWeight > 0.0 && $catalogImageSignal / $catalogImageWeight >= 0.9) {
-            return max($base, 0.65);
+            $floor = max($floor, 0.65);
         }
 
-        return $base;
+        return max($base, $floor);
     }
 
     public function confidenceBand(): string

@@ -12,7 +12,7 @@ interface Props {
         messageId: number | string,
         productId: number | null,
         wasCorrect: boolean,
-        correction?: { reason: string; expectedCode?: string },
+        correction?: { reason?: string; expectedCode?: string },
     ) => void;
     onAddToCart: (messageId: number | string, productId: number, quantity: number) => Promise<void>;
     onQuickReply: (text: string) => void;
@@ -199,39 +199,44 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                         event.preventDefault();
 
                         const trimmedReason = reason.trim();
+                        const trimmedCode = expectedCode.trim();
 
-                        if (trimmedReason === '') {
+                        // Alcanza con una de las dos cosas; con el código el asesor aprende.
+                        if (trimmedReason === '' && trimmedCode === '') {
                             return;
                         }
 
                         onFeedback(message.id, topProductId, false, {
-                            reason: trimmedReason,
-                            expectedCode: expectedCode.trim() || undefined,
+                            reason: trimmedReason || undefined,
+                            expectedCode: trimmedCode || undefined,
                         });
                     }}
                 >
-                    <p className="text-caption font-medium text-ink-primary">¿Qué habría que corregir?</p>
-                    <label className="mt-2 block text-caption text-ink-secondary" htmlFor={`feedback-reason-${message.id}`}>
-                        Motivo
-                    </label>
-                    <input
-                        id={`feedback-reason-${message.id}`}
-                        required
-                        value={reason}
-                        onChange={(event) => setReason(event.target.value)}
-                        maxLength={500}
-                        placeholder="Ej.: no era esa ficha; la foto coincide con otro modelo."
-                        className="mt-1 min-h-[2.5rem] w-full rounded-card border border-edge bg-surface px-2.5 text-body text-ink-primary"
-                    />
+                    <p className="text-caption font-medium text-ink-primary">¿Cuál era el código correcto?</p>
+                    <p className="mt-0.5 text-caption text-ink-secondary">
+                        Escríbelo y el asesor lo aprende para la próxima vez que llegue una foto parecida.
+                    </p>
                     <label className="mt-2 block text-caption text-ink-secondary" htmlFor={`feedback-code-${message.id}`}>
-                        Código correcto esperado (opcional)
+                        Código correcto
                     </label>
                     <input
                         id={`feedback-code-${message.id}`}
                         value={expectedCode}
                         onChange={(event) => setExpectedCode(event.target.value)}
                         maxLength={64}
-                        placeholder="Ej.: IMPO1401"
+                        placeholder="Ej.: 1836"
+                        className="mt-1 min-h-[2.5rem] w-full rounded-card border border-edge bg-surface px-2.5 text-body text-ink-primary"
+                    />
+                    <label className="mt-2 block text-caption text-ink-secondary" htmlFor={`feedback-reason-${message.id}`}>
+                        Qué estuvo mal (opcional si pusiste el código)
+                    </label>
+                    <input
+                        id={`feedback-reason-${message.id}`}
+                        required={expectedCode.trim() === ''}
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        maxLength={500}
+                        placeholder="Ej.: es otra marca; era un estator, no un alternador."
                         className="mt-1 min-h-[2.5rem] w-full rounded-card border border-edge bg-surface px-2.5 text-body text-ink-primary"
                     />
                     <div className="mt-3 flex gap-2">
@@ -239,7 +244,7 @@ export function MessageBubble({ message, showDebug, onConfirmProduct, onFeedback
                             type="submit"
                             className="min-h-[2.25rem] rounded-full bg-brand-600 px-3 text-caption font-medium text-white hover:bg-brand-700"
                         >
-                            Enviar corrección
+                            Enviar y enseñar
                         </button>
                         <button
                             type="button"

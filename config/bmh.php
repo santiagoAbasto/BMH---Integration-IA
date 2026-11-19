@@ -196,6 +196,7 @@ return [
             'semantic_similarity' => 4.0,
             'vision_similarity' => 3.0,   // deliberadamente bajo
             'catalog_image_fingerprint' => 60.0, // foto casi idéntica; siempre se confirma
+            'taught_example' => 0.0, // foto real enseñada para un producto del mismo rubro: sólo lo hace aparecer; sube si la comparación visual lo confirma
             'catalog_title' => 55.0, // título impreso en la imagen que identifica <= 3 productos; se confirma
             'customer_history' => 7.0,
             'popularity' => 2.0,
