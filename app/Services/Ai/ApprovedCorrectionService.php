@@ -181,6 +181,69 @@ final class ApprovedCorrectionService
     }
 
     /**
+     * Fotos REALES que el equipo enseñó para productos de estos rubros.
+     *
+     * Una regla sólo reconoce la misma foto; pero la foto enseñada de un estator
+     * sirve de referencia para otra foto del mismo estator, tomada desde otro
+     * ángulo. El asesor las suma como candidatos y las compara con la foto nueva.
+     * Un producto por rubro-consulta cuenta una vez (la enseñanza más reciente).
+     *
+     * @param  list<int>  $categoryIds
+     * @return list<array{product: \App\Domain\Catalog\DTO\ProductView, path: string}>
+     */
+    public function taughtExamples(array $categoryIds, int $limit = 6): array
+    {
+        if ($categoryIds === []) {
+            return [];
+        }
+
+        $rules = AiCorrectionRule::query()
+            ->where('active', true)
+            ->where('fingerprint_kind', 'image')
+            ->whereNotNull('reference_path')
+            ->latest('approved_at')
+            ->latest('id')
+            ->limit(100)
+            ->get();
+
+        if ($rules->isEmpty()) {
+            return [];
+        }
+
+        $products = [];
+
+        foreach ($this->catalog->findMany($rules->pluck('expected_product_id')->map(static fn ($id): int => (int) $id)->unique()->values()->all()) as $product) {
+            $products[$product->id] = $product;
+        }
+
+        $disk = Storage::disk((string) config('bmh.attachments.disk', 'ai_private'));
+        $examples = [];
+        $seen = [];
+
+        foreach ($rules as $rule) {
+            $productId = (int) $rule->expected_product_id;
+            $product = $products[$productId] ?? null;
+
+            if (isset($seen[$productId])
+                || $product === null
+                || ! $product->condition->isPublic()
+                || ! in_array($product->category?->id, $categoryIds, true)
+                || ! $disk->exists((string) $rule->reference_path)) {
+                continue;
+            }
+
+            $seen[$productId] = true;
+            $examples[] = ['product' => $product, 'path' => $disk->path((string) $rule->reference_path)];
+
+            if (count($examples) >= $limit) {
+                break;
+            }
+        }
+
+        return $examples;
+    }
+
+    /**
      * Aprende de un feedback ya guardado. Devuelve la regla, o null si no hay
      * qué aprender (👎 sin código esperado, entrada irreconstruible, producto
      * que ya no es público).

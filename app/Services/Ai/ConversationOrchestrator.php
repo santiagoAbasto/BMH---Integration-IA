@@ -171,7 +171,11 @@ final class ConversationOrchestrator
         }
 
         // --- 5. Desambiguación --------------------------------------------
-        $nextQuestion = $this->disambiguation->nextQuestion($candidates);
+        // Foto sin marca visible: se pregunta por medidas, no por marca.
+        $nextQuestion = $this->disambiguation->nextQuestion(
+            $candidates,
+            $attachments !== [] && $usableAnalysis?->brandGuess === null,
+        );
         $askedAlready = $this->hasAskedBefore($conversation);
 
         // --- 6. Precio, sólo si lo pidieron y hay un artículo claro -------
