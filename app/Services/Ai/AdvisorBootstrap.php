@@ -67,6 +67,8 @@ final class AdvisorBootstrap
                     'vision'  => (bool) config('bmh.features.vision'),
                     'history' => (bool) config('bmh.features.customer_history'),
                     'debug'   => (bool) config('bmh.features.debug'),
+                    // Enseñar conversando: sólo las cuentas de prueba habilitadas.
+                    'teach'   => \App\Models\Ai\AiDemoAccount::isActive((int) $user->id),
                 ],
                 'canAssertStock' => (bool) config('bmh.inventory.semantics_verified'),
             ],

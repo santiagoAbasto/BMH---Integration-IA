@@ -22,7 +22,14 @@
   .ail-body { padding:14px 16px; }
   .ail-form { display:grid; gap:10px; }
   .ail-form label { display:block; margin-bottom:4px; font-size:12px; font-weight:700; color:#536270; }
-  .ail-form input[type=text],.ail-form input[type=file] { width:100%; border:1px solid #cdd9e1; border-radius:9px; background:#fff; padding:9px 11px; font:inherit; }
+  .ail-form input[type=text],.ail-form input[type=file],.ail-form textarea,.ail-form select { width:100%; border:1px solid #cdd9e1; border-radius:9px; background:#fff; padding:9px 11px; font:inherit; }
+  .ail-form textarea { min-height:68px; resize:vertical; }
+  .ail-form-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .ail-pill.warn { background:#fff3dc; color:#8a5a00; }
+  .ail-edit { margin:0; }
+  .ail-edit summary { cursor:pointer; font-size:12px; color:var(--ail-blue); }
+  .ail-edit .ail-form { margin-top:8px; max-width:360px; }
+  @media (max-width:640px){ .ail-form-row { grid-template-columns:1fr; } }
   .ail-btn { display:inline-flex; min-height:38px; align-items:center; justify-content:center; gap:7px; border:1px solid #cdd9e1; border-radius:9px; padding:7px 13px; background:#fff; color:#263a49; font-weight:600; cursor:pointer; font-size:13px; }
   .ail-btn:hover { border-color:#8aa3b5; }
   .ail-btn-primary { border-color:var(--ail-blue); background:var(--ail-blue); color:#fff; }
@@ -55,9 +62,11 @@
   <p class="ail-eyebrow">Laboratorio interno</p>
   <h1>Aprendizaje de la IA</h1>
   <p class="ail-intro">
-    Dirige al asesor: enséñale qué foto o captura corresponde a cada código, habilita cuentas demo para que lo prueben y
-    evalúen cada respuesta con 👍 o 👎, y revisa lo que fue aprendiendo. Una regla solo se aplica cuando llega la misma
-    imagen (también reenviada o recomprimida) o el mismo texto; el asesor sigue pidiendo confirmar antes de agregar al carrito.
+    Dirige al asesor: enséñale qué foto o captura corresponde a cada código, cargá términos, equivalencias y reglas del
+    negocio en la <strong>Base de conocimiento</strong> (que el asesor lee y aplica en cada conversación), habilitá cuentas
+    demo para que lo prueben y evalúen cada respuesta con 👍 o 👎, y revisá lo que fue aprendiendo. Una regla de imagen solo
+    se aplica cuando llega la misma imagen (también reenviada o recomprimida) o el mismo texto; el asesor sigue pidiendo
+    confirmar antes de agregar al carrito.
   </p>
 
   @if (session('status'))
@@ -79,6 +88,120 @@
         @if ($stats['pending'] > 0)· <a href="{{ route('admin.ai-tests.index') }}">revisar</a>@endif
       </span>
     </div>
+  </section>
+
+  <section class="ail-card">
+    <header class="ail-card-head">
+      <h2>Base de conocimiento</h2>
+      <p>Enséñale al asesor términos y equivalencias («arr.» = inducido, bobina de arranque), reglas del negocio y notas de un rubro o producto. Lo que agregás acá el modelo lo <strong>lee y aplica</strong> en cada conversación. Es distinto de «Pruebas IA», que sólo sirve para probar y evaluar respuestas.</p>
+    </header>
+    <div class="ail-body">
+      <form class="ail-form" method="POST" action="{{ route('admin.ai-learning.knowledge.store') }}" enctype="multipart/form-data">
+        @csrf
+        <div class="ail-form-row">
+          <div>
+            <label for="kb-kind">Tipo</label>
+            <select id="kb-kind" name="kind" required>
+              <option value="term" @selected(old('kind') === 'term')>Término / equivalencia</option>
+              <option value="rule" @selected(old('kind') === 'rule')>Regla del negocio</option>
+              <option value="note" @selected(old('kind') === 'note')>Nota de rubro o producto</option>
+            </select>
+          </div>
+          <div>
+            <label for="kb-title">Título corto</label>
+            <input id="kb-title" type="text" name="title" value="{{ old('title') }}" maxlength="120" placeholder="Ej.: arr. (arranque)" required>
+          </div>
+        </div>
+        <div>
+          <label for="kb-body">Qué debe entender</label>
+          <textarea id="kb-body" name="body" maxlength="2000" placeholder="Ej.: «arr.» es lo mismo que inducido, bobina o bobina de arranque." required>{{ old('body') }}</textarea>
+        </div>
+        <div class="ail-form-row">
+          <div>
+            <label for="kb-syn">Sinónimos (opcional, separados por coma)</label>
+            <input id="kb-syn" type="text" name="synonyms" value="{{ old('synonyms') }}" maxlength="255" placeholder="inducido, bobina, bobina de arranque">
+          </div>
+          <div>
+            <label for="kb-cat">Rubro (opcional)</label>
+            <select id="kb-cat" name="category_id">
+              <option value="">Todos los rubros</option>
+              @foreach ($categories as $cat)
+                <option value="{{ $cat->id }}" @selected((string) old('category_id') === (string) $cat->id)>{{ $cat->name }}</option>
+              @endforeach
+            </select>
+          </div>
+        </div>
+        <div class="ail-form-row">
+          <div>
+            <label for="kb-code">Código de producto (opcional)</label>
+            <input id="kb-code" type="text" name="code" value="{{ old('code') }}" maxlength="64" placeholder="Ej.: 1836">
+          </div>
+          <div>
+            <label for="kb-image">Imagen de apoyo (opcional)</label>
+            <input id="kb-image" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+          </div>
+        </div>
+        <div><button class="ail-btn ail-btn-primary" type="submit">Agregar al conocimiento</button></div>
+      </form>
+    </div>
+    @if ($knowledge->isEmpty())
+      <p class="ail-empty">Todavía no hay conocimiento cargado. Lo que agregues aparecerá acá y el asesor lo usará.</p>
+    @else
+      @php $kindLabels = ['term' => 'Término', 'rule' => 'Regla', 'note' => 'Nota']; @endphp
+      <div class="ail-scroll">
+        <table class="ail-table">
+          <thead><tr><th>Tipo</th><th>Contenido</th><th>Alcance</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            @foreach ($knowledge as $k)
+              <tr>
+                <td><span class="ail-pill blue">{{ $kindLabels[$k->kind] ?? $k->kind }}</span></td>
+                <td>
+                  <strong>{{ $k->title }}</strong>
+                  <div class="ail-muted">{{ \Illuminate\Support\Str::limit($k->body, 140) }}</div>
+                  @if ($k->synonyms)<div class="ail-muted">Sinónimos: {{ $k->synonyms }}</div>@endif
+                  @if ($k->reference_path)<div><img class="ail-thumb" src="{{ route('admin.ai-learning.knowledge.image', $k->id) }}" alt="Imagen de la entrada {{ $k->id }}" loading="lazy"></div>@endif
+                </td>
+                <td>
+                  @if ($k->category_id)
+                    {{ optional($categories->firstWhere('id', $k->category_id))->name ?? 'Rubro #'.$k->category_id }}
+                  @elseif ($k->product_id)
+                    {{ $products->get($k->product_id)?->code ?? '#'.$k->product_id }}
+                  @else
+                    <span class="ail-muted">Global</span>
+                  @endif
+                </td>
+                <td>
+                  @if ($k->status === 'pending')<span class="ail-pill warn">Pendiente</span>
+                  @elseif ($k->status === 'rejected')<span class="ail-pill bad">Rechazada</span>
+                  @else<span class="ail-pill good">Aprobada</span>@endif
+                  <div style="margin-top:4px"><span class="ail-pill {{ $k->active ? 'good' : '' }}">{{ $k->active ? 'Activa' : 'Inactiva' }}</span></div>
+                </td>
+                <td>
+                  <div class="ail-actions">
+                    @if ($k->status === 'pending')
+                      <form method="POST" action="{{ route('admin.ai-learning.knowledge.approve', $k->id) }}">@csrf<button class="ail-btn ail-btn-sm" type="submit">Aprobar</button></form>
+                      <form method="POST" action="{{ route('admin.ai-learning.knowledge.reject', $k->id) }}">@csrf<button class="ail-btn ail-btn-sm ail-btn-danger" type="submit">Rechazar</button></form>
+                    @endif
+                    <form method="POST" action="{{ route('admin.ai-learning.knowledge.toggle', $k->id) }}">@csrf<button class="ail-btn ail-btn-sm" type="submit">{{ $k->active ? 'Desactivar' : 'Activar' }}</button></form>
+                    <details class="ail-edit">
+                      <summary>Editar</summary>
+                      <form class="ail-form" method="POST" action="{{ route('admin.ai-learning.knowledge.update', $k->id) }}">
+                        @csrf @method('PUT')
+                        <div><label>Título</label><input type="text" name="title" value="{{ $k->title }}" maxlength="120" required></div>
+                        <div><label>Qué debe entender</label><textarea name="body" maxlength="2000" required>{{ $k->body }}</textarea></div>
+                        <div><label>Sinónimos</label><input type="text" name="synonyms" value="{{ $k->synonyms }}" maxlength="255"></div>
+                        <div><button class="ail-btn ail-btn-sm ail-btn-primary" type="submit">Guardar</button></div>
+                      </form>
+                    </details>
+                    <form method="POST" action="{{ route('admin.ai-learning.knowledge.destroy', $k->id) }}" onsubmit="return confirm('¿Eliminar esta entrada? No se puede deshacer.')">@csrf @method('DELETE')<button class="ail-btn ail-btn-sm ail-btn-danger" type="submit">Eliminar</button></form>
+                  </div>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    @endif
   </section>
 
   <div class="ail-grid">

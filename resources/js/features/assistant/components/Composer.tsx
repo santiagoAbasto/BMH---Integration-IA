@@ -1,12 +1,15 @@
 import { useCallback, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react';
 import clsx from 'clsx';
-import { Camera, Paperclip, Send, X } from 'lucide-react';
+import { Camera, GraduationCap, Paperclip, Send, X } from 'lucide-react';
 
 interface Props {
     disabled: boolean;
     visionEnabled: boolean;
     maxImages: number;
     onSend: (text: string, files: File[]) => void;
+    /** Sólo las cuentas de prueba pueden enseñar conversando. */
+    canTeach?: boolean;
+    onTeach?: (text: string, files: File[]) => void;
 }
 
 interface Staged {
@@ -21,10 +24,13 @@ interface Staged {
  * es acción de primer nivel: el cliente saca la foto de la pieza ahí mismo, en
  * el taller.
  */
-export function Composer({ disabled, visionEnabled, maxImages, onSend }: Props) {
+export function Composer({ disabled, visionEnabled, maxImages, onSend, canTeach = false, onTeach }: Props) {
     const [text, setText] = useState('');
     const [staged, setStaged] = useState<Staged[]>([]);
     const [dragging, setDragging] = useState(false);
+    const [teaching, setTeaching] = useState(false);
+
+    const canUseTeaching = canTeach && onTeach !== undefined;
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -62,11 +68,22 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend }: Props) 
     };
 
     const submit = () => {
-        if (disabled || (text.trim() === '' && staged.length === 0)) {
+        if (disabled) {
             return;
         }
 
-        onSend(text, staged.map((s) => s.file));
+        if (teaching && canUseTeaching) {
+            // Enseñar siempre necesita texto: lo que el modelo ordena en una entrada.
+            if (text.trim() === '') {
+                return;
+            }
+            onTeach!(text, staged.map((s) => s.file));
+        } else {
+            if (text.trim() === '' && staged.length === 0) {
+                return;
+            }
+            onSend(text, staged.map((s) => s.file));
+        }
 
         staged.forEach((s) => URL.revokeObjectURL(s.preview));
         setStaged([]);
@@ -121,6 +138,17 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend }: Props) 
                 dragging ? 'border-brand-500 ring-4 ring-brand-100' : 'border-edge',
             )}
         >
+            {teaching && canUseTeaching && (
+                <div className="flex items-start gap-2 border-b border-edge-subtle bg-brand-50 px-3 py-2 text-caption text-brand-800">
+                    <GraduationCap aria-hidden className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
+                    <span>
+                        <strong>Modo enseñanza.</strong> Contale un término, una equivalencia o una regla
+                        (ej.: «arr. es lo mismo que inducido o bobina de arranque»). Queda pendiente de que un
+                        administrador lo apruebe.
+                    </span>
+                </div>
+            )}
+
             {staged.length > 0 && (
                 <ul className="flex flex-wrap gap-2 border-b border-edge-subtle p-2.5">
                     {staged.map((item, index) => (
@@ -144,6 +172,26 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend }: Props) 
             )}
 
             <div className="flex items-end gap-1.5 p-2">
+                {canUseTeaching && (
+                    <button
+                        type="button"
+                        onClick={() => setTeaching((value) => !value)}
+                        disabled={disabled}
+                        aria-pressed={teaching}
+                        aria-label={teaching ? 'Salir del modo enseñanza' : 'Enseñar al asesor'}
+                        title={teaching ? 'Salir del modo enseñanza' : 'Enseñar al asesor'}
+                        className={clsx(
+                            'inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-card px-2.5 text-caption font-medium transition-colors duration-150 ease-bmh disabled:opacity-40',
+                            teaching
+                                ? 'bg-brand-500 text-white hover:bg-brand-600'
+                                : 'text-ink-secondary hover:bg-surface-sunken',
+                        )}
+                    >
+                        <GraduationCap aria-hidden className="h-5 w-5" strokeWidth={1.75} />
+                        <span className="hidden sm:inline">Enseñar</span>
+                    </button>
+                )}
+
                 {visionEnabled && (
                     <>
                         <button
@@ -203,15 +251,24 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend }: Props) 
                     onChange={handleInput}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
-                    placeholder="Escribí, pegá un código o mandá una foto…"
+                    placeholder={
+                        teaching && canUseTeaching
+                            ? 'Enseñale algo: «arr. = inducido, bobina de arranque»…'
+                            : 'Escribí, pegá un código o mandá una foto…'
+                    }
                     className="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-1 py-2.5 text-body text-ink-primary placeholder:text-ink-tertiary focus:ring-0"
                 />
 
                 <button
                     type="button"
                     onClick={submit}
-                    disabled={disabled || (text.trim() === '' && staged.length === 0)}
-                    aria-label="Enviar"
+                    disabled={
+                        disabled ||
+                        (teaching && canUseTeaching
+                            ? text.trim() === ''
+                            : text.trim() === '' && staged.length === 0)
+                    }
+                    aria-label={teaching && canUseTeaching ? 'Guardar la enseñanza' : 'Enviar'}
                     className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-card bg-brand-500 text-white transition-colors duration-150 ease-bmh hover:bg-brand-600 disabled:bg-edge disabled:text-ink-tertiary"
                 >
                     <Send aria-hidden className="h-5 w-5" strokeWidth={1.75} />

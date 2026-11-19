@@ -48,6 +48,21 @@ Route::middleware(['admin'])
             ->whereNumber('rule')->name('rules.destroy');
         Route::get('reglas/{rule}/imagen', [AiLearningController::class, 'ruleImage'])
             ->whereNumber('rule')->name('rules.image');
+
+        // Base de conocimiento: términos, reglas y notas que el modelo lee.
+        Route::post('conocimiento', [AiLearningController::class, 'storeKnowledge'])->name('knowledge.store');
+        Route::put('conocimiento/{entry}', [AiLearningController::class, 'updateKnowledge'])
+            ->whereNumber('entry')->name('knowledge.update');
+        Route::post('conocimiento/{entry}/alternar', [AiLearningController::class, 'toggleKnowledge'])
+            ->whereNumber('entry')->name('knowledge.toggle');
+        Route::post('conocimiento/{entry}/aprobar', [AiLearningController::class, 'approveKnowledge'])
+            ->whereNumber('entry')->name('knowledge.approve');
+        Route::post('conocimiento/{entry}/rechazar', [AiLearningController::class, 'rejectKnowledge'])
+            ->whereNumber('entry')->name('knowledge.reject');
+        Route::delete('conocimiento/{entry}', [AiLearningController::class, 'destroyKnowledge'])
+            ->whereNumber('entry')->name('knowledge.destroy');
+        Route::get('conocimiento/{entry}/imagen', [AiLearningController::class, 'knowledgeImage'])
+            ->whereNumber('entry')->name('knowledge.image');
     });
 
 /*
@@ -92,6 +107,8 @@ Route::middleware(['customer.api', 'assistant.access', 'throttle:assistant'])
 
         Route::post('conversations/{conversation}/feedback', [AssistantController::class, 'feedback'])
             ->whereNumber('conversation')->name('feedback.store');
+        Route::post('conversations/{conversation}/teach', [AssistantController::class, 'teach'])
+            ->whereNumber('conversation')->name('teach');
         Route::post('conversations/{conversation}/cart-items', [AssistantController::class, 'cartItemStore'])
             ->whereNumber('conversation')->name('cart-items.store');
         Route::post('conversations/{conversation}/handoff', [AssistantController::class, 'handoff'])
