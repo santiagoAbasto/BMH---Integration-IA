@@ -107,6 +107,8 @@ Route::middleware(['customer.api', 'assistant.access', 'throttle:assistant'])
 
         Route::post('conversations/{conversation}/feedback', [AssistantController::class, 'feedback'])
             ->whereNumber('conversation')->name('feedback.store');
+        Route::post('conversations/{conversation}/teach', [AssistantController::class, 'teach'])
+            ->whereNumber('conversation')->name('teach');
         Route::post('conversations/{conversation}/cart-items', [AssistantController::class, 'cartItemStore'])
             ->whereNumber('conversation')->name('cart-items.store');
         Route::post('conversations/{conversation}/handoff', [AssistantController::class, 'handoff'])

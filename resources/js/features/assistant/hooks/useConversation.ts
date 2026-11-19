@@ -373,6 +373,43 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
         [conversationId],
     );
 
+    /** Enseñar conversando: guarda una entrada pendiente y muestra la confirmación. */
+    const teach = useCallback(
+        async (text: string, files: File[] = []) => {
+            if (text.trim() === '') {
+                return;
+            }
+
+            setError(null);
+
+            try {
+                const id = await ensureConversation();
+                const attachments = await uploadImages(id, files);
+
+                setMessages((current) => [
+                    ...current,
+                    { id: `teach-user-${Date.now()}`, role: 'user', content: text, attachments },
+                ]);
+                setStatus({ kind: 'writing', label: 'Anotando lo que me enseñás…' });
+
+                const result = await apiPost<{ ok: boolean; message: string }>(
+                    `/api/assistant/conversations/${id}/teach`,
+                    { message: text, attachment_ids: attachments.map((a) => a.id) },
+                );
+
+                setMessages((current) => [
+                    ...current,
+                    { id: `teach-reply-${Date.now()}`, role: 'assistant', content: result.message },
+                ]);
+                setStatus({ kind: 'idle' });
+            } catch (caught) {
+                setError(caught instanceof ApiError ? caught.message : 'No pudimos guardar la enseñanza.');
+                setStatus({ kind: 'idle' });
+            }
+        },
+        [ensureConversation, uploadImages],
+    );
+
     const requestHuman = useCallback(async () => {
         if (conversationId === null) {
             return;
@@ -414,6 +451,7 @@ export function useConversation({ conversationId: initialId = null }: StartOptio
         sendFeedback,
         addToCart,
         requestHuman,
+        teach,
         dismissError: () => setError(null),
     };
 }

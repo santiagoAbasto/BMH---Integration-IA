@@ -45,6 +45,7 @@ export function AdvisorPanel({
         sendFeedback,
         addToCart,
         requestHuman,
+        teach,
         dismissError,
     } = useConversation({ conversationId });
 
@@ -65,6 +66,7 @@ export function AdvisorPanel({
     const empty = messages.length === 0 || (messages.length === 1 && messages[0]?.role === 'assistant');
 
     const handleSend = useCallback((text: string, files: File[]) => void send(text, files), [send]);
+    const handleTeach = useCallback((text: string, files: File[]) => void teach(text, files), [teach]);
 
     const handleConfirmProduct = useCallback(
         (messageId: number | string, productId: number) => {
@@ -208,6 +210,8 @@ export function AdvisorPanel({
                     visionEnabled={settings.features.vision}
                     maxImages={MAX_IMAGES}
                     onSend={handleSend}
+                    canTeach={settings.features.teach}
+                    onTeach={handleTeach}
                 />
 
                 {customer.enabled ? (
