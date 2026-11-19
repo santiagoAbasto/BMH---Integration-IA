@@ -37,6 +37,7 @@ final class HybridProductSearchService
         private readonly CandidateRankingService $ranking,
         private readonly QueryRouter $router,
         private readonly CatalogFamilyResolver $familias,
+        private readonly KnowledgeSynonymsService $synonyms,
     ) {
     }
 
@@ -325,6 +326,12 @@ final class HybridProductSearchService
 
         if ($query->hasText()) {
             $add($this->catalog->searchByKeywords((string) $query->rawText, $query->categoryIds));
+
+            // Lo que el equipo enseñó («arr.» = inducido): cada sinónimo se busca
+            // aparte y se une, porque searchByKeywords es AND entre palabras.
+            foreach ($this->synonyms->expansions((string) $query->rawText) as $frase) {
+                $add($this->catalog->searchByKeywords($frase, $query->categoryIds));
+            }
         }
 
         // Sólo rubro conocido (típico después de una foto): traemos una muestra
