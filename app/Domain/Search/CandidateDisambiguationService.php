@@ -30,6 +30,7 @@ final class CandidateDisambiguationService
 
     /**
      * @param  list<Candidate>  $candidates
+     * @param  bool  $preferMeasurable  la consulta viene de una foto sin marca visible
      * @return array{
      *     should_ask: bool,
      *     attribute: ?array{key:string,label:string,options:list<string>,gain:float,question:?string,question_id:?string,question_bank_version:string},
@@ -37,7 +38,7 @@ final class CandidateDisambiguationService
      *     reason: string
      * }
      */
-    public function nextQuestion(array $candidates): array
+    public function nextQuestion(array $candidates, bool $preferMeasurable = false): array
     {
         $presentThreshold = (int) config('bmh.disambiguation.present_threshold', 3);
 
@@ -56,6 +57,24 @@ final class CandidateDisambiguationService
         }
 
         $ranked = $this->rankAttributesByGain($candidates);
+
+        /*
+         * Con una foto en la que no se ve ninguna marca, preguntar «¿de qué
+         * marca es?» es como preguntar de qué cuadro de fútbol es una pieza:
+         * el cliente sólo tiene la foto. Se prefiere lo que puede medir o
+         * contar; la marca queda de último recurso.
+         */
+        if ($preferMeasurable) {
+            $minimo = (float) config('bmh.disambiguation.min_information_gain', 0.15);
+            $medibles = array_values(array_filter(
+                $ranked,
+                static fn (array $a): bool => ! in_array($a['key'], ['brand', 'model'], true),
+            ));
+
+            if ($medibles !== [] && $medibles[0]['gain'] >= $minimo) {
+                $ranked = $medibles;
+            }
+        }
 
         if ($ranked === []) {
             return $this->result(false, null, [], 'no_discriminating_attribute');

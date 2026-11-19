@@ -1028,6 +1028,32 @@ final class AssistantConversationTest extends TestCase
         $this->assertSame('resolved', $conversation->status);
     }
 
+    public function test_un_pulgar_abajo_con_solo_el_codigo_correcto_alcanza(): void
+    {
+        $conversationId = $this->startConversation();
+        $message = AiMessageRecord::query()->create([
+            'conversation_id' => $conversationId,
+            'role' => 'assistant',
+            'content' => 'Parece un alternador universal Bosch.',
+        ]);
+
+        // Sin motivo ni código: sigue sin valer.
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/feedback",
+            ['message_id' => $message->id, 'was_correct' => false],
+        )->assertUnprocessable()->assertJsonValidationErrors('reason');
+
+        // Con el código correcto alcanza: es lo que el asesor necesita para aprender.
+        $this->actingAs($this->customer)->postJson(
+            "/api/assistant/conversations/{$conversationId}/feedback",
+            ['message_id' => $message->id, 'was_correct' => false, 'expected_code' => '1833'],
+        )->assertOk();
+
+        $feedback = AiFeedback::query()->where('message_id', $message->id)->sole();
+        $this->assertNull($feedback->reason);
+        $this->assertSame('1833', $feedback->expected_code);
+    }
+
     public function test_el_cliente_puede_valorar_una_respuesta_sin_candidato(): void
     {
         $conversationId = $this->startConversation();

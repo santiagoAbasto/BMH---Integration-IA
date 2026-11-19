@@ -59,6 +59,7 @@ final class ConversationOrchestrator
         private readonly \App\Domain\Search\VisionMatchService $visionMatch,
         private readonly DiagnosticQuestionBank $questions,
         private readonly ApprovedCorrectionService $approvedCorrections,
+        private readonly KnowledgeBaseService $knowledge,
     ) {
     }
 
@@ -171,7 +172,11 @@ final class ConversationOrchestrator
         }
 
         // --- 5. Desambiguación --------------------------------------------
-        $nextQuestion = $this->disambiguation->nextQuestion($candidates);
+        // Foto sin marca visible: se pregunta por medidas, no por marca.
+        $nextQuestion = $this->disambiguation->nextQuestion(
+            $candidates,
+            $attachments !== [] && $usableAnalysis?->brandGuess === null,
+        );
         $askedAlready = $this->hasAskedBefore($conversation);
 
         // --- 6. Precio, sólo si lo pidieron y hay un artículo claro -------
@@ -1017,6 +1022,13 @@ final class ConversationOrchestrator
     {
         $path = resource_path('prompts/bmh-sales-advisor/'.basename((string) config('bmh.ai.prompt_file', 'v1.md')));
         $prompt = is_file($path) ? (string) file_get_contents($path) : 'Sos el asesor técnico de BMH.';
+
+        // Lo que el equipo de BMH enseñó y aprobó (términos, reglas, notas). Es
+        // conocimiento que el modelo lee y aplica; viaja vacío si no hay nada.
+        $conocimiento = $this->knowledge->promptSection();
+        if ($conocimiento !== '') {
+            $prompt .= "\n\n---\n\n".$conocimiento;
+        }
 
         // Del cliente sólo viaja el contexto mínimo. Sin nombre, sin DNI, sin
         // email, sin teléfono, sin el porcentaje de descuento.

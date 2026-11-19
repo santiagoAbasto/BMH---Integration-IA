@@ -216,7 +216,7 @@ export interface AssistantPageProps {
     }[];
     settings: {
         provider: { provider: string; mode: 'MOCK' | 'LIVE'; fallback: string | null; prompt_version: string };
-        features: { vision: boolean; history: boolean; debug: boolean };
+        features: { vision: boolean; history: boolean; debug: boolean; teach: boolean };
         canAssertStock: boolean;
     };
 }

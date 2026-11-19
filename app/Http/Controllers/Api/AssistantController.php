@@ -24,6 +24,7 @@ use App\Services\Ai\AssistantCartService;
 use App\Services\Ai\AttachmentService;
 use App\Services\Ai\ConversationOrchestrator;
 use App\Services\Ai\HumanHandoffService;
+use App\Services\Ai\KnowledgeTeachingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,6 +52,7 @@ final class AssistantController extends Controller
         private readonly AiProviderManager $providers,
         private readonly AssistantCartService $cart,
         private readonly ApprovedCorrectionService $approvedCorrections,
+        private readonly KnowledgeTeachingService $teaching,
     ) {
     }
 
@@ -604,6 +606,50 @@ final class AssistantController extends Controller
             'handoff' => ['id' => $record->id, 'status' => $record->status],
             'message' => $this->handoff->message(),
         ], 201);
+    }
+
+    /**
+     * Enseñar al asesor conversando: una cuenta de prueba le explica un término,
+     * una equivalencia o una regla. Queda PENDIENTE hasta que un admin la apruebe.
+     */
+    public function teach(Request $request, int $conversationId): JsonResponse
+    {
+        $customer = $this->customer();
+        $conversation = $this->conversation($conversationId);
+
+        if (! AiDemoAccount::isActive((int) $customer->id)) {
+            return response()->json([
+                'message' => 'Enseñar al asesor desde el chat está habilitado sólo para las cuentas de prueba.',
+                'code' => 'not_demo',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+            'attachment_ids' => ['array'],
+            'attachment_ids.*' => ['integer'],
+        ]);
+
+        $imagePath = null;
+        $ids = $data['attachment_ids'] ?? [];
+
+        if ($ids !== []) {
+            $attachment = AiAttachment::query()
+                ->where('conversation_id', $conversation->id)
+                ->find($ids[0]);
+
+            if ($attachment !== null && $attachment->path !== null) {
+                $absolute = Storage::disk($attachment->disk)->path($attachment->path);
+                $imagePath = is_file($absolute) ? $absolute : null;
+            }
+        }
+
+        $result = $this->teaching->teach($data['message'], $imagePath, (int) $customer->id);
+
+        return response()->json([
+            'ok' => $result['entry'] !== null,
+            'message' => $result['message'],
+        ]);
     }
 
     // -----------------------------------------------------------------
