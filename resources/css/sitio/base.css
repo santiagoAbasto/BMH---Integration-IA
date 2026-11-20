@@ -194,6 +194,34 @@ body {
     color: #c62828;
 }
 
+/* Recordarme: casilla nativa con el azul de la marca; toda la etiqueta es clickeable. */
+.bmh-ingreso__recordar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem; /* 8px */
+    margin-block-start: 0.875rem; /* 14px */
+    padding-block: 0.25rem;
+    font-family: var(--osole-font-heading);
+    font-size: 0.875rem; /* 14px */
+    color: var(--bmh-text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.bmh-ingreso__check {
+    flex: none;
+    inline-size: 1.125rem; /* 18px */
+    block-size: 1.125rem;
+    margin: 0;
+    accent-color: var(--bmh-brand);
+    cursor: pointer;
+}
+
+.bmh-ingreso__check:focus-visible {
+    outline: 2px solid var(--bmh-brand);
+    outline-offset: 2px;
+}
+
 .bmh-ingreso__acciones {
     display: flex;
     justify-content: center;

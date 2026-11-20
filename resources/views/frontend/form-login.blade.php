@@ -35,6 +35,13 @@
         <p class="password-error bmh-ingreso__error" role="alert" style="display:none"></p>
     </div>
 
+    {{-- Recordarme: la sesión sigue abierta aunque se cierre el navegador (cookie de recordar de Laravel;
+         UserAuthController la lee del campo «remember»). --}}
+    <label class="bmh-ingreso__recordar">
+        <input type="checkbox" name="remember" value="1" class="bmh-ingreso__check" @checked(old('remember'))>
+        <span>Recordarme</span>
+    </label>
+
     <div class="bmh-ingreso__acciones">
         <button id="nosotros-mas" type="submit" class="bmh-ingreso__boton">Iniciar sesión</button>
     </div>
