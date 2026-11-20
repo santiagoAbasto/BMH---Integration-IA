@@ -33,7 +33,7 @@ $cart = Cart::content();
     @import url("{{ asset('css/styles2.css') }}?v=78") layer(legacy);
     @import url("{{ asset('css/layout.css') }}?v=3") layer(legacy);
     @import url("{{ asset('css/buscador-header.css') }}?v=2") layer(legacy);
-    @import url("{{ asset('css/galeria-producto.css') }}?v=1") layer(legacy);
+    @import url("{{ asset('css/galeria-producto.css') }}?v=2") layer(legacy);
   </style>
 
   {{-- FONTS --}}

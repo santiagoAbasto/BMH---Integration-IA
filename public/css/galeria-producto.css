@@ -1,9 +1,16 @@
 /* Un visor compartido: lienzo blanco para las fotos, controles BMH y móvil a pantalla completa. */
+/* Las fotos que abren el visor muestran el cursor de link; la invitación a ampliar es el indicador fijo «Ampliar foto»
+   del centro (resources/css/sitio/ampliar-foto.css). Antes el cursor era una lupa que seguía al mouse. Las miniaturas
+   chicas de las tablas (partes relacionadas) no tienen lugar para el indicador: usan el cursor de zoom del sistema. */
 [data-gallery-open],
 [data-gallery-open] img,
 .fotorama[data-gallery-images] .fotorama__stage,
 .fotorama[data-gallery-images] .fotorama__stage img {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='white' stroke-width='5' stroke-linecap='round'%3E%3Ccircle cx='13' cy='13' r='8'/%3E%3Cpath d='m19 19 9 9'/%3E%3C/g%3E%3Cg fill='none' stroke='%2300699a' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='13' cy='13' r='8'/%3E%3Cpath d='m19 19 9 9'/%3E%3C/g%3E%3C/svg%3E") 13 13, zoom-in;
+  cursor: pointer;
+}
+.pbmh-tabla [data-gallery-open],
+.pbmh-tabla [data-gallery-open] img {
+  cursor: zoom-in;
 }
 [data-gallery-open]:focus-visible,
 .fotorama[data-gallery-images] .fotorama__stage:focus-visible { outline: 3px solid #0098DA; outline-offset: 4px; }

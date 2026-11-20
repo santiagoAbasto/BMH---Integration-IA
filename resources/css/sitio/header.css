@@ -168,28 +168,69 @@
 }
 
 /* Home, header transparente sobre la portada: los links toman los colores de admin → Extras → Header → «Al cargar
-   la página» (las variables las pone sitio-header). Al pasar el mouse cambia el color y aparece la misma rayita del
-   link activo, en el color de hover. Al hacer scroll vuelven los colores del header oscuro. */
+   la página» (las variables las pone sitio-header). Al hacer scroll vuelven los colores del header oscuro. */
 .bmh-header--home:not([data-scrolled]) {
     --osole-header-catalog-link-color: var(--bmh-portada-links, var(--bmh-white));
     --osole-header-catalog-link-active-color: var(--bmh-portada-links, var(--bmh-white));
     --osole-header-catalog-link-hover-color: var(--bmh-portada-links-hover, var(--bmh-brand));
+}
 
-    & .osole-header-catalog-v1__link::after {
-        transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-    }
-
-    & .osole-header-catalog-v1__link:not([aria-current]):hover::after {
-        opacity: 1;
+/* Subrayado de los links (computadora, en todas las páginas y con el header transparente u oscuro). Al pasar el mouse
+   la raya se dibuja de izquierda a derecha con un brillo suave del color de hover, y al salir sigue de largo hacia la
+   derecha. El link activo y Productos con el menú abierto la muestran completa.
+   Misma altura en todos: header-catalog la ubicaba desde el borde de abajo de cada link, y Productos (18px de alto, con
+   la flecha al lado) la dejaba 18px más arriba que Ofertas o Novedades (52px). Todos centran el texto, así que se
+   ubica desde el centro: medio renglón (~9px) + 4px de aire. */
+@media (width >= 1366px) {
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link::after {
+        inset-block: calc(50% + 0.8125rem) auto; /* 13px desde el centro del texto */
+        block-size: 0.1875rem; /* 3px */
+        border-radius: 999px;
         background-color: var(--_link-hover-color);
+        box-shadow: 0 0 0.625rem color-mix(in srgb, var(--_link-hover-color) 55%, transparent);
+        opacity: 1;
+        transform: scaleX(0);
+        transform-origin: right center;
+        transition:
+            transform 0.42s cubic-bezier(0.65, 0, 0.35, 1),
+            background-color 0.2s ease-out,
+            box-shadow 0.2s ease-out;
     }
 
-    & .osole-header-catalog-v1__chevron {
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__item:hover .osole-header-catalog-v1__link::after,
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link:focus-visible::after {
+        transform: scaleX(1);
+        transform-origin: left center;
+    }
+
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link[aria-current]::after,
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__item--open .osole-header-catalog-v1__link::after {
+        transform: scaleX(1);
+    }
+
+    /* El activo conserva su color (el del indicador); al pasarle el mouse toma el de hover como los demás. */
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link[aria-current]::after {
+        background-color: var(--_indicator-color);
+        box-shadow: none;
+    }
+
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__item:hover .osole-header-catalog-v1__link[aria-current]::after {
+        background-color: var(--_link-hover-color);
+        box-shadow: 0 0 0.625rem color-mix(in srgb, var(--_link-hover-color) 55%, transparent);
+    }
+
+    .bmh-header .osole-header-catalog-v1__chevron {
         transition: color 0.2s ease-out;
     }
 
-    & .osole-header-catalog-v1__trigger:hover .osole-header-catalog-v1__chevron {
+    .bmh-header .osole-header-catalog-v1__trigger:hover .osole-header-catalog-v1__chevron {
         color: var(--_link-hover-color);
+    }
+}
+
+@media (width >= 1366px) and (prefers-reduced-motion: reduce) {
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link::after {
+        transition: none;
     }
 }
 
