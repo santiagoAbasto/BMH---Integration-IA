@@ -226,10 +226,59 @@
     .bmh-header .osole-header-catalog-v1__trigger:hover .osole-header-catalog-v1__chevron {
         color: var(--_link-hover-color);
     }
+
+    /* Nosotros y Contacto (barra superior): el mismo hover que los links principales en vez del subrayado de texto de
+       header-catalog. Raya de 2px (la letra es más chica), a 5px del texto. */
+    .bmh-header .osole-header-catalog-v1__topbar-link {
+        position: relative;
+        display: inline-block;
+        transition: color 0.2s ease-out;
+
+        &:is(:hover, [aria-current]) {
+            text-decoration: none;
+        }
+
+        &:hover {
+            color: var(--_link-hover-color);
+        }
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset-inline: 0;
+            inset-block-end: -0.3125rem; /* 5px */
+            block-size: 0.125rem; /* 2px */
+            border-radius: 999px;
+            background-color: var(--_link-hover-color);
+            box-shadow: 0 0 0.5rem color-mix(in srgb, var(--_link-hover-color) 55%, transparent);
+            transform: scaleX(0);
+            transform-origin: right center;
+            transition:
+                transform 0.42s cubic-bezier(0.65, 0, 0.35, 1),
+                background-color 0.2s ease-out,
+                box-shadow 0.2s ease-out;
+            pointer-events: none;
+        }
+
+        &:is(:hover, :focus-visible)::after {
+            transform: scaleX(1);
+            transform-origin: left center;
+        }
+
+        &[aria-current]::after {
+            transform: scaleX(1);
+        }
+
+        &[aria-current]:not(:hover)::after {
+            background-color: var(--_indicator-color);
+            box-shadow: none;
+        }
+    }
 }
 
 @media (width >= 1366px) and (prefers-reduced-motion: reduce) {
-    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link::after {
+    .bmh-header .osole-header-catalog-v1__links .osole-header-catalog-v1__link::after,
+    .bmh-header .osole-header-catalog-v1__topbar-link::after {
         transition: none;
     }
 }
