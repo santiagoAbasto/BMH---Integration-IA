@@ -55,9 +55,9 @@
 :root {
     --osole-header-catalog-bg: var(--bmh-ink-900);
     --osole-header-catalog-scrolled-shadow: 0 0.5rem 1.5rem rgb(5 7 10 / 0.25);
-    /* La barra de arriba (datos, redes, Nosotros | Contacto) con el mismo fondo que el header, sin franja más oscura
-       (pedido del cliente, 20/11/2026). */
-    --osole-header-catalog-topbar-bg: var(--osole-header-catalog-bg);
+    /* La barra de arriba (datos, redes, Nosotros | Contacto): #05070a, un tono más oscuro que el resto del header
+       (#0a0e14), como en el Figma (Header / Página=Nosotros → «Top bar» y «Main»; verificado el 20/11/2026). */
+    --osole-header-catalog-topbar-bg: var(--bmh-ink-950);
     --osole-header-catalog-topbar-color: var(--bmh-text-on-dark);
     --osole-header-catalog-topbar-hover-color: var(--bmh-white);
     --osole-header-catalog-topbar-link-color: var(--bmh-white);
