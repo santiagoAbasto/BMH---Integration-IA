@@ -67,6 +67,7 @@ export function AdvisorPanel({
 
     const handleSend = useCallback((text: string, files: File[]) => void send(text, files), [send]);
     const handleTeach = useCallback((text: string, files: File[]) => void teach(text, files), [teach]);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const handleConfirmProduct = useCallback(
         (messageId: number | string, productId: number) => {
@@ -150,6 +151,23 @@ export function AdvisorPanel({
                 </div>
             )}
 
+            {settings.features.vision && (
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    hidden
+                    onChange={(event) => {
+                        const files = event.target.files ? Array.from(event.target.files) : [];
+                        if (files.length > 0) {
+                            handleSend('', files);
+                        }
+                        event.target.value = '';
+                    }}
+                />
+            )}
+
             <div className="flex min-h-0 flex-1">
                 <div aria-live="polite" className="bmh-scroll min-h-0 flex-1 space-y-4 overflow-y-auto px-3.5 py-4">
                     {empty ? (
@@ -159,6 +177,7 @@ export function AdvisorPanel({
                             hasHistory={recentPurchases.length > 0}
                             greeting={messages[0]?.content ?? null}
                             onPick={(text) => handleSend(text, [])}
+                            onPhoto={() => cameraInputRef.current?.click()}
                         />
                     ) : (
                         messages.map((message) => (
@@ -238,11 +257,12 @@ interface EmptyStateProps {
     hasHistory: boolean;
     greeting: string | null;
     onPick: (text: string) => void;
+    onPhoto: () => void;
 }
 
-function EmptyState({ name, visionEnabled, hasHistory, greeting, onPick }: EmptyStateProps) {
+function EmptyState({ name, visionEnabled, hasHistory, greeting, onPick, onPhoto }: EmptyStateProps) {
     const actions = [
-        visionEnabled && { icon: Camera, label: 'Mandar una foto', hint: 'La analizo y busco la pieza', text: '' },
+        visionEnabled && { icon: Camera, label: 'Mandar una foto', hint: 'La analizo y busco la pieza', photo: true },
         { icon: Tag, label: 'Buscar por código', hint: 'Aunque sea parcial', text: 'Necesito buscar por código' },
         { icon: Search, label: 'Describir una pieza', hint: 'Contame qué es y para qué', text: 'Necesito un rotor' },
         hasHistory && {
@@ -251,7 +271,7 @@ function EmptyState({ name, visionEnabled, hasHistory, greeting, onPick }: Empty
             hint: 'Lo que llevaste antes',
             text: 'Mostrame lo que compré antes',
         },
-    ].filter(Boolean) as { icon: typeof Camera; label: string; hint: string; text: string }[];
+    ].filter(Boolean) as { icon: typeof Camera; label: string; hint: string; text?: string; photo?: boolean }[];
 
     return (
         <div className="py-2">
@@ -265,12 +285,8 @@ function EmptyState({ name, visionEnabled, hasHistory, greeting, onPick }: Empty
                     <li key={action.label}>
                         <button
                             type="button"
-                            disabled={action.text === ''}
-                            onClick={() => onPick(action.text)}
-                            className={clsx(
-                                'flex w-full items-start gap-2.5 rounded-card border border-edge-subtle bg-surface-raised p-2.5 text-left shadow-raised transition-all duration-150 ease-bmh',
-                                action.text === '' ? 'cursor-default opacity-90' : 'hover:border-brand-400 hover:shadow-lifted',
-                            )}
+                            onClick={() => (action.photo ? onPhoto() : onPick(action.text ?? ''))}
+                            className="flex w-full items-start gap-2.5 rounded-card border border-edge-subtle bg-surface-raised p-2.5 text-left shadow-raised transition-all duration-150 ease-bmh hover:border-brand-400 hover:shadow-lifted"
                         >
                             <action.icon aria-hidden className="mt-0.5 h-4.5 w-4.5 shrink-0 text-brand-500" strokeWidth={1.75} />
                             <span className="min-w-0">
