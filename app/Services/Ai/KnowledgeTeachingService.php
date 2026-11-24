@@ -12,10 +12,10 @@ use Illuminate\Support\Str;
 /**
  * Enseñar al asesor CONVERSANDO desde el chat de una cuenta habilitada.
  *
- * Toma el mensaje libre («arr. es lo mismo que inducido o bobina de arranque»),
- * le pide al proveedor que lo ordene en una entrada estructurada y la guarda en
- * la base de conocimiento como PENDIENTE. No la activa para todos: un admin la
- * aprueba desde el panel (ver KnowledgeBaseService y AiLearningController).
+ * Toma el mensaje libre («arr. es lo mismo que inducido…») y, si hay fotos, las
+ * MIRA (Fase 4): el modelo observa los ejemplos —p. ej. dos bobinas con distinto
+ * colector— y redacta la diferencia. Lo ordena en una entrada estructurada y la
+ * guarda PENDIENTE; un admin la aprueba (ver KnowledgeBaseService, AiLearningController).
  */
 final class KnowledgeTeachingService
 {
@@ -24,28 +24,36 @@ final class KnowledgeTeachingService
     }
 
     /**
+     * @param  list<string>  $imagePaths  rutas absolutas a las fotos de ejemplo
      * @return array{entry: ?AiKnowledge, message: string}
      */
-    public function teach(string $message, ?string $imagePath, int $customerId): array
+    public function teach(string $message, array $imagePaths, int $customerId): array
     {
-        $parsed = $this->parse($message);
+        $imagePaths = array_values(array_filter($imagePaths, 'is_file'));
+
+        $parsed = $imagePaths !== []
+            ? $this->parseConImagenes($message, $imagePaths)
+            : $this->parse($message);
 
         if ($parsed === null) {
             return [
                 'entry' => null,
                 'message' => 'Contame con tus palabras qué querés que aprenda y lo anoto. Puede ser una '
                     .'equivalencia («arr es lo mismo que inducido»), una regla del negocio, una nota de un '
-                    .'producto o rubro, o cualquier aclaración. Si en cambio querías buscar una pieza, '
-                    .'salí del modo «Enseñar» y escribime la consulta.',
+                    .'producto o rubro, o cualquier aclaración —y podés mandar fotos para mostrarme una '
+                    .'diferencia. Si en cambio querías buscar una pieza, salí del modo «Enseñar».',
             ];
         }
+
+        $stored = array_values(array_filter(array_map(fn (string $p): ?string => $this->storeImage($p), $imagePaths)));
 
         $entry = AiKnowledge::query()->create([
             'kind' => $parsed['kind'],
             'title' => $parsed['title'],
             'body' => $parsed['body'],
             'synonyms' => $parsed['synonyms'] !== '' ? $parsed['synonyms'] : null,
-            'reference_path' => $this->storeImage($imagePath),
+            'reference_path' => $stored[0] ?? null,
+            'reference_paths' => $stored !== [] ? $stored : null,
             'status' => AiKnowledge::STATUS_PENDING,
             'source' => 'demo_chat',
             'created_by' => $customerId,
@@ -58,28 +66,20 @@ final class KnowledgeTeachingService
             AiKnowledge::KIND_NOTE => 'Nota',
         ][$entry->kind] ?? 'Nota';
 
+        $fotos = count($stored) > 0
+            ? ' Guardé '.count($stored).(count($stored) === 1 ? ' foto' : ' fotos').' de ejemplo.'
+            : '';
+
         return [
             'entry' => $entry,
-            'message' => "Lo anoté para aprenderlo:\n[{$label}] {$entry->title}: {$entry->body}\n"
-                .'Un administrador de BMH lo revisa y, si lo aprueba, lo uso en todas las conversaciones.',
+            'message' => "Lo anoté para aprenderlo:\n[{$label}] {$entry->title}: {$entry->body}".$fotos
+                ."\nUn administrador de BMH lo revisa y, si lo aprueba, lo uso en todas las conversaciones.",
         ];
     }
 
-    /** @return array{kind:string,title:string,body:string,synonyms:string}|null */
+    /** Enseñanza por texto. @return array{kind:string,title:string,body:string,synonyms:string}|null */
     private function parse(string $message): ?array
     {
-        $schema = [
-            'type' => 'object',
-            'properties' => [
-                'is_teaching' => ['type' => 'boolean'],
-                'kind' => ['type' => 'string', 'enum' => ['term', 'rule', 'note']],
-                'title' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
-                'synonyms' => ['type' => 'string'],
-            ],
-            'required' => ['is_teaching', 'kind', 'title', 'body'],
-        ];
-
         $system = <<<'SYS'
             Sos un asistente que ordena lo que el equipo de BMH Bobinajes le enseña a su asesor técnico.
             BMH repara electricidad del automotor: alternadores, arranques, rotores, inducidos, estatores, reguladores, etc.
@@ -104,13 +104,80 @@ final class KnowledgeTeachingService
             SYS;
 
         try {
-            $out = $this->providers->primary()->structuredOutput($message, $schema, ['system' => $system]);
+            $out = $this->providers->primary()->structuredOutput($message, $this->schema(), ['system' => $system]);
         } catch (\Throwable $e) {
             Log::warning('No se pudo interpretar la enseñanza del chat.', ['error' => $e->getMessage()]);
 
             return null;
         }
 
+        return $this->normalizar($out);
+    }
+
+    /**
+     * Enseñanza MIRANDO fotos (Fase 4): el modelo observa los ejemplos y redacta
+     * la diferencia visual para poder reconocerla después.
+     *
+     * @param  list<string>  $imagePaths
+     * @return array{kind:string,title:string,body:string,synonyms:string}|null
+     */
+    private function parseConImagenes(string $message, array $imagePaths): ?array
+    {
+        $system = <<<'SYS'
+            Sos un asistente que ordena lo que el equipo de BMH Bobinajes le enseña a su asesor técnico,
+            MIRANDO las fotos que le mandan. BMH repara electricidad del automotor (alternadores, arranques,
+            rotores, inducidos, estatores, bobinas, colectores, reguladores, etc.).
+
+            La persona te manda una o varias fotos para enseñarte algo VISUAL: normalmente la diferencia entre
+            dos piezas o cómo se ve una característica (por ejemplo, un colector hueco vs. uno macizo). Mirá las
+            fotos y, con lo que diga el mensaje, devolvé is_teaching=true y:
+              - kind: "note" (una diferencia o característica visual es una nota); "term" sólo si es una
+                equivalencia de nombres; "rule" si es un criterio del negocio.
+              - title: un título corto (p. ej. "Bobina: colector hueco vs. macizo").
+              - body: describí CLARO y CONCRETO qué se ve y en qué se diferencian las piezas, con los detalles
+                visibles (forma, orificios, cantidad de algo, color), para poder reconocerlo en otra foto.
+              - synonyms: vacío, salvo que sea un término.
+
+            is_teaching=false sólo si no hay nada que enseñar. No inventes: describí lo que realmente se ve.
+            SYS;
+
+        $prompt = trim($message) !== ''
+            ? 'El equipo te enseña esto con las fotos: '.$message
+            : 'Mirá las fotos y anotá la diferencia o característica que te quieren enseñar.';
+
+        try {
+            $out = $this->providers->primary()->visionJson($imagePaths, $prompt, $this->schema(), ['system' => $system]);
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo interpretar la enseñanza visual del chat.', ['error' => $e->getMessage()]);
+
+            return null;
+        }
+
+        return $this->normalizar($out);
+    }
+
+    /** @return array<string,mixed> */
+    private function schema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'is_teaching' => ['type' => 'boolean'],
+                'kind' => ['type' => 'string', 'enum' => ['term', 'rule', 'note']],
+                'title' => ['type' => 'string'],
+                'body' => ['type' => 'string'],
+                'synonyms' => ['type' => 'string'],
+            ],
+            'required' => ['is_teaching', 'kind', 'title', 'body'],
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $out
+     * @return array{kind:string,title:string,body:string,synonyms:string}|null
+     */
+    private function normalizar(array $out): ?array
+    {
         if (($out['is_teaching'] ?? false) !== true) {
             return null;
         }
@@ -133,9 +200,9 @@ final class KnowledgeTeachingService
         ];
     }
 
-    private function storeImage(?string $imagePath): ?string
+    private function storeImage(string $imagePath): ?string
     {
-        if ($imagePath === null || ! is_file($imagePath)) {
+        if (! is_file($imagePath)) {
             return null;
         }
 

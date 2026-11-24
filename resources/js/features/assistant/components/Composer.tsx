@@ -73,8 +73,9 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend, canTeach 
         }
 
         if (teaching && canUseTeaching) {
-            // Enseñar siempre necesita texto: lo que el modelo ordena en una entrada.
-            if (text.trim() === '') {
+            // Enseñar necesita texto o fotos: con fotos, el modelo las mira y
+            // anota la diferencia aunque el texto sea breve (Fase 4).
+            if (text.trim() === '' && staged.length === 0) {
                 return;
             }
             onTeach!(text, staged.map((s) => s.file));
@@ -264,9 +265,7 @@ export function Composer({ disabled, visionEnabled, maxImages, onSend, canTeach 
                     onClick={submit}
                     disabled={
                         disabled ||
-                        (teaching && canUseTeaching
-                            ? text.trim() === ''
-                            : text.trim() === '' && staged.length === 0)
+                        text.trim() === '' && staged.length === 0
                     }
                     aria-label={teaching && canUseTeaching ? 'Guardar la enseñanza' : 'Enviar'}
                     className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-card bg-brand-500 text-white transition-colors duration-150 ease-bmh hover:bg-brand-600 disabled:bg-edge disabled:text-ink-tertiary"

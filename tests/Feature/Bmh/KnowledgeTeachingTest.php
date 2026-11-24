@@ -10,7 +10,9 @@ use App\Models\User;
 use App\Services\Ai\AiProviderManager;
 use App\Services\Ai\Contracts\AiProviderInterface;
 use App\Services\Ai\KnowledgeBaseService;
+use App\Services\Ai\KnowledgeTeachingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -29,17 +31,23 @@ final class KnowledgeTeachingTest extends TestCase
     /** @var list<string> */
     private array $tables = ['ai_knowledge', 'ai_demo_accounts', 'ai_attachments', 'ai_messages', 'ai_conversations'];
 
+    /** @var list<string> */
+    private array $tmp = [];
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->artisan('migrate', ['--path' => 'database/migrations/2026_11_19_000001_create_ai_knowledge_table.php', '--force' => true])
             ->assertSuccessful();
+        $this->artisan('migrate', ['--path' => 'database/migrations/2026_11_24_000001_add_reference_paths_to_ai_knowledge.php', '--force' => true])
+            ->assertSuccessful();
 
         foreach ($this->tables as $table) {
             DB::connection('mysql_ai')->table($table)->delete();
         }
 
+        Storage::fake('ai_private');
         config(['bmh.assistant_access.mode' => 'allowlist', 'bmh.assistant_access.customer_ids' => []]);
 
         $row = DB::connection('mysql_legacy')->table('users')->where('habilitado', 1)->where('rol', 'cliente')->first();
@@ -49,6 +57,10 @@ final class KnowledgeTeachingTest extends TestCase
 
     protected function tearDown(): void
     {
+        foreach ($this->tmp as $file) {
+            @unlink($file);
+        }
+
         foreach ($this->tables as $table) {
             DB::connection('mysql_ai')->table($table)->delete();
         }
@@ -59,6 +71,28 @@ final class KnowledgeTeachingTest extends TestCase
     private function makeDemo(): void
     {
         AiDemoAccount::query()->create(['customer_id' => (int) $this->customer->id, 'active' => true]);
+    }
+
+    /** @param array<string,mixed> $out */
+    private function mockVision(array $out): void
+    {
+        $provider = $this->createMock(AiProviderInterface::class);
+        $provider->method('isAvailable')->willReturn(true);
+        $provider->method('name')->willReturn('faketest');
+        $provider->method('visionJson')->willReturn($out);
+
+        config(['bmh.features.ai' => true, 'bmh.ai.provider' => 'faketest']);
+        app(AiProviderManager::class)->extend('faketest', $provider);
+    }
+
+    private function tempImage(): string
+    {
+        $im = imagecreatetruecolor(60, 40);
+        imagefilledrectangle($im, 0, 0, 60, 40, imagecolorallocate($im, 190, 120, 60));
+        $path = tempnam(sys_get_temp_dir(), 'kt').'.png';
+        imagepng($im, $path);
+
+        return $this->tmp[] = $path;
     }
 
     /** @param array<string,mixed> $out */
@@ -166,5 +200,40 @@ final class KnowledgeTeachingTest extends TestCase
             ->assertJsonPath('ok', false);
 
         $this->assertSame(0, AiKnowledge::query()->count());
+    }
+
+    public function test_ensenar_con_fotos_mira_las_imagenes_y_guarda_varias(): void
+    {
+        // Fase 4: Marcos manda dos fotos de una bobina para mostrar la diferencia
+        // del colector. El modelo las mira (visionJson) y redacta la nota; se
+        // guardan ambas fotos.
+        $this->mockVision([
+            'is_teaching' => true,
+            'kind' => 'note',
+            'title' => 'Bobina: colector hueco vs. macizo',
+            'body' => 'En la primera el colector tiene un orificio central (hueco); en la segunda es lleno.',
+            'synonyms' => '',
+        ]);
+
+        $result = app(KnowledgeTeachingService::class)->teach(
+            'la diferencia es el colector',
+            [$this->tempImage(), $this->tempImage()],
+            (int) $this->customer->id,
+        );
+
+        $this->assertNotNull($result['entry']);
+
+        $row = $result['entry']->refresh();
+        $this->assertSame('note', $row->kind);
+        $this->assertSame(AiKnowledge::STATUS_PENDING, $row->status);
+        $this->assertNotNull($row->reference_path);
+        $this->assertCount(2, $row->reference_paths ?? []);
+        $this->assertCount(2, $row->imagePaths());
+
+        // Aprobada y activa, aparece como ejemplo visual para el análisis.
+        $row->update(['status' => AiKnowledge::STATUS_APPROVED]);
+        $examples = app(KnowledgeBaseService::class)->visualExamples();
+        $this->assertNotEmpty($examples);
+        $this->assertCount(2, $examples[0]['images']);
     }
 }

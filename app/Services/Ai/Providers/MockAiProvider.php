@@ -105,7 +105,7 @@ final class MockAiProvider implements AiProviderInterface
      * es exactamente el que queremos que tenga el sistema ante una foto
      * ambigua, así que el escenario "foto insuficiente" queda demostrable.
      */
-    public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+    public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
     {
         if (! is_file($imagePath)) {
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
@@ -152,6 +152,13 @@ final class MockAiProvider implements AiProviderInterface
      * Cubre el schema de extracción que usa el orquestador: intención, rubros
      * candidatos, atributos y qué falta.
      */
+    public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
+    {
+        // El mock no "mira" imágenes. Devuelve vacío: enseñar con fotos sin API
+        // real degrada con elegancia (el servicio responde que no entendió).
+        return [];
+    }
+
     public function structuredOutput(string $prompt, array $schema, array $options = []): array
     {
         $hints = $this->categoryHints($prompt);

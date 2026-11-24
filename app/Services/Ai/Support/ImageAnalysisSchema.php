@@ -22,9 +22,9 @@ use App\Services\Ai\DTO\ImageAnalysis;
  */
 final class ImageAnalysisSchema
 {
-    public static function systemPrompt(): string
+    public static function systemPrompt(string $conocimiento = ''): string
     {
-        return <<<'PROMPT'
+        $base = <<<'PROMPT'
         Sos el sistema de visión de BMH Bobinajes, que fabrica y reconstruye
         componentes de electricidad del automotor: alternadores, motores de
         arranque, rotores, inducidos, estatores, reguladores, plaquetas
@@ -180,6 +180,19 @@ final class ImageAnalysisSchema
 
         Respondé sólo con el JSON del esquema.
         PROMPT;
+
+        $conocimiento = trim($conocimiento);
+
+        if ($conocimiento === '') {
+            return $base;
+        }
+
+        // Fase 4: lo que el equipo de BMH enseñó para diferenciar piezas a la vista.
+        return $base."\n\n        ## Diferencias enseñadas por BMH\n\n"
+            ."        El equipo enseñó estas diferencias; si alguna aparece en la foto del cliente, "
+            ."señalala en tu descripción y, cuando corresponda, en `attributes`. Las imágenes marcadas "
+            ."«EJEMPLO ENSEÑADO» son de referencia, NO la pieza del cliente.\n\n"
+            .$conocimiento."\n";
     }
 
     public static function userPrompt(string $context): string

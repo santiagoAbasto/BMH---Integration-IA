@@ -295,7 +295,9 @@ final class ConversationOrchestrator
         }
 
         try {
-            return $provider->analyzeImage($path, $context);
+            // Fase 4: los ejemplos visuales enseñados (fotos + descripción) viajan
+            // con la foto del cliente para que el modelo aplique esa diferencia.
+            return $provider->analyzeImage($path, $context, $this->knowledge->visualExamples());
         } catch (\Throwable $e) {
             Log::warning('bmh.ai.vision.failed', ['exception' => $e::class]);
 

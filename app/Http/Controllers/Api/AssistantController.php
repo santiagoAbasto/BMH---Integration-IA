@@ -630,21 +630,30 @@ final class AssistantController extends Controller
             'attachment_ids.*' => ['integer'],
         ]);
 
-        $imagePath = null;
-        $ids = $data['attachment_ids'] ?? [];
+        // Enseñanza visual (Fase 4): se pasan TODAS las fotos (acotadas), no sólo la
+        // primera, para que el modelo pueda comparar (p. ej. dos bobinas distintas).
+        $imagePaths = [];
+        $ids = array_slice($data['attachment_ids'] ?? [], 0, 4);
 
         if ($ids !== []) {
-            $attachment = AiAttachment::query()
+            $attachments = AiAttachment::query()
                 ->where('conversation_id', $conversation->id)
-                ->find($ids[0]);
+                ->whereIn('id', $ids)
+                ->get();
 
-            if ($attachment !== null && $attachment->path !== null) {
+            foreach ($attachments as $attachment) {
+                if ($attachment->path === null) {
+                    continue;
+                }
+
                 $absolute = Storage::disk($attachment->disk)->path($attachment->path);
-                $imagePath = is_file($absolute) ? $absolute : null;
+                if (is_file($absolute)) {
+                    $imagePaths[] = $absolute;
+                }
             }
         }
 
-        $result = $this->teaching->teach($data['message'], $imagePath, (int) $customer->id);
+        $result = $this->teaching->teach($data['message'], $imagePaths, (int) $customer->id);
 
         return response()->json([
             'ok' => $result['entry'] !== null,

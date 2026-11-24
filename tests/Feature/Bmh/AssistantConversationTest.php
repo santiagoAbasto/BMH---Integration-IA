@@ -802,7 +802,12 @@ final class AssistantConversationTest extends TestCase
                 throw new \RuntimeException('timeout');
             }
 
-            public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+            public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
+            {
+                throw new \RuntimeException('timeout');
+            }
+
+            public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
             {
                 throw new \RuntimeException('timeout');
             }
@@ -870,9 +875,14 @@ final class AssistantConversationTest extends TestCase
                 return $this->inner->chat($messages, $tools, $options);
             }
 
-            public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+            public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
             {
-                return $this->inner->analyzeImage($imagePath, $context);
+                return $this->inner->analyzeImage($imagePath, $context, $examples);
+            }
+
+            public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
+            {
+                return [];
             }
 
             public function structuredOutput(string $prompt, array $schema, array $options = []): array
@@ -1190,9 +1200,14 @@ final class AssistantConversationTest extends TestCase
                 return $this->inner->chat($messages, $tools, $options);
             }
 
-            public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+            public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
             {
-                return $this->inner->analyzeImage($imagePath, $context);
+                return $this->inner->analyzeImage($imagePath, $context, $examples);
+            }
+
+            public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
+            {
+                return [];
             }
 
             public function structuredOutput(string $prompt, array $schema, array $options = []): array
