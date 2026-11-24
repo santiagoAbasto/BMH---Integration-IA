@@ -324,15 +324,17 @@ final class AiLearningController extends Controller
         return back()->with('status', 'Entrada eliminada.');
     }
 
-    public function knowledgeImage(int $entry): BinaryFileResponse
+    public function knowledgeImage(int $entry, int $index = 0): BinaryFileResponse
     {
         $this->adminId();
         $row = AiKnowledge::query()->findOrFail($entry);
         $disk = Storage::disk(config('bmh.attachments.disk', 'ai_private'));
 
-        abort_if($row->reference_path === null || ! $disk->exists($row->reference_path), 404);
+        $path = $row->imagePaths()[$index] ?? null;
 
-        return response()->file($disk->path($row->reference_path));
+        abort_if($path === null || ! $disk->exists($path), 404);
+
+        return response()->file($disk->path($path));
     }
 
     public function toggleRule(int $rule): RedirectResponse

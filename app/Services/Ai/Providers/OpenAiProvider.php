@@ -90,7 +90,7 @@ final class OpenAiProvider implements AiProviderInterface
         );
     }
 
-    public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+    public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
     {
         if (! is_file($imagePath)) {
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
@@ -101,18 +101,24 @@ final class OpenAiProvider implements AiProviderInterface
             (int) config('bmh.vision.analysis_image_max_px', 1600),
         );
 
+        $contenido = [
+            ['type' => 'text', 'text' => ImageAnalysisSchema::userPrompt($context)],
+            ['type' => 'image_url', 'image_url' => [
+                'url' => "data:{$mimeImagen};base64,{$base64}",
+                // Leer texto chico exige detalle alto; 'auto' lo baja.
+                'detail' => 'high',
+            ]],
+        ];
+
+        // Fase 4: las fotos que BMH enseñó van junto a la del cliente, etiquetadas,
+        // y sus descripciones se suman a las instrucciones, para aplicar la diferencia.
+        $conocimiento = $this->adjuntarEjemplos($contenido, $examples);
+
         $payload = [
             'model'    => $this->config['vision_model'],
             'messages' => [
-                ['role' => 'system', 'content' => ImageAnalysisSchema::systemPrompt()],
-                ['role' => 'user', 'content' => [
-                    ['type' => 'text', 'text' => ImageAnalysisSchema::userPrompt($context)],
-                    ['type' => 'image_url', 'image_url' => [
-                        'url' => "data:{$mimeImagen};base64,{$base64}",
-                        // Leer texto chico exige detalle alto; 'auto' lo baja.
-                        'detail' => 'high',
-                    ]],
-                ]],
+                ['role' => 'system', 'content' => ImageAnalysisSchema::systemPrompt($conocimiento)],
+                ['role' => 'user', 'content' => $contenido],
             ],
             'response_format' => [
                 'type'        => 'json_schema',
@@ -218,6 +224,88 @@ final class OpenAiProvider implements AiProviderInterface
                 'detail' => $detail,
             ],
         ];
+    }
+
+    public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
+    {
+        $paths = array_values(array_filter($imagePaths, 'is_file'));
+
+        if ($paths === []) {
+            return [];
+        }
+
+        $contenido = [['type' => 'text', 'text' => $prompt]];
+
+        foreach ($paths as $i => $ruta) {
+            $contenido[] = ['type' => 'text', 'text' => 'IMAGEN '.($i + 1).':'];
+            $contenido[] = $this->imagenComoParte($ruta, (int) config('bmh.vision.analysis_image_max_px', 1600), 'high');
+        }
+
+        $messages = [];
+        if (isset($options['system'])) {
+            $messages[] = ['role' => 'system', 'content' => $options['system']];
+        }
+        $messages[] = ['role' => 'user', 'content' => $contenido];
+
+        $model = (string) ($options['model'] ?? $this->config['vision_model']);
+
+        $result = $this->request('chat/completions', [
+            'model'           => $model,
+            'messages'        => $messages,
+            'response_format' => [
+                'type'        => 'json_schema',
+                'json_schema' => ['name' => 'bmh_vision_json', 'strict' => false, 'schema' => $schema],
+            ],
+            ...$this->temperature(0.0, $model),
+        ]);
+
+        if ($result === null) {
+            return [];
+        }
+
+        [$body] = $result;
+        $decoded = json_decode((string) ($body['choices'][0]['message']['content'] ?? '{}'), true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Suma al contenido las fotos de ejemplo enseñadas (etiquetadas) y devuelve
+     * el texto de sus descripciones para las instrucciones. Acotado para no
+     * inflar la llamada: pocas descripciones y pocas fotos.
+     *
+     * @param  list<array<string,mixed>>  $contenido
+     * @param  list<array{label:string,description:string,images:list<string>}>  $examples
+     */
+    private function adjuntarEjemplos(array &$contenido, array $examples): string
+    {
+        $descripciones = [];
+        $fotos = 0;
+
+        foreach ($examples as $ej) {
+            $label = trim((string) ($ej['label'] ?? ''));
+            $desc = trim((string) ($ej['description'] ?? ''));
+
+            if ($label !== '' || $desc !== '') {
+                $descripciones[] = '- '.($label !== '' ? $label.': ' : '').$desc;
+            }
+
+            foreach ((array) ($ej['images'] ?? []) as $ruta) {
+                if ($fotos >= 4 || ! is_string($ruta) || ! is_file($ruta)) {
+                    continue;
+                }
+
+                $contenido[] = ['type' => 'text', 'text' => 'EJEMPLO ENSEÑADO'.($label !== '' ? ' — '.$label : '').':'];
+                $contenido[] = $this->imagenComoParte($ruta, (int) config('bmh.vision.comparison_image_max_px', 1024), 'high');
+                $fotos++;
+            }
+
+            if (count($descripciones) >= 6) {
+                break;
+            }
+        }
+
+        return implode("\n", $descripciones);
     }
 
     public function structuredOutput(string $prompt, array $schema, array $options = []): array

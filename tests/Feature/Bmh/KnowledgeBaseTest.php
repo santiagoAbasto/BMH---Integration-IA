@@ -29,6 +29,8 @@ final class KnowledgeBaseTest extends TestCase
 
         $this->artisan('migrate', ['--path' => 'database/migrations/2026_11_19_000001_create_ai_knowledge_table.php', '--force' => true])
             ->assertSuccessful();
+        $this->artisan('migrate', ['--path' => 'database/migrations/2026_11_24_000001_add_reference_paths_to_ai_knowledge.php', '--force' => true])
+            ->assertSuccessful();
 
         DB::connection('mysql_ai')->table('ai_knowledge')->delete();
         Storage::fake('ai_private');

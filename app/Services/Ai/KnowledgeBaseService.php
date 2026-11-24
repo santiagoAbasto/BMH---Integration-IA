@@ -6,6 +6,7 @@ namespace App\Services\Ai;
 
 use App\Models\Ai\AiKnowledge;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Arma el bloque de conocimiento que viaja al prompt del modelo.
@@ -96,5 +97,59 @@ final class KnowledgeBaseService
             ."stock y compatibilidades siguen saliendo de las herramientas, y una equivalencia "
             ."que no esté en esta lista no la inventes.\n\n"
             .implode("\n", $lines)."\n";
+    }
+
+    /**
+     * Ejemplos visuales enseñados (Fase 4): entradas aprobadas y activas que
+     * tienen fotos, para pasarlas al análisis de la foto del cliente y que el
+     * modelo aplique la diferencia que le enseñaron.
+     *
+     * @param  list<int>  $categoryIds
+     * @return list<array{label:string,description:string,images:list<string>}>
+     */
+    public function visualExamples(array $categoryIds = [], int $limit = 4): array
+    {
+        $query = AiKnowledge::query()->approved()->active()
+            ->where(static function ($q): void {
+                $q->whereNotNull('reference_path')->orWhereNotNull('reference_paths');
+            });
+
+        if ($categoryIds !== []) {
+            $query->where(static function ($q) use ($categoryIds): void {
+                $q->whereNull('category_id')->orWhereIn('category_id', $categoryIds);
+            });
+        }
+
+        try {
+            $rows = $query->orderByDesc('id')->limit($limit)->get();
+        } catch (\Throwable $e) {
+            Log::warning('No se pudieron leer los ejemplos visuales enseñados.', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+
+        $disk = Storage::disk(config('bmh.attachments.disk', 'ai_private'));
+        $examples = [];
+
+        foreach ($rows as $row) {
+            $images = [];
+            foreach ($row->imagePaths() as $path) {
+                if ($disk->exists($path)) {
+                    $images[] = $disk->path($path);
+                }
+            }
+
+            if ($images === []) {
+                continue;
+            }
+
+            $examples[] = [
+                'label' => (string) $row->title,
+                'description' => (string) $row->body,
+                'images' => $images,
+            ];
+        }
+
+        return $examples;
     }
 }
