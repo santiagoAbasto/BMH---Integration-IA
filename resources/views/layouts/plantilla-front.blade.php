@@ -524,18 +524,19 @@ $cart = Cart::content();
     
     {{--
         Los dos flotantes se excluyen entre sí: la esquina inferior derecha tiene
-        un solo dueño según la zona.
+        un solo dueño.
 
-        · Zona pública  → WhatsApp (el visitante todavía no es cliente).
-        · Zona Clientes → Asesor IA (ya está autenticado, así que el asesor puede
-          cotizarle con su condición comercial).
+        · Cliente o vendedor logueado y habilitado en la beta → Asesor IA.
+        · Cualquier otro (visitante sin sesión, o fuera de la beta) → WhatsApp.
 
-        La zona la define la página con `$zonaclientes`; `shouldRender()` agrega
-        el requisito de una sesión de cliente o vendedor autenticada.
+        El asesor PREVALECE y acompaña al cliente logueado en TODO el sitio —también
+        en las páginas públicas y al recargar—, así no desaparece al navegar. Antes
+        se limitaba a las páginas con `$zonaclientes` y se perdía al salir de la zona.
+        `shouldRender()` ya exige la sesión de cliente/vendedor y el acceso a la beta.
     --}}
-    @php($bmhEnZonaClientes = isset($zonaclientes) && app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
+    @php($bmhMostrarAsesor = app(\App\Services\Ai\AdvisorBootstrap::class)->shouldRender())
 
-    @if ($bmhEnZonaClientes)
+    @if ($bmhMostrarAsesor)
       @include('components.bmh-advisor')
     @else
       @include('components.whatsapp-float')
