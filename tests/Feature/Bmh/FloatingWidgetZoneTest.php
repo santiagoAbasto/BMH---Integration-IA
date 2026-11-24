@@ -9,15 +9,15 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * La esquina inferior derecha tiene un solo dueño según la ZONA.
+ * La esquina inferior derecha tiene un solo dueño según la SESIÓN.
  *
- *   Zona pública  → WhatsApp (el visitante todavía no es cliente).
- *   Zona Clientes → Asesor IA (ya está autenticado y se le puede cotizar).
+ *   Visitante sin sesión, o cliente fuera de la beta → WhatsApp.
+ *   Cliente o vendedor logueado y habilitado         → Asesor IA, en TODO el sitio.
  *
- * El punto fino: la zona la define la PÁGINA, no la sesión. Un cliente logueado
- * que entra a la home o a "Nosotros" está en la zona pública y le corresponde
- * WhatsApp. Por eso la condición mira `$zonaclientes` —la bandera que el propio
- * sitio ya usa— y no sólo `Auth::check()`.
+ * El asesor acompaña al cliente logueado también en las páginas públicas (home,
+ * "Nosotros", catálogo) y al recargar, para que no desaparezca al navegar. La
+ * condición es `shouldRender()` —sesión de cliente/vendedor + acceso a la beta—,
+ * ya no `$zonaclientes`.
  */
 final class FloatingWidgetZoneTest extends TestCase
 {
@@ -70,12 +70,13 @@ final class FloatingWidgetZoneTest extends TestCase
         $this->assertWhatsapp($this->get('/nosotros'));
     }
 
-    public function test_cliente_logueado_en_una_pagina_publica_tambien_ve_whatsapp(): void
+    public function test_cliente_logueado_ve_el_asesor_tambien_en_paginas_publicas(): void
     {
-        // El caso que se escapaba: estar logueado no convierte la home en Zona
-        // de Clientes.
-        $this->assertWhatsapp($this->actingAs($this->customer())->get('/'));
-        $this->assertWhatsapp($this->actingAs($this->customer())->get('/nosotros'));
+        // El asesor acompaña al cliente logueado en todo el sitio: en la home y en
+        // "Nosotros" ve el Asesor IA, no WhatsApp. Así no se pierde al navegar o
+        // recargar y caer en una vista pública.
+        $this->assertAdvisor($this->actingAs($this->customer())->get('/'));
+        $this->assertAdvisor($this->actingAs($this->customer())->get('/nosotros'));
     }
 
     public function test_en_la_zona_de_clientes_ve_el_asesor_y_no_whatsapp(): void
