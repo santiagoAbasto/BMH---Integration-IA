@@ -33,8 +33,10 @@ final class KnowledgeTeachingService
         if ($parsed === null) {
             return [
                 'entry' => null,
-                'message' => 'No me quedó claro qué me querés enseñar. Probá algo como: '
-                    .'«arr. es lo mismo que inducido o bobina de arranque», o contame una regla del negocio.',
+                'message' => 'Contame con tus palabras qué querés que aprenda y lo anoto. Puede ser una '
+                    .'equivalencia («arr es lo mismo que inducido»), una regla del negocio, una nota de un '
+                    .'producto o rubro, o cualquier aclaración. Si en cambio querías buscar una pieza, '
+                    .'salí del modo «Enseñar» y escribime la consulta.',
             ];
         }
 
@@ -81,13 +83,23 @@ final class KnowledgeTeachingService
         $system = <<<'SYS'
             Sos un asistente que ordena lo que el equipo de BMH Bobinajes le enseña a su asesor técnico.
             BMH repara electricidad del automotor: alternadores, arranques, rotores, inducidos, estatores, reguladores, etc.
-            Te llega un mensaje de una persona del equipo. Si está ENSEÑANDO algo —una equivalencia o sinónimo,
-            una regla del negocio, o una nota sobre un rubro o producto— devolvé is_teaching=true y:
-              - kind: "term" para equivalencias/sinónimos; "rule" para reglas; "note" para notas de rubro o producto.
-              - title: un título corto (por ejemplo el término: "arr.").
-              - body: la enseñanza redactada clara y completa, en español.
+
+            Te llega un mensaje de una persona del equipo que le ENSEÑA algo al asesor. Sé GENEROSO: casi
+            cualquier explicación, aclaración, dato, criterio o instrucción sobre el negocio, los productos,
+            los rubros, las marcas o cómo atender es una enseñanza válida. NO le exijas un formato ni que sea
+            "un término"; aceptá lo que te cuente con sus palabras, aunque sea corto o informal.
+
+            Devolvé is_teaching=true y:
+              - kind: "term" SÓLO si es una equivalencia o sinónimo ("X es lo mismo que Y"); "rule" si es una
+                regla o criterio del negocio; "note" para TODO lo demás (una aclaración, un dato, una
+                instrucción, una explicación). Ante la duda, usá "note".
+              - title: un título corto que resuma la enseñanza.
+              - body: la enseñanza redactada clara y completa, en español, con el detalle que haya dado la persona.
               - synonyms: si es un término, los sinónimos separados por coma; si no, cadena vacía.
-            Si el mensaje NO enseña nada (es una pregunta, un pedido de producto, un saludo), devolvé is_teaching=false.
+
+            Devolvé is_teaching=false SÓLO si el mensaje claramente NO enseña nada: un saludo, una pregunta para
+            que el asesor la responda, o un pedido de producto ("necesito un alternador para..."). En cualquier
+            otro caso captalo como enseñanza, con kind="note" si no encaja en term ni rule.
             No inventes nada: usá sólo lo que dice el mensaje.
             SYS;
 
