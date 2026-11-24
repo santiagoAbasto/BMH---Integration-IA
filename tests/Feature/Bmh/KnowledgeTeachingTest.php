@@ -112,6 +112,31 @@ final class KnowledgeTeachingTest extends TestCase
         $this->assertStringContainsString('inducido', app(KnowledgeBaseService::class)->promptSection());
     }
 
+    public function test_una_nota_que_no_es_un_termino_tambien_se_guarda(): void
+    {
+        // El pedido de Marcos: enseñar «otra cosa» que no es un término. Se acepta
+        // como nota, no se exige el formato de equivalencia.
+        $this->makeDemo();
+        $this->mockExtraction([
+            'is_teaching' => true,
+            'kind' => 'note',
+            'title' => 'Alternadores Valeo de esta línea',
+            'body' => 'Los alternadores Valeo de esta línea vienen sin la polea; la polea va aparte.',
+            'synonyms' => '',
+        ]);
+
+        $id = $this->startConversation();
+
+        $this->actingAs($this->customer)
+            ->postJson("/api/assistant/conversations/{$id}/teach", ['message' => 'los valeo de esta línea vienen sin polea'])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $row = AiKnowledge::query()->firstOrFail();
+        $this->assertSame('note', $row->kind);
+        $this->assertSame(AiKnowledge::STATUS_PENDING, $row->status);
+    }
+
     public function test_sin_cuenta_demo_no_puede_ensenar(): void
     {
         // Tiene acceso al asesor por la lista, pero no es cuenta de prueba.
