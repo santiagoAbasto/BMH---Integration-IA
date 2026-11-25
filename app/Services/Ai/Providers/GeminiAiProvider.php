@@ -103,7 +103,7 @@ final class GeminiAiProvider implements AiProviderInterface
         );
     }
 
-    public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis
+    public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis
     {
         if (! is_file($imagePath)) {
             return ImageAnalysis::unusable('No se pudo leer la imagen.');
@@ -230,6 +230,13 @@ final class GeminiAiProvider implements AiProviderInterface
         }
 
         return $convertido;
+    }
+
+    public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array
+    {
+        // Proveedor de respaldo: la enseñanza visual (Fase 4) está implementada
+        // en OpenAI, el proveedor primario. Acá degrada a vacío sin romper.
+        return [];
     }
 
     public function structuredOutput(string $prompt, array $schema, array $options = []): array

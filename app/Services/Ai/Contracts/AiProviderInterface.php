@@ -31,9 +31,26 @@ interface AiProviderInterface
      * Análisis de una imagen. Devuelve características observadas, NUNCA una
      * identificación de catálogo: eso lo decide la aplicación contra la base.
      *
-     * @param string $imagePath ruta absoluta a la versión optimizada
+     * @param  string  $imagePath ruta absoluta a la versión optimizada
+     * @param  list<array{label:string,description:string,images:list<string>}>  $examples
+     *         Conocimiento visual enseñado por BMH: su descripción se suma a las
+     *         instrucciones y sus fotos de ejemplo van junto a la del cliente para
+     *         que el modelo aplique la diferencia (Fase 4).
      */
-    public function analyzeImage(string $imagePath, string $context = ''): ImageAnalysis;
+    public function analyzeImage(string $imagePath, string $context = '', array $examples = []): ImageAnalysis;
+
+    /**
+     * Salida estructurada MIRANDO una o varias imágenes (visión + JSON Schema).
+     *
+     * Se usa al enseñar con fotos: el modelo observa los ejemplos y redacta la
+     * entrada de conocimiento.
+     *
+     * @param  list<string>        $imagePaths rutas absolutas
+     * @param  array<string,mixed> $schema
+     * @param  array<string,mixed> $options    acepta 'system'
+     * @return array<string,mixed>
+     */
+    public function visionJson(array $imagePaths, string $prompt, array $schema, array $options = []): array;
 
     /**
      * Compara la foto del cliente contra varias fotos de catálogo.

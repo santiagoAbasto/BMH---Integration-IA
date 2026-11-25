@@ -61,8 +61,8 @@ Route::middleware(['admin'])
             ->whereNumber('entry')->name('knowledge.reject');
         Route::delete('conocimiento/{entry}', [AiLearningController::class, 'destroyKnowledge'])
             ->whereNumber('entry')->name('knowledge.destroy');
-        Route::get('conocimiento/{entry}/imagen', [AiLearningController::class, 'knowledgeImage'])
-            ->whereNumber('entry')->name('knowledge.image');
+        Route::get('conocimiento/{entry}/imagen/{index?}', [AiLearningController::class, 'knowledgeImage'])
+            ->whereNumber('entry')->whereNumber('index')->name('knowledge.image');
     });
 
 /*

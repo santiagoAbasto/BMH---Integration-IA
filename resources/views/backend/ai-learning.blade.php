@@ -159,7 +159,14 @@
                   <strong>{{ $k->title }}</strong>
                   <div class="ail-muted">{{ \Illuminate\Support\Str::limit($k->body, 140) }}</div>
                   @if ($k->synonyms)<div class="ail-muted">Sinónimos: {{ $k->synonyms }}</div>@endif
-                  @if ($k->reference_path)<div><img class="ail-thumb" src="{{ route('admin.ai-learning.knowledge.image', $k->id) }}" alt="Imagen de la entrada {{ $k->id }}" loading="lazy"></div>@endif
+                  @php $kImgs = $k->imagePaths(); @endphp
+                  @if ($kImgs !== [])
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+                      @foreach ($kImgs as $ki => $kImg)
+                        <img class="ail-thumb" src="{{ route('admin.ai-learning.knowledge.image', ['entry' => $k->id, 'index' => $ki]) }}" alt="Foto {{ $ki + 1 }} de la entrada {{ $k->id }}" loading="lazy">
+                      @endforeach
+                    </div>
+                  @endif
                 </td>
                 <td>
                   @if ($k->category_id)

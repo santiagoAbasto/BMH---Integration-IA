@@ -27,7 +27,7 @@ final class AiKnowledge extends Model
 
     protected $fillable = [
         'kind', 'title', 'body', 'synonyms',
-        'category_id', 'product_id', 'reference_path',
+        'category_id', 'product_id', 'reference_path', 'reference_paths',
         'status', 'source', 'created_by', 'approved_by_admin_id', 'approved_at', 'active',
     ];
 
@@ -38,7 +38,24 @@ final class AiKnowledge extends Model
         'approved_by_admin_id' => 'integer',
         'approved_at' => 'datetime',
         'active' => 'boolean',
+        'reference_paths' => 'array',
     ];
+
+    /**
+     * Todas las fotos de ejemplo (la principal + el resto), sin repetir.
+     *
+     * @return list<string>
+     */
+    public function imagePaths(): array
+    {
+        $paths = $this->reference_paths ?? [];
+
+        if ($this->reference_path !== null) {
+            array_unshift($paths, $this->reference_path);
+        }
+
+        return array_values(array_unique(array_filter($paths)));
+    }
 
     public function scopeApproved(Builder $query): Builder
     {
