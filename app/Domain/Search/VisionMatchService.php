@@ -95,6 +95,24 @@ final class VisionMatchService
         if ($customerImagePath !== null && ! $codigoImpreso) {
             $indexed = $this->candidatesFromCatalogImageIndex($customerImagePath);
 
+            /*
+             * Una imagen que el modelo no pudo leer (ni código ni nombre) y que
+             * sólo se PARECE DE LEJOS a una del catálogo no alcanza para afirmar
+             * nada. Es el caso de una foto del monitor: la huella queda floja y
+             * la comparación visual confunde piezas que se ven casi iguales
+             * (fichas, conectores), devolviendo una equivocada con confianza.
+             * Caso real: una foto de la ficha impo1734 daba "30054" u otro
+             * conector. Sólo se confía en la huella si es CASI IDÉNTICA (una
+             * captura de pantalla real, distancia ~0); si no, se descarta y más
+             * abajo se pide una captura legible (código o nombre a la vista).
+             */
+            if ($indexed !== []
+                && ! $analysis->imageUsable
+                && ! $analysis->hasReliableCode()
+                && ! $this->huellaCasiIdentica($indexed)) {
+                $indexed = [];
+            }
+
             if ($indexed !== []) {
                 $compared = false;
 
