@@ -55,6 +55,7 @@ final class VisionMatchService
         private readonly ProductImageService $images,
         private readonly CatalogFamilyResolver $familias,
         private readonly CatalogImageFingerprintIndex $catalogImageIndex,
+        private readonly CatalogDescriptionEmbeddingIndex $descriptionIndex,
         private readonly ApprovedCorrectionService $corrections,
     ) {
     }
@@ -347,6 +348,29 @@ final class VisionMatchService
                 static fn (Candidate $c): bool => ! isset($ejemplos['paths'][$c->product->id]),
             ));
             $candidates = array_merge(array_slice($resto, 0, 3), $ejemplos['candidates'], array_slice($resto, 3));
+        }
+
+        /*
+         * Búsqueda por DESCRIPCIÓN (embeddings): productos cuya foto se describe
+         * parecido a la del cliente, aunque el rubro se haya resuelto mal. Caso
+         * real: una ficha de 2 pines (IMPO1426) caía en "reguladores" y no
+         * aparecía; por descripción entra igual. Van adelante para que la
+         * comparación visual los mire y el cliente confirme.
+         * ponytail: no cubre el caso de query sin rubro ni atributos (vuelve
+         * "insuficiente" antes); agregar ahí si aparece.
+         */
+        $porDescripcion = $this->candidatesFromDescriptionEmbeddings($analysis);
+
+        if ($porDescripcion !== []) {
+            $yaEstan = array_fill_keys(
+                array_map(static fn (Candidate $c): int => $c->product->id, $candidates),
+                true,
+            );
+            $nuevos = array_values(array_filter(
+                $porDescripcion,
+                static fn (Candidate $c): bool => ! isset($yaEstan[$c->product->id]),
+            ));
+            $candidates = array_merge($nuevos, $candidates);
         }
 
         /*
@@ -1339,6 +1363,46 @@ final class VisionMatchService
             $candidate = new Candidate($product);
             $candidate->addSignal('catalog_image_fingerprint', $weight, $match['strength']);
             $candidate->matchedOn[] = 'coincidencia visual con una imagen del catálogo';
+            $candidates[] = $candidate;
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Candidatos por parecido de DESCRIPCIÓN (embeddings). No es un match duro:
+     * entran al pool para que la comparación visual y el cliente confirmen, sin
+     * aportar piso de confianza por sí solos.
+     *
+     * @return list<Candidate>
+     */
+    private function candidatesFromDescriptionEmbeddings(ImageAnalysis $analysis): array
+    {
+        $matches = $this->descriptionIndex->matches($analysis);
+
+        if ($matches === []) {
+            return [];
+        }
+
+        $products = [];
+
+        foreach ($this->catalog->findMany(array_column($matches, 'product_id')) as $product) {
+            $products[$product->id] = $product;
+        }
+
+        $weight = (float) config('bmh.ranking.weights.catalog_description', 40.0);
+        $candidates = [];
+
+        foreach ($matches as $match) {
+            $product = $products[$match['product_id']] ?? null;
+
+            if ($product === null) {
+                continue;
+            }
+
+            $candidate = new Candidate($product);
+            $candidate->addSignal('catalog_description', $weight, $match['similarity']);
+            $candidate->matchedOn[] = 'parecido con una foto del catálogo';
             $candidates[] = $candidate;
         }
 
