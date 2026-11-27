@@ -11,6 +11,8 @@ use App\Services\Ai\DTO\ImageAnalysis;
 use App\Services\Ai\Providers\OpenAiProvider;
 use App\Services\Ai\Support\ImageAnalysisSchema;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -318,6 +320,75 @@ final class CatalogScreenshotVisionTest extends TestCase
         );
 
         $this->assertNotSame('vision_code', app(VisionMatchService::class)->match($ruido, new SearchQuery())['strategy']);
+    }
+
+    public function test_una_captura_ilegible_con_huella_floja_no_arriesga_un_producto(): void
+    {
+        // Bug real (impo1734): una foto del monitor que el modelo no puede leer
+        // —ni código ni nombre— coincidía DE LEJOS con otra ficha, y la
+        // comparación visual la "confirmaba" porque los conectores se ven casi
+        // iguales. Con huella floja no se arriesga un producto: se pide una
+        // captura legible. Una huella casi idéntica (captura real) sí matchea.
+        $productId = (int) DB::connection('mysql_legacy')->table('productos')->where('estado', 1)->value('id');
+        $this->assertGreaterThan(0, $productId, 'hace falta al menos un producto en el catálogo');
+
+        $im = imagecreatetruecolor(400, 400);
+        imagefill($im, 0, 0, imagecolorallocate($im, 120, 90, 60));
+        imagefilledrectangle($im, 80, 80, 320, 300, imagecolorallocate($im, 30, 30, 40));
+        $ruta = tempnam(sys_get_temp_dir(), 'cust').'.png';
+        imagepng($im, $ruta);
+
+        $index = app(CatalogImageFingerprintIndex::class);
+        $fp = $index->fingerprints($ruta);
+        $flip = static function (string $hash, int $bits): string {
+            for ($i = 0; $i < $bits; $i++) {
+                $hash[$i] = dechex(hexdec($hash[$i]) ^ 1);
+            }
+
+            return $hash;
+        };
+
+        $indexPath = storage_path('app/ai-private/catalog-image-index.json');
+        File::ensureDirectoryExists(dirname($indexPath));
+        $backup = is_file($indexPath) ? file_get_contents($indexPath) : null;
+
+        $write = static function (string $avg, string $diff) use ($indexPath, $productId): void {
+            file_put_contents($indexPath, json_encode([
+                'version' => 2,
+                'generated_at' => now()->toIso8601String(),
+                'entries' => [[
+                    'product_id' => $productId,
+                    'path' => 'media_test.webp',
+                    'average_hash' => $avg,
+                    'difference_hash' => $diff,
+                ]],
+            ], JSON_THROW_ON_ERROR));
+        };
+
+        $ilegible = new ImageAnalysis(
+            partType: null,
+            confidence: 0.0,
+            imageUsable: false,
+            unusableReason: 'No se ve el código ni el nombre del producto.',
+            imageKind: ImageAnalysis::KIND_CATALOG_SCREENSHOT,
+        );
+
+        try {
+            // Huella FLOJA (distancia 8 de 128): no es casi idéntica -> se descarta.
+            $write($flip($fp['average_hash'], 4), $flip($fp['difference_hash'], 4));
+            $flojo = app(VisionMatchService::class)->match($ilegible, new SearchQuery(), null, $ruta);
+            $this->assertSame('unusable_image', $flojo['strategy'], 'una huella floja sobre una imagen ilegible no debe devolver productos');
+            $this->assertSame([], $flojo['candidates']);
+
+            // Huella CASI IDÉNTICA (distancia 0): una captura real sí matchea.
+            $write($fp['average_hash'], $fp['difference_hash']);
+            $fuerte = app(VisionMatchService::class)->match($ilegible, new SearchQuery(), null, $ruta);
+            $this->assertSame('catalog_image_index', $fuerte['strategy']);
+            $this->assertNotEmpty($fuerte['candidates']);
+        } finally {
+            $backup === null ? @unlink($indexPath) : file_put_contents($indexPath, $backup);
+            @unlink($ruta);
+        }
     }
 
     public function test_la_firma_fina_separa_variantes_que_el_hash_no_distingue(): void
