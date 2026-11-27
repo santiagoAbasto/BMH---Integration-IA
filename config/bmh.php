@@ -166,6 +166,17 @@ return [
             'max_distance_per_hash' => (int) env('AI_CATALOG_IMAGE_MAX_DISTANCE_PER_HASH', 9),
             'limit' => (int) env('AI_CATALOG_IMAGE_LIMIT', 8),
         ],
+
+        // Búsqueda por descripción (embeddings): la foto se describe y se busca
+        // la descripción más parecida del catálogo, sin depender del rubro. El
+        // piso de similitud es bajo a propósito (la escala de coseno de
+        // text-embedding-3 se afina midiendo); el top-K y la comparación visual
+        // desempatan. Requiere construir el índice: bmh:index-catalog-descriptions.
+        'catalog_description_index' => [
+            'enabled' => env('AI_CATALOG_DESCRIPTION_INDEX_ENABLED', true),
+            'limit' => (int) env('AI_CATALOG_DESCRIPTION_LIMIT', 6),
+            'min_similarity' => (float) env('AI_CATALOG_DESCRIPTION_MIN_SIMILARITY', 0.35),
+        ],
     ],
 
     // En cPanel el document root puede ser public_html y el código vivir en
@@ -196,6 +207,7 @@ return [
             'semantic_similarity' => 4.0,
             'vision_similarity' => 3.0,   // deliberadamente bajo
             'catalog_image_fingerprint' => 60.0, // foto casi idéntica; siempre se confirma
+            'catalog_description' => 40.0, // parecido de descripción (embeddings); hace aparecer la pieza, la confirma la comparación visual
             'taught_example' => 0.0, // foto real enseñada para un producto del mismo rubro: sólo lo hace aparecer; sube si la comparación visual lo confirma
             'catalog_title' => 55.0, // título impreso en la imagen que identifica <= 3 productos; se confirma
             'customer_history' => 7.0,
